@@ -49,10 +49,10 @@
           </d-tooltip>
           <div 
             class="thread-label-item"
-            :class="[{ 'has-threads-box': lane.thread.threadName.includes('AIV_') || lane.thread.threadName.includes('AIC_') || lane.thread.parentTid !== undefined }]"
+            :class="[{ 'has-threads-box': isCoreThread(lane.thread.threadName) || lane.thread.parentTid !== undefined || isAicpuThread(lane.thread.threadName) }]"
             :style="{ height: lane.height + 'px' }"
           >
-            {{ lane.thread.threadName }}
+            {{ getDisplayThreadName(lane.thread) }}
             <div class="fake-core-tip" v-if="lane.thread.threadName.includes('Fake')">
               <d-tooltip :content="$t('FakeCoreTip')">
                 <d-icon name="helping" size="16px"></d-icon>
@@ -61,7 +61,7 @@
           </div>
           <div 
             class="threads-box" 
-            v-if="isPrefProcess || isAicpuProcess || lane.thread.threadName.includes('AIV_') || lane.thread.threadName.includes('AIC_') || lane.thread.parentTid !== undefined" 
+            v-if="isPrefProcess || isAicpuProcess || isCoreThread(lane.thread.threadName) || lane.thread.parentTid !== undefined || isAicpuThread(lane.thread.threadName)" 
             :style="{'--thread-fill-width': threadFillWidth(lane.thread.tid, selectedOption) + '%', '--thread-fill-width-complement': (100 - threadFillWidth(lane.thread.tid, selectedOption)) + '%', 
             }"
           >
@@ -138,13 +138,13 @@
             >
               <!-- Column 3: Thread name -->
               <div class="thread-name">
-                {{ threadEntry[1].threadName }}
+                {{ getDisplayThreadName(threadEntry[1]) }}
               </div>
               
               <!-- Column 4: Threads box -->
               <div 
                 class="threads-box"
-                v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')"
+                v-if="isPrefProcess || isAicpuProcess || isCoreThread(threadEntry[1].threadName) || isAicpuThread(threadEntry[1].threadName)"
                 :style="{
                   '--thread-fill-width': threadFillWidth(threadEntry[1].tid, selectedOption) + '%',
                   '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].tid, selectedOption)) + '%'
@@ -208,10 +208,10 @@
           
           <div
             class="thread-label-item"
-            :class="[{ 'has-threads-box': threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')}]"
+            :class="[{ 'has-threads-box': isCoreThread(threadEntry[1].threadName) || isAicpuThread(threadEntry[1].threadName) }]"
             :style="{ height: getThreadHeight(processKey, threadEntry[1].tid, lane2line, layout, threadEntry[1].isCounter) + 'px' }"
           >
-            {{ threadEntry[1].threadName }}
+            {{ getDisplayThreadName(threadEntry[1]) }}
             <div class="fake-core-tip" v-if="threadEntry[1].threadName.includes('Fake')">
               <d-tooltip :content="$t('FakeCoreTip')">
                 <d-icon name="helping" size="16px"></d-icon>
@@ -221,7 +221,7 @@
           
           <div
             class="threads-box"
-            v-if="isPrefProcess || isAicpuProcess || threadEntry[1].threadName.includes('AIV_') || threadEntry[1].threadName.includes('AIC_')"
+            v-if="isPrefProcess || isAicpuProcess || isCoreThread(threadEntry[1].threadName) || isAicpuThread(threadEntry[1].threadName)"
             :style="{
               '--thread-fill-width': threadFillWidth(threadEntry[1].tid, selectedOption) + '%',
               '--thread-fill-width-complement': (100 - threadFillWidth(threadEntry[1].tid, selectedOption)) + '%'
@@ -240,7 +240,7 @@
 <script setup>
 import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getThreadHeight } from '../swimGraphUtils';
+import { getThreadHeight, getDisplayThreadName } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
 
 const { t: $t } = useI18n();
@@ -318,6 +318,13 @@ const isAicpuProcess = computed(() => {
   return false;
 });
 
+const isAicpuThread = (threadName) => {
+  return threadName.includes('AICPU-CTRL') || threadName.includes('AICPU-SCHED');
+};
+const isCoreThread = (threadName) => {
+  return threadName.includes('AIV_') || threadName.includes('AIC_') || threadName.includes('AIV-') || threadName.includes('AIC-');
+};
+
 const isPrefProcess = computed(() => {
   const process = swimDataManager.getProcess(props.processKey);
   if (process) {
@@ -392,7 +399,7 @@ const calculateThreadCycles = (allProcesses, proKey) => {
     let totleCycles = 0n;
     let icacheMiss = 0n;
     let icacheReq = 0n;
-    if (thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_') || thread.parentTid !== undefined) {
+    if (isCoreThread(thread.threadName) || thread.parentTid !== undefined) {
       for (const eventId of thread.eventIds) {
         const event = swimDataManager.getEventById(eventId);
         if (!event['pmu_info'] || Object.keys(event['pmu_info']).length === 0) {
@@ -429,7 +436,7 @@ const calculateThreadTask = (allProcesses, proKey) => {
   
   for (const [threadKey, thread] of threads) {
     const typeValided = isPrefProcess.value || isAicpuProcess.value;
-    const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
+    const nameValided = isCoreThread(thread.threadName) || isAicpuThread(thread.threadName);
     const isSplitThread = thread.parentTid !== undefined;
     if (typeValided || nameValided || isSplitThread) {
       threadTaskMap.set(thread.tid, thread.eventIds.length);
@@ -455,7 +462,7 @@ const calculateThreadUtilization = (allProcesses, proKey) => {
   let eventTime = 0;
   for (const [threadKey, thread] of threads) {
     const typeValided = isPrefProcess.value || isAicpuProcess.value;
-    const nameValided = thread.threadName.includes('AIV_') || thread.threadName.includes('AIC_');
+    const nameValided = isCoreThread(thread.threadName) || isAicpuThread(thread.threadName);
     const isSplitThread = thread.parentTid !== undefined;
     if (typeValided || nameValided || isSplitThread) {
       for (const eventId of thread.eventIds) {
@@ -474,9 +481,56 @@ const calculateThreadUtilization = (allProcesses, proKey) => {
   return threadUtilizationMap;
 };
 
+const calculateThreadExecUtilization = (allProcesses, proKey) => {
+  const threadExecUtilizationMap = new Map();
+  const currentProcess = allProcesses.get(proKey);
+  const { threads = new Map() } = currentProcess || {};
+  
+  for (const [threadKey, thread] of threads) {
+    let utilization = '0';
+    const { threadName } = thread;
+
+    if (threadName === 'AICPU-CTRL-0') {
+      utilization = '0';
+    }
+    else if (threadName.startsWith('AICPU-SCHED-')) {
+      let totalExecTime = 0;
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
+        if (event && event.name && event.name.startsWith('DEV_TASK_SCHED_EXEC')) {
+          totalExecTime += event.endTime - event.startTime;
+        }
+      }
+      if (viewState.timeRange !== 0) {
+        utilization = ((totalExecTime / viewState.timeRange) * 100).toFixed(0);
+      }
+    }
+    else if (threadName.includes('Fake Core_0')) {
+      continue;
+    }
+    else if (threadName.startsWith('AIC_') || threadName.startsWith('AIV_')) {
+      let totalEventTime = 0;
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
+        if (event && !event.originalThreadName) {
+          totalEventTime += event.endTime - event.startTime;
+        }
+      }
+      if (viewState.timeRange !== 0) {
+        utilization = ((totalEventTime / viewState.timeRange) * 100).toFixed(0);
+      }
+    } else { }
+    if (!threadExecUtilizationMap.has(thread.tid)) {
+      threadExecUtilizationMap.set(thread.tid, utilization);
+    }
+  }
+  return threadExecUtilizationMap;
+};
+
 const [threadCyclesMap, threadCacheHitMap] = calculateThreadCycles(swimDataManager.getAllProcesses(), props.processKey);
 const threadTaskMap = calculateThreadTask(swimDataManager.getAllProcesses(), props.processKey);
 const threadUtilizationMap = calculateThreadUtilization(swimDataManager.getAllProcesses(), props.processKey);
+const threadExecUtilizationMap = calculateThreadExecUtilization(swimDataManager.getAllProcesses(), props.processKey);
 
 const getBackground = (threadId, option) => {
   let values;
@@ -498,6 +552,16 @@ const getBackground = (threadId, option) => {
     } else {
       return 'var(--devui-timebar-bg)';
     }
+  } else if (option === 'execUtilization' && threadExecUtilizationMap) {
+    utilization = threadExecUtilizationMap.get(threadId);
+    if (utilization !== undefined) {
+      if (utilization < 50 || utilization === 50) {
+        return 'var(--devui-timefull-bg)';
+      } else {
+        return 'var(--devui-timebar-bg)';
+      }
+    }
+    return 'var(--devui-timebar-bg)';
   } else if (option === 'cacheHit' && threadCacheHitMap) {
     values = Array.from(threadCacheHitMap.values()).map(value => Number(value));
     if (values.every((value, _, arr) => value === arr[0])) {
@@ -516,6 +580,9 @@ const threadTotaltime = (threadId, option) => {
     return threadTaskMap.get(threadId);
   } else if (option === 'utilization' && threadUtilizationMap) {
     return threadUtilizationMap.get(threadId) + '%';
+  } else if (option === 'execUtilization' && threadExecUtilizationMap) {
+    const execUtil = threadExecUtilizationMap.get(threadId);
+    return execUtil !== undefined ? execUtil + '%' : '0%';
   } else if (option === 'cacheHit' && threadCacheHitMap) {
     const hitRate = threadCacheHitMap.get(threadId);
     if (hitRate) {
@@ -547,6 +614,10 @@ const threadFillWidth = (threadId, option) => {
   } else if (option === 'utilization' && threadUtilizationMap) {
     averageValue.value = 50;
     return (threadUtilizationMap.get(threadId));
+  } else if (option === 'execUtilization' && threadExecUtilizationMap) {
+    averageValue.value = 50;
+    const execUtil = threadExecUtilizationMap.get(threadId);
+    return execUtil !== undefined ? Number(execUtil) : 0;
   } else if (option === 'cacheHit' && threadCacheHitMap) {
     const currenThreadHit = Number(threadCacheHitMap.get(threadId));
     let maxThreadHit = 0;

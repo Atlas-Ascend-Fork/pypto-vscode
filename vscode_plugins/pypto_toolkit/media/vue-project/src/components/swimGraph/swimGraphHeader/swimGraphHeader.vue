@@ -105,7 +105,7 @@
 <script setup>
 import { ref, inject, computed, watch, onMounted, provide, nextTick, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { devicePixelRatio, getThreadHeight, getThreadStartY } from '../swimGraphUtils';
+import { devicePixelRatio, getThreadHeight, getThreadStartY, getDisplayThreadName } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
 import { canvasPool } from '../render/canvasPool';
 import SwimGraphBarChart from '../swimGraphBarChart/swimGraphBarChart.vue';
@@ -411,7 +411,7 @@ function drawGroupThreadLabels(ctx, groupThreads, startY, processKey, layoutConf
   for (const pt of groupThreads) {
     const threadHeight = getThreadHeight(processKey, pt.thread.tid, lane2line, layout, pt.thread.isCounter);
     ctx.fillStyle = colors.textColor;
-    ctx.fillText(pt.thread.threadName, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH + 8, threadY + (threadHeight / 2));
+    ctx.fillText(getDisplayThreadName(pt.thread), PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH + 8, threadY + (threadHeight / 2));
     drawSeparator(ctx, PIN_COLUMN_WIDTH + GROUP_COLUMN_WIDTH, threadY + threadHeight, processLabelWidth, threadY + threadHeight, colors.lineColor);
     threadY += threadHeight;
   }
@@ -434,7 +434,7 @@ function drawSingleThreadLabel(ctx, thread, startY, height, processLabelWidth, h
   ctx.fillStyle = colors.textColor;
   const textStartX = PIN_COLUMN_WIDTH + 8;
   const maxTextWidth = processLabelWidth - textStartX - 10;
-  const labelText = thread.threadName || thread.tid;
+  const labelText = getDisplayThreadName(thread) || thread.tid;
   drawTruncatedText(ctx, labelText, textStartX, startY + (height / 2), maxTextWidth);
   drawSeparator(ctx, 0, startY + height, processLabelWidth, startY + height, colors.lineColor);
 }
@@ -705,7 +705,7 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
         }
         
         ctx.fillStyle = colors.textColor;
-        const labelText = thread.threadName || thread.tid;
+        const labelText = getDisplayThreadName(thread) || thread.tid;
         drawTruncatedText(ctx, labelText, 36, labelY + (tHeight / 2), processLabelWidth - 36 - 10);
         
         drawSeparator(ctx, 0, labelY + tHeight, processLabelWidth, labelY + tHeight, colors.lineColor);
@@ -775,7 +775,7 @@ function drawThreadLabels(ctx, process, processKey, startY, contentHeight) {
       }
       
       ctx.fillStyle = colors.textColor;
-      const labelText = thread.threadName || thread.tid;
+      const labelText = getDisplayThreadName(thread) || thread.tid;
       drawTruncatedText(ctx, labelText, 36, labelY + (tHeight / 2), processLabelWidth - 36 - 10);
       
       drawSeparator(ctx, 0, labelY + tHeight, processLabelWidth, labelY + tHeight, colors.lineColor);

@@ -228,8 +228,8 @@ const scheduleGraphData = () => {
   }
 
   for (const [key, value] of aicpuScheduleMaps.value.entries()) {
-    const aicMatch = key.match(/^SCHED(?<group>\d+)-AIC-(?<number>\d+)$/);
-    const aivMatch = key.match(/^SCHED(?<group>\d+)-AIV-(?<number>\d+)$/);
+    const aicMatch = key.match(/^SCHED(?<group>\d+)-AIC-(?<number>\d+)$/) || key.match(/^AIC-(?<number>\d+)-SCHED(?<group>\d+)$/);
+    const aivMatch = key.match(/^SCHED(?<group>\d+)-AIV-(?<number>\d+)$/) || key.match(/^AIV-(?<number>\d+)-SCHED(?<group>\d+)$/);
 
     if (aicMatch) {
       const groupNumber = aicMatch.groups.group;

@@ -66,7 +66,7 @@
 
         <div class="cfg-section" v-if="showKernelConfig">
             <div class="cfg-line"></div>
-            <div class="cfg-section-title">{{ $t('kernelConfig') }}</div>
+            <div class="cfg-section-title">{{ isDeviceView ? $t('deviceConfig') : $t('kernelConfig') }}</div>
             <div class="cfg-Shading-mode">
                 <div class="cfg-Shading-mode-t">{{ $t('shadingMode') }} </div>
                 <d-select v-model="kernelModeOption" :options="kernelModeOptions" :disabled="isMsProf" size="sm" @update:modelValue="OnKernelModeChange"></d-select>
@@ -104,6 +104,7 @@ const {
     isPathLockStatus,
     isAicpu,
     isE2ESwim,
+    isDeviceView,
     isPerfSwim,
     isMsProf,
     isMixMode,
@@ -317,6 +318,9 @@ function savePerfRendingMode(colorRenderMode) {
 const updateKernelEvents = (mode, hashOrderOption) => {
     const {startTime, endTime} = timelineState;
     const updateEventColors = (event) => {
+        if (event.originalThreadName) {
+          return;
+        }
         if (!event.isCounter && event.endTime >= startTime && event.startTime <= endTime) {
             const color = getEventColorByMode(event, mode, 'kernel', hashOrderOption);
             event.color = color;

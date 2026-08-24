@@ -92,6 +92,20 @@ export const nodeSpaceMin = 58;
 export const FAKE_CORE_KEYWORD = 'Fake Core';
 export const threadCache = new Map<string, { height: number; startY: number }>();
 
+export const getEffectiveThreadName = (event: any): string => {
+  return event.originalThreadName || event.threadName;
+};
+
+export const getEffectiveThreadNameForThread = (thread: any): string => {
+  if (thread._originalThreadName) return thread._originalThreadName;
+  return thread.threadName;
+};
+
+export const getDisplayThreadName = (thread: any): string => {
+  if (thread._mergedFromThreadName) return thread._mergedFromThreadName;
+  return thread.threadName;
+};
+
 // mix模式下wrap Label信息
 const wrapLabelCache = new Map();
 
@@ -470,47 +484,111 @@ export const findSchedTaskByNo = (taskNo, roundNo, processKey: string) => {
   const processInfo = swimDataManager.getProcess(processKey);
   processInfo.threads.forEach((thread, key) => {
     if (!thread?.eventIds || !thread?.threadName) return;
-    if (!thread.threadName.includes('AICPU-SCHED')) {
+    const threadName = getEffectiveThreadNameForThread(thread);
+    if (!threadName.includes('AICPU-SCHED')) {
       return;
     }
-    const threadGetKey = processKey + "-" + thread.tid;
-    const events = swimDataManager.getEventsByThread(processKey, threadGetKey);
+    const events = swimDataManager.getEventsByIds(thread.eventIds);
     const hasMatchingEvent = events.some(event => event?.name === eventPattern);
     if (hasMatchingEvent) {
-      scheduleList.push(thread.threadName);
+      scheduleList.push(threadName);
     }
   });
   return scheduleList;
 };
 // 调度情况图使用接口
-export const findSchedGraphMap = (threads, roundNo, taskNo) => {
-  const threadMap = new Map();
-  for (const [threadKey, thread] of threads.entries()) {
-    if (thread.isCounter) {
-      continue;
+const collectMergedCoreEventsFromThread = (thread, mergedCoreEvents) => {
+  const threadName = thread.threadName;
+  if (!(threadName.includes('AIC_') || threadName.includes('AIV_') || threadName.includes('AIC-') || threadName.includes('AIV-'))) {
+    return;
+  }
+  const schedCorePattern = /^(SCHED\d+-(AIC|AIV)-\d+|(AIC|AIV)-\d+-SCHED\d+)$/;
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (!event?.originalThreadName) continue;
+    const origName = event.originalThreadName;
+    if (!schedCorePattern.test(origName)) continue;
+    if (!mergedCoreEvents.has(origName)) {
+      mergedCoreEvents.set(origName, []);
     }
-    const { threadName } = thread;
+    mergedCoreEvents.get(origName).push(eventId);
+  }
+};
+
+export const findSchedGraphMap = (threads, roundNo, taskNo, clickedEvent) => {
+  const threadMap = new Map();
+  const mergedCoreEvents = new Map<string, string[]>();
+  
+  for (const [, thread] of threads.entries()) {
+    if (thread.isCounter) continue;
+    const threadName = getEffectiveThreadNameForThread(thread);
     let eventArr = [];
     const isCtrl = threadName.includes('AICPU-CTRL');
     const isSched = threadName.includes('AICPU-SCHED');
-    const isCore = threadName.includes('-AIC-') || threadName.includes('-AIV-');
+    const isCore = !thread._originalThreadName && (threadName.includes('-AIC-') || threadName.includes('-AIV-'));
+    
     if (isCtrl) {
       eventArr = [];
     } else if (isSched) {
       threadMap.set(threadName, []);
       eventArr = findBuildSchedEvent(thread, roundNo, taskNo);
     } else if (isCore) {
-       threadMap.set(threadName, []);
+      threadMap.set(threadName, []);
       eventArr = findBuildCoreEvent(thread.eventIds, roundNo, taskNo, threadMap);
     } else {
-      eventArr = [];
+      collectMergedCoreEventsFromThread(thread, mergedCoreEvents);
     }
     if (eventArr.length > 0) {
       threadMap.set(threadName, eventArr);
     }
   }
+
+  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
+    const eventArr = findBuildCoreEvent(eventIds, roundNo, taskNo, threadMap);
+    threadMap.set(origThreadName, eventArr);
+    if (eventArr.length === 0) {
+      const fallbackEvents = findFallbackKernelEvents(eventIds, clickedEvent);
+      if (fallbackEvents.length > 0) {
+        threadMap.set(origThreadName, fallbackEvents);
+      }
+    }
+  }
+
   return threadMap;
 }
+
+const collectFilteredMergedCoreEvents = (thread, threadName, mergedCoreEvents, shouldInclude, getKey) => {
+  if (!threadName.includes('AIC_') && !threadName.includes('AIV_') && !threadName.includes('AIC-') && !threadName.includes('AIV-')) {
+    return;
+  }
+  for (const eventId of thread.eventIds) {
+    const evt = swimDataManager.getEventById(eventId);
+    if (!evt?.originalThreadName) { continue; }
+    const origName = evt.originalThreadName;
+    if (!shouldInclude(origName)) { continue; }
+    const key = getKey(origName);
+    if (!mergedCoreEvents.has(key)) {
+      mergedCoreEvents.set(key, []);
+    }
+    mergedCoreEvents.get(key).push(eventId);
+  }
+};
+
+const findFallbackKernelEvents = (eventIds, clickedEvent) => {
+  if (!eventIds || eventIds.length === 0 || !clickedEvent) return [];
+  const { startTime, endTime } = clickedEvent;
+  const thread = swimDataManager.getThreadByEvent(eventIds[0]);
+  if (!thread) return [];
+  const result = [];
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (!event || event.originalThreadName) continue;
+    if (event.startTime <= endTime && event.endTime >= startTime) {
+      result.push(event);
+    }
+  }
+  return result;
+};
 
 // 获取ctrl类的map
 export const findSchedCoreMapByNo = (event, threads) => {
@@ -519,15 +597,19 @@ export const findSchedCoreMapByNo = (event, threads) => {
   const { roundNo, taskNo } = parseSuffixNumbers(name);
   const devTaskBuildKey = `DEV_TASK_BUILD_${roundNo}(${taskNo})`;
   const hasDevTaskBuild = name.includes(devTaskBuildKey);
+  
+  // 收集合并后的核心事件（按 originalThreadName 分组）
+  const mergedCoreEvents = new Map<string, string[]>();
+  
   for (const [threadKey, thread] of threads.entries()) {
     if (thread.isCounter) {
       continue;
     }
-    const { threadName } = thread;
+    const threadName = getEffectiveThreadNameForThread(thread);
     let eventArr = [];
     const isCtrl = threadName.includes('AICPU-CTRL');
     const isSched = threadName.includes('AICPU-SCHED');
-    const isCore = threadName.includes('-AIC-') || threadName.includes('-AIV-');
+    const isCore = (thread._originalThreadName ? false : (threadName.includes('-AIC-') || threadName.includes('-AIV-')));
     if (isCtrl) {
       eventArr = [event];
     } else if (isSched && hasDevTaskBuild ) {
@@ -535,12 +617,31 @@ export const findSchedCoreMapByNo = (event, threads) => {
     } else if (isCore) {
       eventArr = findBuildCoreEvent(thread.eventIds, roundNo, taskNo, threadMap);
     } else {
+      collectFilteredMergedCoreEvents(
+        thread, threadName, mergedCoreEvents,
+        (origName) => /^(SCHED\d+-(AIC|AIV)-\d+|(AIC|AIV)-\d+-SCHED\d+)$/.test(origName),
+        (origName) => origName
+      );
       eventArr = [];
     }
     if (eventArr.length > 0) {
       threadMap.set(threadName, eventArr);
     }
   }
+
+  // 处理合并后的核心事件
+  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
+    const eventArr = findBuildCoreEvent(eventIds, roundNo, taskNo, threadMap);
+    if (eventArr.length > 0) {
+      threadMap.set(origThreadName, eventArr);
+    } else {
+      const fallbackEvents = findFallbackKernelEvents(eventIds, event);
+      if (fallbackEvents.length > 0) {
+        threadMap.set(origThreadName, fallbackEvents);
+      }
+    }
+  }
+
   return threadMap;
 };
 // 通过ctrl类的map获取events
@@ -558,33 +659,58 @@ export const findSchedMapByNo = ({roundNo, taskNo, schedNo}, currentEventName, t
   const { id } = event;
   const threadMap = new Map();
   const isSchedEventRange = checkSchedEventRange(currentEventName);  // 是否在SCHED范围
-  const pattern = new RegExp(`SCHED${schedNo}-AI[C|V]-`);
+  const pattern = new RegExp(`(SCHED${schedNo}-AI[C|V]-|AI[C|V]-\\d+-SCHED${schedNo})`);
   const schedStr = `AICPU-SCHED-${schedNo}`;
   if (!taskNo) {
     taskNo = getTaskNo(schedStr, id, threads);
   }
+  
+  // 收集合并后的核心事件（按 originalThreadName 分组）
+  const mergedCoreEvents = new Map<string, string[]>();
+  
   for (const [threadKey, thread] of threads.entries()) {
     if (thread.isCounter) {
       continue;
     }
-    const { threadName } = thread;
+    const threadName = getEffectiveThreadNameForThread(thread);
     let eventArr = [];
     const isCtrl = threadName.includes('AICPU-CTRL');
     const isSched = threadName.includes('AICPU-SCHED');
+    const isOrigCore = !thread._originalThreadName && (threadName.includes('-AIC-') || threadName.includes('-AIV-'));
     if (isCtrl) {
       eventArr = findCtrlEvent(thread, roundNo, taskNo, isSchedEventRange);
     } else if (isSched && threadName === schedStr) {
       eventArr = findSchedEvent(thread, roundNo, taskNo, isSchedEventRange, currentEventName);
-    } else if (pattern.test(threadName)) {
+    } else if (isOrigCore && pattern.test(threadName)) {
       const schedThread = threadMap.get(schedStr);
       eventArr = findCoreEvent(thread.eventIds, currentEventName, roundNo, taskNo, schedThread);
     } else {
+      collectFilteredMergedCoreEvents(
+        thread, threadName, mergedCoreEvents,
+        (origName) => pattern.test(origName),
+        (origName) => origName
+      );
       eventArr = [];
     }
     if (eventArr.length > 0) {
       threadMap.set(threadName, eventArr);
     }
   }
+
+  // 处理合并后的核心事件
+  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
+    const schedThread = threadMap.get(schedStr);
+    const eventArr = findCoreEvent(eventIds, currentEventName, roundNo, taskNo, schedThread);
+    if (eventArr.length > 0) {
+      threadMap.set(origThreadName, eventArr);
+    } else {
+      const fallbackEvents = findFallbackKernelEvents(eventIds, event);
+      if (fallbackEvents.length > 0) {
+        threadMap.set(origThreadName, fallbackEvents);
+      }
+    }
+  }
+  
   return threadMap;
 };
 // 通过SCHED类的map获取events
@@ -605,29 +731,54 @@ export const findCoreMapByNo = (schedNo, threadNameInfo, event, threads) => {
   const { roundNo, taskNo } = result;
   const isCoreEventRange = checkCoreEventRange(name);   // 是否在CORE范围
   const schedStr = `AICPU-SCHED-${schedNo}`;
+  
+  // 收集合并后的核心事件（按 originalThreadName 分组）
+  const mergedCoreEvents = new Map<string, string[]>();
+  
   for (const [threadKey, thread] of threads.entries()) {
     if (thread.isCounter) {
       continue;
     }
-    const { threadName } = thread;
+    const threadName = getEffectiveThreadNameForThread(thread);
     let eventArr = [];
     const isCtrl = threadName.includes('AICPU-CTRL');
     const isSched = threadName.includes('AICPU-SCHED');
+    const isOrigCore = !thread._originalThreadName && (threadName === threadNameInfo);
     if (isCtrl && isCoreEventRange) {
       eventArr = findCtrlEvent(thread, roundNo, taskNo, isCoreEventRange);
     } else if (isSched && threadName === schedStr && isCoreEventRange) {
       const coreRelationSched = getCoreRelationEvent(roundNo, taskNo, name);   // 有没有影射任务
       eventArr = coreRelationSched ? findSchedEvent(thread, roundNo, taskNo, isCoreEventRange, coreRelationSched) : [];
-    } else if (threadName === threadNameInfo) {
+    } else if (isOrigCore) {
       const schedThread = threadMap.get(schedStr);
       eventArr = schedThread?.length > 0 ? findCoreEvent(thread.eventIds, name, roundNo, taskNo, schedThread) : [event];
     } else {
+      collectFilteredMergedCoreEvents(
+        thread, threadName, mergedCoreEvents,
+        (origName) => origName === threadNameInfo,
+        () => threadNameInfo
+      );
       eventArr = [];
     }
     if (eventArr.length > 0) {
       threadMap.set(threadName, eventArr);
     }
   }
+  
+  // 处理合并后的核心事件
+  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
+    const schedThread = threadMap.get(schedStr);
+    const eventArr = schedThread?.length > 0 ? findCoreEvent(eventIds, name, roundNo, taskNo, schedThread) : [event];
+    if (eventArr.length > 0) {
+      threadMap.set(origThreadName, eventArr);
+    } else {
+      const fallbackEvents = findFallbackKernelEvents(eventIds, event);
+      if (fallbackEvents.length > 0) {
+        threadMap.set(origThreadName, fallbackEvents);
+      }
+    }
+  }
+  
   return threadMap;
 };
 // 通过AICORE类的map获取events
@@ -1015,10 +1166,10 @@ export const renderWrapLabelRow = (
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   
   const isGlobalCanvas = ctx.canvas.classList.contains('global-connection-canvas');
-  const selectedCoords = globalConnectionCanvas.value.getMixEventCoordinates(laneItem, false);
-  const startY = selectedCoords - ((laneItem.height * devicePixelRatio) / 2);
-  const rectY = startY / devicePixelRatio;
-  const laneY = isGlobalCanvas ? rectY * devicePixelRatio : laneItem.y * devicePixelRatio;
+  const selectedCoords = globalConnectionCanvas?.value?.getMixEventCoordinates(laneItem, false);
+  const laneY = isGlobalCanvas && selectedCoords != null
+    ? (selectedCoords - ((laneItem.height * devicePixelRatio) / 2))
+    : laneItem.y * devicePixelRatio;
   const laneHeight = laneItem.height * devicePixelRatio;
   
   const labelHeight = 20 * devicePixelRatio;
@@ -1209,10 +1360,10 @@ export const renderWrapContainerBox = (
   const isGlobalCanvas = ctx.canvas.classList.contains('global-connection-canvas');
   for (const lane of swimLaneOrder) {
     if (lane.type === 'thread' && wrapContainer.threadTids.includes(lane.thread.tid)) {
-      const selectedCoords = globalConnectionCanvas.value.getMixEventCoordinates(lane, false);
-      const startY = selectedCoords - ((lane.height * devicePixelRatio) / 2);
-      const rectY = startY / devicePixelRatio;
-      const laneY = isGlobalCanvas ? rectY : lane.y;
+      const selectedCoords = globalConnectionCanvas?.value?.getMixEventCoordinates(lane, false);
+      const laneY = isGlobalCanvas && selectedCoords != null
+        ? (selectedCoords - ((lane.height * devicePixelRatio) / 2)) / devicePixelRatio
+        : lane.y;
       minY = Math.min(minY, laneY);
       maxY = Math.max(maxY, laneY + lane.height);
     }
@@ -1676,7 +1827,7 @@ export const findVisibleEventRange = (thread, viewportStartTime, viewportEndTime
       const mid = (lo + hi) >> 1;
       const eventId = thread.eventIds[mid];
       const event = swimDataManager.getEventById(eventId);
-      if (event.startTime >= earliestPossibleStart) {
+      if (event.endTime >= earliestPossibleStart) {
         hi = mid;
       } else {
         lo = mid + 1;

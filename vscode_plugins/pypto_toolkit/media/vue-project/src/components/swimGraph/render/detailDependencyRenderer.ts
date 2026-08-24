@@ -193,7 +193,6 @@ export class DetailDependencyRenderer {
       const [displayText, leftspace] = config.overflowText(actualWidth, name);
       ctx.fillText(displayText, preNode.x + leftspace, preNode.y + 12);
       nodesInfo.push({ node: preNode, type: 'predecessor', displayName: displayText, fullDisplayName: name, eventId: pre.eventId });
-      
       // 连线
       ctx.beginPath();
       ctx.moveTo(currentNode.x, currentNode.y + currentNode.height / 2);

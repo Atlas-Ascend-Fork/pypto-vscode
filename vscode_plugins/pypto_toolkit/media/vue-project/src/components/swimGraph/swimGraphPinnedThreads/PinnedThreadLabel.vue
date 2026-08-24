@@ -23,14 +23,14 @@
     </d-tooltip>
     
     <!-- 线程名称 -->
-    <span class="thread-name">{{ pinnedThread.thread.threadName || pinnedThread.threadKey }}</span>
+    <span class="thread-name">{{ getDisplayThreadName(pinnedThread.thread) || pinnedThread.threadKey }}</span>
   </div>
 </template>
 
 <script setup>
 import { inject } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getThreadHeight } from '../swimGraphUtils';
+import { getThreadHeight, getDisplayThreadName } from '../swimGraphUtils';
 
 const { t: $t } = useI18n();
 const props = defineProps({

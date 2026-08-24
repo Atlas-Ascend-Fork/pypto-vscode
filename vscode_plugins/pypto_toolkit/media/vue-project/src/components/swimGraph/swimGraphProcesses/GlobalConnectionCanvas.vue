@@ -609,6 +609,13 @@ watch(processExpanded, () => {
   });
 }, { deep: true });
 
+watch(isMixMode, () => {
+  clearDomCache();
+  nextTick(() => {
+    initCanvas();
+  });
+});
+
 onMounted(() => {
   initCanvas();
 });

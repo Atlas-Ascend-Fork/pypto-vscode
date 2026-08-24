@@ -170,6 +170,9 @@ const processEvent = (event, groups) => {
   if (event?.isFakeCore || event.ph === 'C') {
     return;
   }
+  if (event?.originalThreadName) {
+    return;
+  }
   let leafIndex = '';
   if (state.timeType.value === 'id') {
     leafIndex = event.leafIndex || getSubGraphId(event, 'subGraph', '/');

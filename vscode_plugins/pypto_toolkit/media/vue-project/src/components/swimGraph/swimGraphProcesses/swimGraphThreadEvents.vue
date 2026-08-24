@@ -164,6 +164,7 @@ const {
   pathLockedHighlightProcessKey,
   draggingSelection,
   draggingSelectionProcessKey,
+  deviceDataMap,
 } = swimGraphState;
 
 const {
@@ -178,6 +179,11 @@ const {
   xToTime,
   xToFixedTime,
   processThreadEventSearch,
+  processAICPUThreadEventSearch,
+  processThreadEventSearchWithOriginalThreadName,
+  calculateAndAddAICPUusage,
+  calculateAndAddCoreWaitTime,
+  calculateAndAddCoreExecutTime,
   highlightPinnedEvent,
   getDisplayName,
   changeScale,
@@ -233,10 +239,13 @@ let selection = {
 let isDragging = ref(false);
 let isClick = ref(false);
 let wheelDebounceTimer;
-let AICCount = 0;
-let AIVCount = 0;
-let matchingAICEvents = [];
-let matchingAIVEvents = [];
+let selectionAICCount = 0;
+let selectionAIVCount = 0;
+let selectionAICPUCount = 0;
+let selectionMatchingAICEvents = [];
+let selectionMatchingAIVEvents = [];
+let selectionMatchingAICPUEvents = [];
+let selectionCoreWaitEvents = [];
 let selectionEvents = [];
 
 let autoScrollAnimationId = null;
@@ -368,10 +377,10 @@ const handlePathLockClick = (clickedEvent, e) => {
     if (globalMeasureCanvas.value) {
       globalMeasureCanvas.value.clearMeasure();
     }
-    if (props.process.type === 'aicpu') {
-      const { threadName } = clickedEvent;
-      const isCtrl = threadName.includes('AICPU-CTRL');
-      const isSched = threadName.includes('AICPU-SCHED');
+    if (props.process.type === 'aicpu' || clickedEvent.originalThreadName) {
+      const effectiveThreadName = clickedEvent.originalThreadName || clickedEvent.threadName;
+      const isCtrl = effectiveThreadName.includes('AICPU-CTRL');
+      const isSched = effectiveThreadName.includes('AICPU-SCHED');
       aicpuControlDetailsExpanded.value = isCtrl;
       aicpuScheduleDetailsExpanded.value = isSched;
       aicpuCoreDetailsExpanded.value = !isCtrl && !isSched;
@@ -1339,7 +1348,7 @@ const handleMouseMoveThrottle = throttle((e) => {
   if (isMixMode?.value && swimDataManager.hasMixConfig()) {
     const { mixHoverCtx } = ctxs[props.processKey];
     if (hoveredEvent) {
-      const { wrapId } = hoveredEvent?.args;
+      const { wrapId } = hoveredEvent?.args ?? {};
       const isSelectedMacroWrap = selectedEvent.value && swimDataManager.isMixParentEvent(selectedEvent.value) && selectedEvent.value.args?.wrapId === wrapId;
       if (wrapId === -1) {
         highlightThreadOnHover(y, backgroundCanvasRef, backgroundCanvasCtx);
@@ -1706,10 +1715,13 @@ const resizeDrawBoundary = () => {
 };
 const checkInSelection = () => {
   // 初始化计数器
-  AICCount = 0;
-  AIVCount = 0;
-  matchingAICEvents = [];
-  matchingAIVEvents = [];
+  selectionAICCount = 0;
+  selectionAIVCount = 0;
+  selectionAICPUCount = 0;
+  selectionMatchingAICEvents = [];
+  selectionMatchingAIVEvents = [];
+  selectionMatchingAICPUEvents = [];
+  selectionCoreWaitEvents = [];
   selectionEvents = [];
   // 解构选择区域坐标
   if (selection.endX < selection.startX) {
@@ -1742,21 +1754,42 @@ const checkInSelection = () => {
       if (y < selectMinY || (y + layout.eventHeight) > selectMaxY) {
         return;
       }
+
+      const coreWaitMatched = processThreadEventSearchWithOriginalThreadName(thread, start, end);
+      selectionCoreWaitEvents.push(...coreWaitMatched);
+
       const processThreadEventSearchTemp = processThreadEventSearch(thread, start, end);
       if (threadName.startsWith('AIC_')) {
         if (processThreadEventSearchTemp.length) {
-          AICCount++;
+          selectionAICCount++;
         }
-        matchingAICEvents.push(...processThreadEventSearchTemp);
+        selectionMatchingAICEvents.push(...processThreadEventSearchTemp);
       } else if (threadName.startsWith('AIV_')) {
         if (processThreadEventSearchTemp.length) {
-          AIVCount++;
+          selectionAIVCount++;
         }
-        matchingAIVEvents.push(...processThreadEventSearchTemp);
+        selectionMatchingAIVEvents.push(...processThreadEventSearchTemp);
       }
     });
+
+    process.threads.forEach((thread, threadKey) => {
+      const { threadName, eventIds } = thread;
+      if (!threadName.startsWith('AICPU-SCHED-')) {
+        return;
+      }
+      const { renderInfo } = swimDataManager.getEventById(eventIds[0]);
+      const { y } = renderInfo;
+      if (y < selectMinY || (y + layout.eventHeight) > selectMaxY) {
+        return;
+      }
+      const matched = processAICPUThreadEventSearch(thread, start, end);
+      if (matched.length) {
+        selectionAICPUCount++;
+      }
+      selectionMatchingAICPUEvents.push(...matched);
+    });
   }
-  selectionEvents = [...matchingAICEvents, ...matchingAIVEvents];
+  selectionEvents = [...selectionMatchingAICEvents, ...selectionMatchingAIVEvents, ...selectionMatchingAICPUEvents];
   const [selectionStartTime, selectionEndTime] = selectionEvents.reduce(
     ([min, max], { startTime, endTime }) => [
       Math.min(min, startTime),
@@ -1766,7 +1799,10 @@ const checkInSelection = () => {
   );
   const timeRange = selectionEndTime - selectionStartTime;
   // 最终统计
-  measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
+  measureDetailGet(selectionMatchingAICEvents, selectionMatchingAIVEvents, timeRange, selectionAICCount, selectionAIVCount);
+  calculateAndAddAICPUusage(selectionMatchingAICPUEvents, timeRange, selectionAICPUCount);
+  calculateAndAddCoreWaitTime(selectionCoreWaitEvents, start, end);
+  calculateAndAddCoreExecutTime(selectionMatchingAICEvents, selectionMatchingAIVEvents, start, end);
 };
 function onHoverEvent(hoveredEvent) {
   const canvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);

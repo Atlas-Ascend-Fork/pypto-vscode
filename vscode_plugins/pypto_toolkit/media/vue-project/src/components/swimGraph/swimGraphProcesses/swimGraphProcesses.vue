@@ -109,6 +109,8 @@ const {
   pathLockedHighlightProcessKey,
   draggingSelection,
   draggingSelectionProcessKey,
+  deviceDataMap,
+  isDeviceView,
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -243,6 +245,8 @@ provide('swimGraphState', {
   pathLockedHighlightProcessKey,
   draggingSelection,
   draggingSelectionProcessKey,
+  deviceDataMap,
+  isDeviceView,
 });
 
 const {
@@ -273,6 +277,11 @@ const {
   findWrapAtPosition,
   setHashOrderTipColor,
   isCoreUtilizationSupported,
+  processAICPUThreadEventSearch,
+  processThreadEventSearchWithOriginalThreadName,
+  calculateAndAddAICPUusage,
+  calculateAndAddCoreWaitTime,
+  calculateAndAddCoreExecutTime,
 } = inject('swimGraphMethods');
 
 provide('swimGraphMethods', {
@@ -302,7 +311,12 @@ provide('swimGraphMethods', {
   resetMaxScheduleState,
   findWrapAtPosition,
   setHashOrderTipColor,
-  isCoreUtilizationSupported
+  isCoreUtilizationSupported,
+  processAICPUThreadEventSearch,
+  processThreadEventSearchWithOriginalThreadName,
+  calculateAndAddAICPUusage,
+  calculateAndAddCoreWaitTime,
+  calculateAndAddCoreExecutTime,
 });
 
 const processesContainer = ref(null);

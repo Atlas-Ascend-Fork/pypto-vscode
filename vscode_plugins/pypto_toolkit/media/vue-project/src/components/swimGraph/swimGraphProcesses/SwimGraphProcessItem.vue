@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { computed, inject, provide, ref, reactive } from 'vue';
+import { computed, inject, provide, ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SwimGraphProcessHeader from './swimGraphProcessHeader.vue';
 import SwimGraphThreadLabels from './swimGraphThreadLabels.vue';
@@ -61,6 +61,7 @@ const { t: $t } = useI18n();
 
 const {
   processExpanded,
+  isDeviceView,
 } = inject('swimGraphState');
 
 const isExpanded = computed(() => {
@@ -72,14 +73,27 @@ const hasThreads = computed(() => {
 });
 
 const cycleDisplay = ref('none');
-const selectedOption = ref('clockCycle');
-const selectOptions = [
-  { name: $t('clockCycle'), value: 'clockCycle', disabled: false },
-  { name: $t('cacheHit'), value: 'cacheHit', disabled: false },
-  { name: $t('task'), value: 'task', disabled: false },
-  { name: $t('utilization'), value: 'utilization', disabled: false },
-];
-const options = reactive(selectOptions);
+const selectedOption = ref(isDeviceView.value ? 'execUtilization' : 'clockCycle');
+const selectOptions = computed(() => {
+  if (isDeviceView.value) {
+    return [
+      { name: $t('execUtilization'), value: 'execUtilization', disabled: false },
+    ];
+  }
+  return[
+    { name: $t('clockCycle'), value: 'clockCycle', disabled: false },
+    { name: $t('cacheHit'), value: 'cacheHit', disabled: false },
+    { name: $t('task'), value: 'task', disabled: false },
+    { name: $t('utilization'), value: 'utilization', disabled: false },
+  ];
+});
+const options = reactive(selectOptions.value);
+
+onMounted(() => {
+  if (isDeviceView.value) {
+    selectedOption.value = 'execUtilization';
+  }
+});
 
 provide('swimCycleDisplay', { 
   cycleDisplay, 

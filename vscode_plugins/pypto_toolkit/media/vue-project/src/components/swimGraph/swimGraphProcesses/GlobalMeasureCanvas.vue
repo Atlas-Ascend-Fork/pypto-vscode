@@ -75,6 +75,7 @@ const {
   searchedEvent,
   tsScale,
   isMsProf,
+  isMixMode
 } = swimGraphState;
 
 const { userConfig } = inject('swimGraphCfg');
@@ -652,6 +653,13 @@ watch(processExpanded, () => {
     initCanvas();
   });
 }, { deep: true });
+
+watch(isMixMode, () => {
+  clearDomCache();
+  nextTick(() => {
+    initCanvas();
+  });
+});
 
 onMounted(() => {
   initCanvas();

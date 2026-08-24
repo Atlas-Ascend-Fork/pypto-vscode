@@ -131,7 +131,7 @@
 
         </div>
 
-        <div class="task-container" :style="{width: subContainerWidth + 'px'}">
+        <div class="task-container" :style="{width: subContainerWidth + 'px'}" v-if="!isDeviceView">
           <div class="top-row-group" :style="{width: subContainerWidth + 'px', gap: aiCoreContainerColumnGap + 'px'}">
           <div class="task-item-container aicore-e2e-time" :style="{width: innerContainerWidth + 'px'}">
             <div class="task-title-container">
@@ -157,6 +157,50 @@
           <div class="task-item-container mt10" :style="{width: innerContainerWidth + 'px'}">
             <div class="task-title">{{ icacheHitRateTitle }}</div>
             <div class="task-data">{{ icacheHitRate }}</div>
+          </div>
+        </div>
+        <div class="Device-container" :style="{width: subContainerWidth + 'px'}" v-if="isDeviceView">
+          <div class="aicore-container-column" :style="{gap: deviceContainerColumnGap + 'px'}">
+            <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
+              <div class="task-title-container">
+                <div class="task-title">{{ $t('AICPUExecution') }}</div>
+              </div>
+              <div class="task-data">{{ AICPUExecutionTime }}</div>
+            </div>
+            <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
+              <div class="task-title-container">
+                <div class="task-title">{{ $t('AICPUUtilization') }}</div>
+              </div>
+              <div class="task-data">{{ AICPUExecutionRate }}</div>
+            </div>
+          </div>
+          <div class="aicore-container-column" :style="{height: 46 + 'px', marginTop: 8 + 'px', gap: deviceContainerColumnGap + 'px'}">
+            <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
+              <div class="task-title-container">
+                <div class="task-title">{{ $t('AICPUOverhead') }}</div>
+                <d-tooltip :content="$t('AICPUOverheadTip')">
+                  <d-icon name="helping" size="16px"></d-icon>
+                </d-tooltip>
+              </div>
+              <div class="device-cube-rate-cycle">{{ AICPUBeforeHeadTime }}</div>
+            </div>
+            <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
+              <div class="task-title-container">
+                <div class="task-title">{{ $t('AICPUTail') }}</div>
+                <d-tooltip :content="$t('AICPUTailTip')">
+                  <d-icon name="helping" size="16px"></d-icon>
+                </d-tooltip>
+              </div>
+              <div class="device-vec-rate-cycle">{{ AICPUAfterHeadTime }}</div>
+            </div>
+          </div>
+          <div class="cube-data-chart" :style="{width: cubeDataChartWidth + 'px'}">
+            <div class="device-cube-time-bar" :style="{ width: deviceCubeTimeWidth + 'px' }">
+              <div class="cube-time-num">{{ deviceCubeTimePercentage }}</div>
+            </div>
+            <div class="device-vector-time-bar" :style="{ width: deviceVectorTimeWidth + 'px' }">
+              <div class="vector-time-num">{{ deviceVectorTimePercentage }}</div>
+            </div>
           </div>
         </div>
         <div class="aicore-container" :style="{width: subContainerWidth + 'px'}" v-if="!isAicpu">
@@ -266,10 +310,20 @@ const aicoreTime = ref(0);
 const aicoreRate = ref(0);
 const icacheHitRate = ref('/');
 
+const AICPUExecutionTime = ref(0);
+const AICPUExecutionRate = ref(0);
+const AICPUBeforeHeadTime = ref(0);
+const AICPUAfterHeadTime = ref(0);
+
 const cubeTimeWidth = ref(203);
 const vectorTimeWidth = ref(203);
 const cubeTimePercentage = ref(50);
 const vectorTimePercentage = ref(50);
+
+const deviceCubeTimeWidth = ref(203);
+const deviceVectorTimeWidth = ref(203);
+const deviceCubeTimePercentage = ref(50);
+const deviceVectorTimePercentage = ref(50);
 
 const vectorRateWidth = ref(0);
 const cubeRateWidth = ref(0);
@@ -347,7 +401,8 @@ const {
   canvasclickedEvent,
   isFromPerformanceClick,
   isFromPerformancePmuTabClick,
-  isMsProf
+  isMsProf,
+  isDeviceView
 } = inject('swimGraphState');
 
 const {
@@ -434,6 +489,7 @@ const innerContainerWidth = ref(109);
 const timeConsumingTaskWidth = ref(276);
 const cubeDataChartWidth = ref(450);
 const aiCoreContainerColumnGap = ref(16);
+const deviceContainerColumnGap = ref(16);
 const rightSchedulingGapContainerWidth =ref(308);
 const timeRightSchedulingGapContainerWidth = ref(308);
 const gapLineWidth = ref(173.5);
@@ -447,6 +503,7 @@ cubeDataChartWidth.value = isWideScreen.value? 450 : 270;
 cubeTimeWidth.value = isWideScreen.value? 243 : 133;
 vectorTimeWidth.value = isWideScreen.value? 243 : 133;
 aiCoreContainerColumnGap.value = isWideScreen.value? 120 : 75;
+deviceContainerColumnGap.value = isWideScreen.value? 110 : 65;
 rightSchedulingGapContainerWidth.value = isWideScreen.value? 266: 150;
 timeRightSchedulingGapContainerWidth.value = isWideScreen.value? 264: 160;
 gapLineWidth.value = isWideScreen.value? 213.5 : 66.5;
@@ -516,9 +573,15 @@ const calculateGapStatistics = (
   event,
   stats
 ) => {
+  if (event.originalThreadName) {
+    return;
+  }
   for (const childId of event.dependencies.successors) {
     const child = swimDataManager.getEventById(childId);
     if (!child) {
+      continue;
+    }
+    if (child.originalThreadName) {
       continue;
     }
 
@@ -568,6 +631,9 @@ const calculateStatistics = () => {
         if (!event) {
           continue;
         }
+        if (event.originalThreadName) {
+          continue;
+        }
 
         const taskDur = getEventDuration(event);
         updateExtremeValues(event, taskDur, stats);
@@ -612,17 +678,23 @@ const calculateAicoreInfo = () => {
         continue;
       }
 
-      totalCnt += 1;
-
+      let threadTimeSum = 0;
       for (const eventId of threadInfo.eventIds) {
         const event = swimDataManager.getEventById(eventId);
         if (!event) {
           continue;
         }
+        if (event.originalThreadName) {
+          continue;
+        }
 
-        aicTaskTimeSum += event.duration || 0;
+        threadTimeSum += event.duration || 0;
         minTs = Math.min(event.startTime, minTs);
         maxTs = Math.max(event.endTime, maxTs);
+      }
+      if (threadTimeSum > 0) {
+        totalCnt += 1;
+        aicTaskTimeSum += threadTimeSum;
       }
     }
   }
@@ -630,6 +702,144 @@ const calculateAicoreInfo = () => {
   aicoreTime.value = parseFloat((aicTaskTimeSum / tsScale.value).toFixed(2));
   const aicoreRateBigNumber = ((new BigNumber(aicTaskTimeSum)).dividedBy(new BigNumber(totalCnt * taskOnBoardTime.value))).div(new BigNumber(tsScale.value));
   aicoreRate.value = isMsProf.value ? '/' : parseFloat((aicoreRateBigNumber * 100).toFixed(2)) + '%';
+};
+
+const collectSortedEvents = (threadInfo) => {
+  const events = [];
+  for (const eventId of threadInfo.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (!event) {
+      continue;
+    }
+    events.push(event);
+  }
+  events.sort((a, b) => a.startTime - b.startTime);
+  return events;
+};
+
+const processAicpuThread = (threadName, events) => {
+  const result = { executionTime: 0, schedExecTime: 0, schedThreadCount: 0 };
+  const isAicpuCtrl0 = threadName === 'AICPU-CTRL-0';
+  const isAicpuSched = threadName.startsWith('AICPU-SCHED-');
+  if (!isAicpuCtrl0 && !isAicpuSched) {
+    return result;
+  }
+  for (const event of events) {
+    result.executionTime += event.duration || 0;
+  }
+  if (isAicpuSched) {
+    result.schedThreadCount = 1;
+    for (const event of events) {
+      if (event.name && event.name.startsWith('DEV_TASK_SCHED_EXEC')) {
+        result.schedExecTime += event.duration || 0;
+      }
+    }
+  }
+  return result;
+};
+
+const processAicAivThread = (events) => {
+  let beforeHeadTime = 0;
+  let afterHeadTime = 0;
+  let firstHeadEventIndex = -1;
+  for (let i = 0; i < events.length; i++) {
+    const eventName = events[i].name || '';
+    if (eventName.startsWith('DEV_TASK_ALL_CALLOP_TASK_EXEC') || eventName.startsWith('DEV_TASK_ALL_LEAF_TASK_EXEC')) {
+      firstHeadEventIndex = i;
+      break;
+    }
+  }
+  if (firstHeadEventIndex !== -1) {
+    for (let i = 0; i < firstHeadEventIndex; i++) {
+      beforeHeadTime += events[i].duration || 0;
+    }
+    for (let i = firstHeadEventIndex + 1; i < events.length; i++) {
+      afterHeadTime += events[i].duration || 0;
+    }
+  }
+  return { beforeHeadTime, afterHeadTime };
+};
+
+const calculateDeviceBarMetrics = (beforeHead, afterHead) => {
+  const deviceBarWidth = 450;
+  const minBarWidth = 38;
+  const deviceBarGap = 2;
+  if (beforeHead + afterHead > 0) {
+    const totalTime = beforeHead + afterHead;
+    const rawCubeWidth = deviceBarWidth * beforeHead / totalTime;
+    const rawVectorWidth = deviceBarWidth * afterHead / totalTime;
+    deviceCubeTimePercentage.value = Math.floor(beforeHead / totalTime * 100) + '%';
+    deviceVectorTimePercentage.value = String(100 - Math.floor(beforeHead / totalTime * 100)) + '%';
+    if (rawCubeWidth < minBarWidth && rawVectorWidth > minBarWidth) {
+      deviceCubeTimeWidth.value = minBarWidth + deviceBarGap;
+      deviceVectorTimeWidth.value = deviceBarWidth - minBarWidth;
+    } else if (rawVectorWidth < minBarWidth && rawCubeWidth > minBarWidth) {
+      deviceVectorTimeWidth.value = minBarWidth + deviceBarGap;
+      deviceCubeTimeWidth.value = deviceBarWidth - minBarWidth;
+    } else {
+      deviceCubeTimeWidth.value = rawCubeWidth;
+      deviceVectorTimeWidth.value = rawVectorWidth;
+    }
+  } else {
+    deviceCubeTimePercentage.value = '--';
+    deviceVectorTimePercentage.value = '--';
+    deviceCubeTimeWidth.value = deviceBarWidth / 2;
+    deviceVectorTimeWidth.value = deviceBarWidth / 2;
+  }
+};
+
+const calculateDevice = () => {
+  let aicpuExecutionTimeSum = 0;
+  let aicpuSchedExecTimeSum = 0;
+  let aicpuSchedThreadCount = 0;
+  let aicpuBeforeHeadTimeSum = 0;
+  let aicpuAfterHeadTimeSum = 0;
+
+  for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
+    for (const threadInfo of Array.from(processInfo.threads.values())) {
+      if (threadInfo.isCounter || threadInfo.threadName.includes('Fake Core')) {
+        continue;
+      }
+      const { threadName } = threadInfo;
+      const isAicpuCtrl0 = threadName === 'AICPU-CTRL-0';
+      const isAicpuSched = threadName.startsWith('AICPU-SCHED-');
+      const isAicOrAiv = threadName.startsWith('AIC_') || threadName.startsWith('AIV_');
+      if (!isAicpuCtrl0 && !isAicpuSched && !isAicOrAiv) {
+        continue;
+      }
+      const events = collectSortedEvents(threadInfo);
+      if (events.length === 0) {
+        continue;
+      }
+      if (isAicpuCtrl0 || isAicpuSched) {
+        const aicpuResult = processAicpuThread(threadName, events);
+        aicpuExecutionTimeSum += aicpuResult.executionTime;
+        aicpuSchedExecTimeSum += aicpuResult.schedExecTime;
+        aicpuSchedThreadCount += aicpuResult.schedThreadCount;
+      }
+      if (isAicOrAiv) {
+        const aicAivResult = processAicAivThread(events);
+        aicpuBeforeHeadTimeSum += aicAivResult.beforeHeadTime;
+        aicpuAfterHeadTimeSum += aicAivResult.afterHeadTime;
+      }
+    }
+  }
+
+  AICPUExecutionTime.value = parseFloat((aicpuExecutionTimeSum / tsScale.value).toFixed(2));
+
+  if (aicpuSchedThreadCount > 0 && viewState.timeRange > 0) {
+    const rate = (aicpuSchedExecTimeSum / tsScale.value) / (viewState.timeRange * aicpuSchedThreadCount / tsScale.value);
+    AICPUExecutionRate.value = parseFloat((rate * 100).toFixed(2)) + '%';
+  } else {
+    AICPUExecutionRate.value = '--';
+  }
+
+  AICPUBeforeHeadTime.value = parseFloat((aicpuBeforeHeadTimeSum / tsScale.value).toFixed(2));
+  AICPUAfterHeadTime.value = parseFloat((aicpuAfterHeadTimeSum / tsScale.value).toFixed(2));
+
+  const beforeHead = aicpuBeforeHeadTimeSum / tsScale.value;
+  const afterHead = aicpuAfterHeadTimeSum / tsScale.value;
+  calculateDeviceBarMetrics(beforeHead, afterHead);
 };
 
 const isPmuDataVaild = () => {
@@ -751,6 +961,10 @@ const initializePerformance = () => {
   } else {
     calculateAicoreInfo();
   }
+
+  if (isDeviceView.value) {
+    calculateDevice();
+  }
   
   if (!isPmuDataVaild()) {
     initializePmuDefaults();
@@ -776,8 +990,14 @@ const getTaskOnBoardTime = () => {
         if (!eventIds || eventIds.length === 0) {
           continue;
         }
-        const firstEvent = swimDataManager.getEventById(eventIds[0]);
-        const lastEvent = swimDataManager.getEventById(eventIds[eventIds.length - 1]);
+        const validEvents = eventIds
+          .map(id => swimDataManager.getEventById(id))
+          .filter(e => e && !e.originalThreadName);
+        if (validEvents.length === 0) {
+          continue;
+        }
+        const [firstEvent] = validEvents;
+        const lastEvent = validEvents[validEvents.length - 1];
         if (firstEvent.startTime < minStart) {
           minStart = firstEvent.startTime;
         }
@@ -1144,6 +1364,21 @@ provide('swimGraphPmuBarMethod', {
   padding: 16px;
 }
 
+.Device-container {
+  margin-top: 16px;
+  width: 440px;
+  height: 192px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 8px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--devui-category-search-bg);
+  padding: 16px;
+}
+
 .aicore-container-column {
   display: flex;
   flex-direction: row;
@@ -1166,18 +1401,35 @@ provide('swimGraphPmuBarMethod', {
   line-height: 20px;
 }
 
+.device-cube-rate-cycle {
+  height: 20px;
+  color: rgba(143, 229, 194, 1);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.device-vec-rate-cycle {
+  height: 20px;
+  color: rgba(198, 233, 168, 1);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
 .cube-data-chart {
   position: relative;
-  height: 24px;
+  height: 16px;
   width: 410px;
   gap: 2px;
   display: flex;
   flex-direction: row;
+  margin-top: 12px;
 }
 
 .cube-time-bar {
   position: relative;
-  height: 24px;
+  height: 20px;
   border-radius: 4px;
   background: var(--cube-rate-cycle-bg);
   border: 1px solid var(--cube-rate-cycle-bg);
@@ -1185,10 +1437,28 @@ provide('swimGraphPmuBarMethod', {
 
 .vector-time-bar {
   position: relative;
-  height: 24px;
+  height: 20px;
   border-radius: 4px;
   background: var(--vec-rate-cycle-bg);
   border: 1px solid var(--vec-rate-cycle-bg);
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+.device-cube-time-bar {
+  position: relative;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(54, 193, 141, 1);
+  border: 1px solid rgba(54, 193, 141, 1);
+}
+
+.device-vector-time-bar {
+  position: relative;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(135, 200, 89, 1);
+  border: 1px solid rgba(135, 200, 89, 1);
   display: flex;
   flex-direction: row-reverse;
 }
@@ -1198,7 +1468,7 @@ provide('swimGraphPmuBarMethod', {
   width: 100%;
   height: 12px;
   font-size: 12px;
-  top: 3px;
+  top: 0px;
   text-align: center;
   bottom: 6px;
   z-index: 1;
@@ -1210,7 +1480,7 @@ provide('swimGraphPmuBarMethod', {
   width: 100%;
   height: 12px;
   font-size: 12px;
-  top: 3px;
+  top: 0px;
   text-align: center;
   bottom: 6px;
   z-index: 1;

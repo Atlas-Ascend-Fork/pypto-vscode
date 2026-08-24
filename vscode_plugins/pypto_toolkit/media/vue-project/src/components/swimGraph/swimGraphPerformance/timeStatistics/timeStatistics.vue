@@ -480,6 +480,9 @@ const getTableData = () => {
                 if (event?.isFakeCore || event.ph === 'C') {
                     continue;
                 }
+                if (event?.originalThreadName) {
+                    continue;
+                }
                 const match = event.name.match(/\((?<opName>[^)]+)\)/);
                 const opName = match?.groups?.opName ?? '';
                 if (!opName) {

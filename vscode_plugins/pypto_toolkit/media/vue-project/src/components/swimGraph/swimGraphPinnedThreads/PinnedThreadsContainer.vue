@@ -69,7 +69,7 @@
               :style="{ height: getThreadHeight(groupThread.processKey, groupThread.thread.tid, lane2line, layout, groupThread.thread.isCounter) + 'px' }"
             >
               <div class="thread-name">
-                {{ groupThread.thread.threadName }}
+                {{ getDisplayThreadName(groupThread.thread) }}
               </div>
             </div>
           </div>
@@ -89,7 +89,7 @@ import { ref, inject, onMounted, onUnmounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import PinnedThreadLabel from './PinnedThreadLabel.vue';
 import PinnedThreadEvent from './PinnedThreadEvent.vue';
-import { getThreadHeight } from '../swimGraphUtils';
+import { getThreadHeight, getDisplayThreadName } from '../swimGraphUtils';
 
 const { t: $t } = useI18n();
 const pinnedthreadsEventComponent = ref(null);

@@ -125,8 +125,9 @@ export function getKernalEventColor(event: any, deps: Dependencies, processKey: 
 function ensureEventColor(event: any, deps: Dependencies, processType: string): void {
   const { userConfig, isMsProf } = deps;
   if (!event.color?.dark || event.parentEventId) {
+    const effectiveProcessType = event.originalThreadName ? 'aicpu' : processType;
     const colorMode = isMsProf.value ? 'name' : (userConfig?.value.kernelColorRending || 'subGraph');
-    const color = getEventColorByMode(event, colorMode, processType, userConfig?.value.hashOrderRending);
+    const color = getEventColorByMode(event, colorMode, effectiveProcessType, userConfig?.value.hashOrderRending);
     event.color = color;
     swimDataManager.updateEvent(event.id, { color });
   }

@@ -314,6 +314,7 @@ const aicpuSchedTask = ref('');
 const aicpuHasRelevent = ref(false);
 
 const isE2ESwim = ref(false);
+const isDeviceView = ref(false);
 const isGuidePage = ref(false);
 
 const isMeasureModel = ref(false);
@@ -336,6 +337,7 @@ const measureDetailsData = ref([]);
 const rootHashes = ref([]);
 const leafHashes = ref([]);
 const leafHashMap = ref(new Map());
+const deviceDataMap = ref(new Map());
 let isLockStatus = ref(false);
 const labelRender = ref(false);
 const dependencyLinesInfo = ref([]);
@@ -837,7 +839,8 @@ const initSwimDataManager = (data) => {
     data,
     processExpanded,
     lane2line,
-    isPerfSwim.value
+    isPerfSwim.value,
+    props.isThreeColumn
   );
   perfLogger.timeEnd('swimDataManager.initializeFromData');
 };
@@ -894,6 +897,7 @@ const buildSingleThreadMipmap = (threadData, processKey, threadKey) => {
 
 const finalizeE2EStatus = () => {
   isE2ESwim.value = swimDataManager.isMixedData();
+  isDeviceView.value = swimDataManager.isDeviceView();
   if (props.isThreeColumn) {
     isE2ESwim.value = false;
   }
@@ -1021,7 +1025,8 @@ const transform = (needClean=false) => {
       renderDependencyLines();
       drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
       for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
-        if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
+        const shouldHighlightAicpu = processExpanded.get(processKey) && selectedEvent.value && (process.type === 'aicpu' || selectedEvent.value.originalThreadName);
+        if (shouldHighlightAicpu) {
           highlightAicpu(process, processKey, true);
         }
       }
@@ -1051,7 +1056,8 @@ const transform = (needClean=false) => {
   }
   drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
   for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
-    if (processExpanded.get(processKey) && process.type === 'aicpu' && selectedEvent.value) {
+    const shouldHighlightAicpu = processExpanded.get(processKey) && selectedEvent.value && (process.type === 'aicpu' || selectedEvent.value.originalThreadName);
+    if (shouldHighlightAicpu) {
       highlightAicpu(process, processKey, true);
     }
   }
@@ -1611,10 +1617,11 @@ const handleKernalEventColors = (event, processKey, highlight = false, stroke = 
 const updatePanelState = (event, processKey, showkernelDetail) => {
   if (event) {
     const process = swimDataManager.getProcess(processKey);
-    if (process.type === 'aicpu') {
-      const { threadName } = event;
-      const isCtrl = threadName.includes('AICPU-CTRL');
-      const isSched = threadName.includes('AICPU-SCHED');
+    const effectiveThreadName = event.originalThreadName || event.threadName;
+    const isAicpuEvent = process.type === 'aicpu' || event.originalThreadName;
+    if (isAicpuEvent) {
+      const isCtrl = effectiveThreadName.includes('AICPU-CTRL');
+      const isSched = effectiveThreadName.includes('AICPU-SCHED');
       aicpuControlDetailsExpanded.value = isCtrl;
       aicpuScheduleDetailsExpanded.value = isSched;
       aicpuCoreDetailsExpanded.value = !isCtrl && !isSched;
@@ -1789,8 +1796,9 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
     ++resetScheduleToken;
     lastSelected.value = event.id;
     const process = swimDataManager.getProcess(processKey);
+    const isAicpuEvent = process.type === 'aicpu' || event.originalThreadName;
     
-    if (process.type === 'aicpu') {
+    if (isAicpuEvent) {
       highlightedPaths.clear();
       highlightAicpu(process, processKey, false);
     } else if (isMixMode?.value && swimDataManager.hasMixConfig()) {
@@ -1831,7 +1839,7 @@ const highlightAicpu = (process, processKey, isResize) => {
   const result = parseSuffixNumbers(eventName);
   const { roundNo, taskNo } = result;
   const { threads } = process;
-  const { threadName } = selectedEvent.value;
+  const threadName = selectedEvent.value.originalThreadName || selectedEvent.value.threadName;
   childContextMap.threadEvent.changeNodeColor(processKey, true);
   const ctx = getAicpuDependencyCanvas(processKey);
   if (!ctx) { return };
@@ -1839,7 +1847,7 @@ const highlightAicpu = (process, processKey, isResize) => {
   const isSched = threadName.includes('AICPU-SCHED');
   let aicpuEventsData = [];
   let drawDatas = [];
-  const schedGraphMap= findSchedGraphMap(threads, roundNo, taskNo);
+  const schedGraphMap= findSchedGraphMap(threads, roundNo, taskNo, selectedEvent.value);
   aicpuScheduleMaps.value = schedGraphMap;
   if (isCtrl) {
     const schedCoreMap = findSchedCoreMapByNo(selectedEvent.value, threads);
@@ -1879,7 +1887,7 @@ const highlightAicpu = (process, processKey, isResize) => {
       highlightedPaths.add(kEvent.id);
     }
   }
-  if (!isPathLockStatus.value) {
+  if (!isPathLockStatus.value && !selectedEvent.value?.originalThreadName) {
     shadingKernal();
   }
 };
@@ -2691,7 +2699,7 @@ const transformVerticalScroll = () => {
   const depKey = selectedEvent.value?.pid?.toString();
   if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
     const process = swimDataManager.getProcess(depKey);
-    if (process && process.type === 'aicpu') {
+    if (process && (process.type === 'aicpu' || selectedEvent.value?.originalThreadName)) {
       highlightAicpu(process, depKey, true);
     } else {
       const depCanvas = document.querySelector(`[data-dep-process-key="${depKey}"]`);
@@ -2987,8 +2995,24 @@ const processThreadEventSearch = (thread, startTime, endTime) => {
   const matchedEvents = [];
   for (const eventId of thread.eventIds) {
     const event = swimDataManager.getEventById(eventId);
+    if (event.originalThreadName) {
+      continue;
+    }
     if (event.startTime >= startTime && event.endTime <= endTime) {
       matchedEvents.push(event);
+    }
+  }
+  return matchedEvents;
+};
+
+const processAICPUThreadEventSearch = (thread, startTime, endTime) => {
+  const matchedEvents = [];
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (event.name && event.name.startsWith('DEV_TASK_SCHED_EXEC')) {
+      if (event.startTime >= startTime && event.endTime <= endTime) {
+        matchedEvents.push(event);
+      }
     }
   }
   return matchedEvents;
@@ -3043,7 +3067,149 @@ const measureDetailGet = (matchingAICEvents, matchingAIVEvents, timeRange, AICCo
     cubecycle: cubeCycle,
     vectorcycle: vectorCycle,
     eventnum: eventNum,
+    coreWaitTime: 0,
+    coreExecutTime: 0,
+    coreEventNum: 0,
   });
+};
+
+const calculateAndAddAICPUusage = (matchingAICPUEvents, timeRange, AICPUCount) => {
+  let AICPUtime = 0;
+  if (matchingAICPUEvents.length !== 0) {
+    for (const [key, event] of matchingAICPUEvents.entries()) {
+      const eventTime = event.endTime - event.startTime;
+      AICPUtime += eventTime;
+    }
+  }
+
+  const AICPUusage = AICPUCount > 0 ? (AICPUtime / (timeRange * AICPUCount)) * 100 : undefined;
+
+  if (measureDetailsData.value.length > 0 && AICPUusage !== undefined) {
+    measureDetailsData.value[measureDetailsData.value.length - 1].AICPUusage = AICPUusage.toFixed(2);
+  }
+};
+
+const processThreadEventSearchWithOriginalThreadName = (thread, startTime, endTime) => {
+  const matchedEvents = [];
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (event.originalThreadName !== undefined) {
+      if (event.startTime >= startTime && event.endTime <= endTime) {
+        matchedEvents.push(event);
+      }
+    }
+  }
+  return matchedEvents;
+};
+
+const calculateAndAddCoreWaitTime = (coreWaitEvents, startTime, endTime) => {
+  let coreWaitTime = 0;
+
+  for (const event of coreWaitEvents) {
+    if (event.startTime >= startTime && event.endTime <= endTime) {
+      coreWaitTime += (event.endTime - event.startTime);
+    }
+  }
+
+  if (measureDetailsData.value.length > 0) {
+    measureDetailsData.value[measureDetailsData.value.length - 1].coreWaitTime = parseInt(coreWaitTime / 100);
+    measureDetailsData.value[measureDetailsData.value.length - 1].coreEventNum = coreWaitEvents.length;
+  }
+
+  calculateDeviceDataMap(coreWaitEvents, startTime, endTime);
+};
+
+const calculateDeviceDataMap = (coreWaitEvents, startTime, endTime) => {
+  deviceDataMap.value.clear();
+
+  const groupedEvents = new Map();
+
+  for (const event of coreWaitEvents) {
+    if (event.startTime >= startTime && event.endTime <= endTime) {
+      const eventName = event.name;
+      const duration = event.endTime - event.startTime;
+
+      if (!groupedEvents.has(eventName)) {
+        groupedEvents.set(eventName, []);
+      }
+      groupedEvents.get(eventName).push ({
+        event,
+        duration,
+        threadName: event.threadName
+      });
+    }
+  }
+
+  for(const [eventName, events] of groupedEvents.entries()) {
+    let maxDuration = 0;
+    let maxDurationLine = '';
+    let totalDuration = 0;
+
+    for (const eventData of events) {
+      const { duration, threadName } = eventData;
+      totalDuration += duration;
+
+      if (duration > maxDuration) {
+        maxDuration = duration;
+        maxDurationLine = threadName;
+      }
+    }
+
+    const avgDuration = totalDuration / events.length;
+
+    deviceDataMap.value.set(eventName, {
+      'Event name': eventName,
+      'Max duration line': maxDurationLine,
+      'Max duration': parseFloat((maxDuration / 100).toFixed(2)),
+      'Avg duration': parseFloat((avgDuration / 100).toFixed(2))
+    });
+  }
+};
+
+const calculateAndAddCoreExecutTime = (matchingAICEvents, matchingAIVEvents, startTime, endTime) => {
+  let coreExecutTime = 0;
+
+  for (const event of matchingAICEvents) {
+    if (event.startTime >= startTime && event.endTime <= endTime) {
+      coreExecutTime += (event.endTime - event.startTime);
+    }
+  }
+
+  for (const event of matchingAIVEvents) {
+    if (event.startTime >= startTime && event.endTime <= endTime) {
+      coreExecutTime += (event.endTime - event.startTime);
+    }
+  }
+
+  if (measureDetailsData.value.length > 0) {
+    measureDetailsData.value[measureDetailsData.value.length - 1].coreExecutTime = parseInt(coreExecutTime / 100);
+  }
+};
+
+const collectThreadMeasureEvents = (thread, startTime, endTime) => {
+  const result = { aicEvents: [], aivEvents: [], aicpuEvents: [], coreWaitEvents: [], aicCount: 0, aivCount: 0, aicpuCount: 0 };
+  if (thread.threadName.startsWith('AIC_')) {
+    result.coreWaitEvents = processThreadEventSearchWithOriginalThreadName(thread, startTime, endTime);
+    const matched = processThreadEventSearch(thread, startTime, endTime);
+    if (matched.length) {
+      result.aicCount = 1;
+    }
+    result.aicEvents = matched;
+  } else if (thread.threadName.startsWith('AIV_')) {
+    result.coreWaitEvents = processThreadEventSearchWithOriginalThreadName(thread, startTime, endTime);
+    const matched = processThreadEventSearch(thread, startTime, endTime);
+    if (matched.length) {
+      result.aivCount = 1;
+    }
+    result.aivEvents = matched;
+  } else if (thread.threadName.startsWith('AICPU-SCHED-')) {
+    const matched = processAICPUThreadEventSearch(thread, startTime, endTime);
+    if (matched.length) {
+      result.aicpuCount = 1;
+    }
+    result.aicpuEvents = matched;
+  } else { }
+  return result;
 };
 
 const measureDetailSearch = () => {
@@ -3051,6 +3217,7 @@ const measureDetailSearch = () => {
   rootHashes.value = [];
   leafHashes.value = [];
   leafHashMap.value.clear();
+  deviceDataMap.value.clear();
 
   let startTime = measureDragStartTime.value;
   let endTime = measureDragEndTime.value;
@@ -3064,9 +3231,12 @@ const measureDetailSearch = () => {
   const timeRange = endTime - startTime;
   const matchingAICEvents = [];
   const matchingAIVEvents = [];
+  const matchingAICPUEvents = [];
+  const coreWaitEvents = [];
 
   let AICCount = 0;
   let AIVCount = 0;
+  let AICPUCount = 0;
 
   const processedThreads = new Set();
 
@@ -3080,13 +3250,14 @@ const measureDetailSearch = () => {
     for (const [threadKey, thread] of threads.entries()) {
       const threadId = `${processKey}-${threadKey}`;
       processedThreads.add(threadId);
-      if (thread.threadName.startsWith('AIC_')) {
-        AICCount++;
-        matchingAICEvents.push(...processThreadEventSearch(thread, startTime, endTime));
-      } else if (thread.threadName.startsWith('AIV_')) {
-        AIVCount++;
-        matchingAIVEvents.push(...processThreadEventSearch(thread, startTime, endTime));
-      }
+      const result = collectThreadMeasureEvents(thread, startTime, endTime);
+      AICCount += result.aicCount;
+      AIVCount += result.aivCount;
+      AICPUCount += result.aicpuCount;
+      matchingAICEvents.push(...result.aicEvents);
+      matchingAIVEvents.push(...result.aivEvents);
+      matchingAICPUEvents.push(...result.aicpuEvents);
+      coreWaitEvents.push(...result.coreWaitEvents);
     }
   }
 
@@ -3100,15 +3271,19 @@ const measureDetailSearch = () => {
     if (processedThreads.has(threadId)) {
       continue;
     }
-    if (thread.threadName.startsWith('AIC_')) {
-      AICCount++;
-      matchingAICEvents.push(...processThreadEventSearch(thread, startTime, endTime));
-    } else if (thread.threadName.startsWith('AIV_')) {
-      AIVCount++;
-      matchingAIVEvents.push(...processThreadEventSearch(thread, startTime, endTime));
-    }
+    const result = collectThreadMeasureEvents(thread, startTime, endTime);
+    AICCount += result.aicCount;
+    AIVCount += result.aivCount;
+    AICPUCount += result.aicpuCount;
+    matchingAICEvents.push(...result.aicEvents);
+    matchingAIVEvents.push(...result.aivEvents);
+    matchingAICPUEvents.push(...result.aicpuEvents);
+    coreWaitEvents.push(...result.coreWaitEvents);
   }
   measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
+  calculateAndAddAICPUusage(matchingAICPUEvents, timeRange, AICPUCount);
+  calculateAndAddCoreWaitTime(coreWaitEvents, startTime, endTime);
+  calculateAndAddCoreExecutTime(matchingAICEvents, matchingAIVEvents, startTime, endTime);
 };
 
 const intelligentSearch = () => {
@@ -3445,6 +3620,7 @@ provide('swimGraphState', {
   rootHashes,
   leafHashes,
   leafHashMap,
+  deviceDataMap,
   isLockStatus,
   dependencyLinesInfo,
   isCfgEditing,
@@ -3459,6 +3635,7 @@ provide('swimGraphState', {
   isPathLockStatus,
   isAicpu,
   isE2ESwim,
+  isDeviceView,
   performanceVisible,
   performanceWidth,
   isWideScreen,
@@ -3517,6 +3694,11 @@ provide('swimGraphMethods', {
   transformVerticalScroll,
   measureDetailGet,
   processThreadEventSearch,
+  processAICPUThreadEventSearch,
+  processThreadEventSearchWithOriginalThreadName,
+  calculateAndAddAICPUusage,
+  calculateAndAddCoreWaitTime,
+  calculateAndAddCoreExecutTime,
   getDisplayName,
   resetState,
   overflowText,

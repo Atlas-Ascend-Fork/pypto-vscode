@@ -36,7 +36,7 @@
               <div class="sched"> 
                 <div class="detail-canvas-container">
                   <div class="detail-canvas-left-container" ref="containerRef"> 
-                    <div class="thread-name-font node-item source-node" ref="sourceRef">{{ kernalName }}</div>
+                    <div class="thread-name-font node-item source-node" ref="sourceRef">{{ kernalDisplayName }}</div>
                     <div class="mt10 ml12 event-name-font node-item target-node"  ref="targetRef">{{t('apiCpuView')}}</div>
                     <svg class="connection-svg">
                       <path :d="smoothPath" class="line-style" />
@@ -133,6 +133,7 @@ const AicpuCoreDetailsPanel = () => {
   aicpuCoreDetailsExpanded.value = !aicpuCoreDetailsExpanded.value;
 };
 const kernalName = ref('');
+const kernalDisplayName = ref('');
 let buildTaskColor = computed(() => {
   return getBaseColor(aicpuBuildTask.value, { processes: swimDataManager.getAllProcesses(), isDarkTheme, kernelColorRending });
 });
@@ -336,7 +337,8 @@ const renderCoreDetailKernel = ({ startTime, endTime }) => {
   drawKernelEvents(ctx, events, canvasWidth, canvasHeight, { timelineStart: startTime, timelineEnd: endTime });
 };
 const renderCoreDetailCanvas = () => {
-  const isCore = selectedEvent.value.threadName.includes('-AIC-') || selectedEvent.value.threadName.includes('-AIV-');
+  const effectiveThreadName = selectedEvent.value.originalThreadName || selectedEvent.value.threadName;
+  const isCore = /^(?:SCHED\d+-(?:AIC|AIV)-\d+|(?:AIC|AIV)-\d+-SCHED\d+)$/.test(effectiveThreadName);
   if (isCore) {
     selectedOriginEvent.value = JSON.parse(JSON.stringify(selectedEvent.value));
   }
@@ -350,9 +352,10 @@ const renderCoreDetailCanvas = () => {
   if (coreDetailKernelCtx.value) {
     coreDetailKernelCtx.value.clearRect(0, 0, viewState.canvasWidth, coreDetailKernelCanvas.value?.height);
   }
-  const { threadName } = event;
+  const threadName = event.originalThreadName || event.threadName;
   const targetThreadName = extractAicAiv(threadName).replace('-','_');
   kernalName.value = targetThreadName;
+  kernalDisplayName.value = threadName;
   const {startTime, endTime} = event;
   getKernelEventsData(startTime, endTime);
   setTimeout(() => {
@@ -388,6 +391,9 @@ const getThreadByThreadName = (key, map, startTimeInfo, endTimeInfo) => {
     if (value.threadName === kernalName.value) {
       const originalEvents = swimDataManager.getEventsByThread(key, threadKey);
       const filteredEvents = originalEvents.filter(item => {
+        if (item.originalThreadName) {
+          return false;
+        }
         return item.startTime >= startTimeInfo && item.endTime <= endTimeInfo;
       });
       if (filteredEvents.length > 0) {
@@ -401,8 +407,15 @@ const getThreadByThreadName = (key, map, startTimeInfo, endTimeInfo) => {
   return {};
 };
 const extractAicAiv = (str) => {
-  const match = str.match(/^[^-]+-(?<result>.*)$/);
-  return match ? match.groups.result : null;
+  let match = str.match(/^SCHED\d+-(?<coreType>AIC|AIV)-(?<coreId>\d+)$/);
+  if (match) {
+    return `${match.groups.coreType}-${match.groups.coreId}`;
+  }
+  match = str.match(/^(?<coreType>AIC|AIV)-(?<coreId>\d+)-SCHED\d+$/);
+  if (match) {
+    return `${match.groups.coreType}-${match.groups.coreId}`;
+  }
+  return null;
 };
 const handleMouseMove = (e) => {
   const mousePosition = { x: e.clientX, y: e.clientY };

@@ -124,6 +124,7 @@ class SwimDataManager {
   private wrapContainers: Map<number, WrapContainerInfo>;
   private swimLaneOrder: SwimLaneItem[];
   private isMixModeActive: boolean;
+  private isDeviceViewMerged: boolean;
   private mixThreads: ThreadInfo[];
   private wrapThreadMap: Map<number, ThreadInfo[]>;
   private lane2line: Map<string, number>;
@@ -137,6 +138,7 @@ class SwimDataManager {
     this.wrapContainers = new Map();
     this.swimLaneOrder = [];
     this.isMixModeActive = false;
+    this.isDeviceViewMerged = false;
     this.mixThreads = [];
     this.wrapThreadMap = new Map();
     this.lane2line = new Map();
@@ -161,10 +163,16 @@ class SwimDataManager {
     data: any,
     _processExpanded?: Map<string, boolean>,
     lane2line?: Map<string, number>,
-    isPerfSwim?: boolean
+    isPerfSwim?: boolean,
+    isThreeColumn?: boolean
   ): void {
     this.resetState();
     this.parseProcesses(data, isPerfSwim);
+    
+    if (!isThreeColumn) {
+      this.mergeAicpuIntoMachineView(_processExpanded);
+    }
+    
     this.copyLane2Line(data, lane2line);
     this.buildSeqNoTaskMap(this.processInfo);
     this.updateFlag.value++;
@@ -942,12 +950,274 @@ class SwimDataManager {
     return hasAicpu && hasKernel;
   }
 
+  private categorizeAicpuThreads(aicpuProcess: ProcessInfo): {
+    ctrlSchedThreads: [string, ThreadInfo][];
+    coreThreads: [string, ThreadInfo][];
+    otherThreads: [string, ThreadInfo][];
+    counterThreads: [string, ThreadInfo][];
+  } {
+    const ctrlSchedThreads: [string, ThreadInfo][] = [];
+    const coreThreads: [string, ThreadInfo][] = [];
+    const otherThreads: [string, ThreadInfo][] = [];
+    const counterThreads: [string, ThreadInfo][] = [];
+    for (const [threadKey, thread] of aicpuProcess.threads.entries()) {
+      if (thread.threadName.includes('AICPU-CTRL') || thread.threadName.includes('AICPU-SCHED')) {
+        ctrlSchedThreads.push([threadKey, thread]);
+      } else if (/^(SCHED\d+-(AIC|AIV)-\d+|(AIC|AIV)-\d+-SCHED\d+)$/.test(thread.threadName)) {
+        coreThreads.push([threadKey, thread]);
+      } else if (thread.isCounter) {
+        counterThreads.push([threadKey, thread]);
+      } else {
+        otherThreads.push([threadKey, thread]);
+      }
+    }
+    return { ctrlSchedThreads, coreThreads, otherThreads, counterThreads };
+  }
+
+  private mergeCoreThreadsIntoMachine(
+    coreThreads: [string, ThreadInfo][],
+    aicpuProcessKey: string,
+    machineProcessKey: string,
+    machineProcess: ProcessInfo
+  ): void {
+    for (const [threadKey, thread] of coreThreads) {
+      const match = thread.threadName.match(/^SCHED\d+-(AIC|AIV)-(\d+)$/) || thread.threadName.match(/^(AIC|AIV)-(\d+)-SCHED\d+$/);
+      if (!match) continue;
+      const coreType = match[1];
+      const coreId = match[2];
+      const targetThreadName = `${coreType}_${coreId}`;
+      let targetThreadKey: string | null = null;
+      let targetThread: ThreadInfo | null = null;
+      for (const [tk, t] of machineProcess.threads.entries()) {
+        if (t.threadName === targetThreadName) {
+          targetThreadKey = tk;
+          targetThread = t;
+          break;
+        }
+      }
+      if (!targetThreadKey || !targetThread) {
+        const aicpuThreadName = thread.threadName;
+        this.moveThreadToProcess(threadKey, thread, aicpuProcessKey, machineProcessKey, machineProcess, `${coreType}_${coreId}`);
+        (thread as any)._mergedFromThreadName = aicpuThreadName;
+        continue;
+      }
+      this.mergeCoreThreadEvents(threadKey, thread, aicpuProcessKey, targetThreadKey, targetThread, machineProcessKey, machineProcess);
+      (targetThread as any)._mergedFromThreadName = thread.threadName;
+    }
+  }
+
+  private mergeAicpuIntoMachineView(processExpanded?: Map<string, boolean>): void {
+    let aicpuProcessKey: string | null = null;
+    let machineProcessKey: string | null = null;
+    for (const [key, process] of this.processInfo.entries()) {
+      if (process.type === 'aicpu') aicpuProcessKey = key;
+      else if (process.type !== 'PerfSwim') machineProcessKey = key;
+    }
+    // 仅在混合模式下执行合并（AICPU + Machine View 同时存在）
+    // 纯 AICPU 数据或纯 Machine View 数据不受影响
+    if (!aicpuProcessKey || !machineProcessKey) return;
+    const aicpuProcess = this.processInfo.get(aicpuProcessKey)!;
+    const machineProcess = this.processInfo.get(machineProcessKey)!;
+    const { ctrlSchedThreads, coreThreads, otherThreads, counterThreads } = this.categorizeAicpuThreads(aicpuProcess);
+    for (const [threadKey, thread] of ctrlSchedThreads) {
+      this.moveThreadToProcess(threadKey, thread, aicpuProcessKey, machineProcessKey, machineProcess);
+    }
+    for (const [threadKey, thread] of otherThreads) {
+      this.moveThreadToProcess(threadKey, thread, aicpuProcessKey, machineProcessKey, machineProcess);
+    }
+    for (const [threadKey, thread] of counterThreads) {
+      this.moveThreadToProcess(threadKey, thread, aicpuProcessKey, machineProcessKey, machineProcess);
+    }
+    this.mergeCoreThreadsIntoMachine(coreThreads, aicpuProcessKey, machineProcessKey, machineProcess);
+    this.processInfo.delete(aicpuProcessKey);
+    this.reorderMachineViewThreads(machineProcess);
+    this.recalculateLane2Line();
+    machineProcess.name = 'Device View';
+    this.isDeviceViewMerged = true;
+    
+    // 更新 processExpanded：删除 AICPU 进程，展开 Machine View 进程
+    if (processExpanded) {
+      processExpanded.delete(aicpuProcessKey);
+      processExpanded.set(machineProcessKey, true);
+    }
+  }
+
+  private moveThreadToProcess(
+    threadKey: string, thread: ThreadInfo,
+    fromProcessKey: string, toProcessKey: string, toProcess: ProcessInfo,
+    newThreadName?: string
+  ): void {
+    const originalThreadName = thread.threadName;
+    (thread as any)._originalThreadName = originalThreadName;
+    if (newThreadName) {
+      thread.threadName = newThreadName;
+    }
+    for (const eventId of thread.eventIds) {
+      const event = this.eventMap.get(eventId);
+      if (event) {
+        event.originalThreadName = originalThreadName;
+        if (newThreadName) {
+          event.threadName = newThreadName;
+        }
+        event.pid = toProcess.pid;
+        event.processKey = toProcessKey;
+        event.threadKey = threadKey;
+      }
+    }
+    
+    // 更新 lane2line 的 key
+    const oldLaneKey = `${fromProcessKey}@${thread.tid}`;
+    const newLaneKey = `${toProcessKey}@${thread.tid}`;
+    if (this.lane2line.has(oldLaneKey)) {
+      const lineCount = this.lane2line.get(oldLaneKey)!;
+      this.lane2line.delete(oldLaneKey);
+      this.lane2line.set(newLaneKey, lineCount);
+    }
+    
+    toProcess.threads.set(threadKey, thread);
+    const fromProcess = this.processInfo.get(fromProcessKey);
+    if (fromProcess) fromProcess.threads.delete(threadKey);
+  }
+
+  private mergeCoreThreadEvents(
+    srcThreadKey: string, srcThread: ThreadInfo, fromProcessKey: string,
+    tgtThreadKey: string, tgtThread: ThreadInfo, toProcessKey: string, toProcess: ProcessInfo
+  ): void {
+    const BOUNDARY_PREFIXES = ['DEV_TASK_ALL_CALLOP_TASK_EXEC', 'DEV_TASK_ALL_LEAF_TASK_EXEC'];
+    const srcEvents = srcThread.eventIds.map(id => this.eventMap.get(id)).filter((e): e is EventDetail => !!e);
+    const segments: EventDetail[][] = [];
+    let currentSegment: EventDetail[] = [];
+    const boundaryNames: string[] = [];
+    for (const event of srcEvents) {
+      if (BOUNDARY_PREFIXES.some(prefix => event.name.startsWith(prefix))) {
+        segments.push(currentSegment);
+        currentSegment = [];
+        boundaryNames.push(event.name);
+      } else {
+        currentSegment.push(event);
+      }
+    }
+    segments.push(currentSegment);
+    const tgtEventIds = [...tgtThread.eventIds];
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      if (segment.length === 0 && i < boundaryNames.length) continue;
+      for (const event of segment) {
+        event.originalThreadName = srcThread.threadName;
+        event.pid = toProcess.pid;
+        event.processKey = toProcessKey;
+        event.threadKey = tgtThreadKey;
+        event.threadName = tgtThread.threadName;
+      }
+      if (i < boundaryNames.length) {
+        const boundaryName = boundaryNames[i];
+        const insertIdx = tgtEventIds.findIndex(id => {
+          const e = this.eventMap.get(id);
+          return e && e.name === boundaryName;
+        });
+        if (insertIdx >= 0) {
+          const segIds = segment.map(e => e.id);
+          tgtEventIds.splice(insertIdx, 0, ...segIds);
+        } else {
+          const segIds = segment.map(e => e.id);
+          tgtEventIds.push(...segIds);
+        }
+      } else {
+        const segIds = segment.map(e => e.id);
+        tgtEventIds.push(...segIds);
+      }
+    }
+    tgtEventIds.sort((a, b) => {
+      const ea = this.eventMap.get(a);
+      const eb = this.eventMap.get(b);
+      return (ea?.startTime ?? 0) - (eb?.startTime ?? 0);
+    });
+    tgtThread.eventIds = tgtEventIds;
+    const fromProcess = this.processInfo.get(fromProcessKey);
+    if (fromProcess) fromProcess.threads.delete(srcThreadKey);
+  }
+
+  private reorderMachineViewThreads(process: ProcessInfo): void {
+    const ctrlSched: [string, ThreadInfo][] = [];
+    const others: [string, ThreadInfo][] = [];
+    const counters: [string, ThreadInfo][] = [];
+    for (const [key, thread] of process.threads.entries()) {
+      if (thread.threadName.includes('AICPU-CTRL') || thread.threadName.includes('AICPU-SCHED')) {
+        ctrlSched.push([key, thread]);
+      } else if (thread.isCounter) {
+        counters.push([key, thread]);
+      } else {
+        others.push([key, thread]);
+      }
+    }
+    const getCoreSortKey = (threadName: string): [string, number] => {
+      let match = threadName.match(/^(AIC|AIV)[_-](\d+)$/);
+      if (match) return [match[1], parseInt(match[2], 10)];
+      match = threadName.match(/^SCHED\d+-(AIC|AIV)-(\d+)$/) || threadName.match(/^(AIC|AIV)-(\d+)-SCHED\d+$/);
+      if (match) return [match[1], parseInt(match[2], 10)];
+      return ['', Infinity];
+    };
+    others.sort((a, b) => {
+      const [typeA, idA] = getCoreSortKey(a[1].threadName);
+      const [typeB, idB] = getCoreSortKey(b[1].threadName);
+      if (typeA !== typeB) return typeA.localeCompare(typeB);
+      return idA - idB;
+    });
+    process.threads.clear();
+    for (const [key, thread] of ctrlSched) process.threads.set(key, thread);
+    for (const [key, thread] of others) process.threads.set(key, thread);
+    for (const [key, thread] of counters) process.threads.set(key, thread);
+  }
+
+  private recalculateLane2Line(): void {
+    this.lane2line.clear();
+    
+    for (const [processKey, process] of this.processInfo.entries()) {
+      for (const [threadKey, thread] of process.threads.entries()) {
+        if (thread.isCounter) continue;
+        
+        const events = this.getEventsByIds(thread.eventIds);
+        const lineCount = this.calculateLineCount(events);
+        const laneKey = `${processKey}@${thread.tid}`;
+        this.lane2line.set(laneKey, lineCount);
+      }
+    }
+  }
+
+  private calculateLineCount(events: EventDetail[]): number {
+    if (events.length === 0) return 1;
+    
+    const sortedEvents = [...events].sort((a, b) => a.startTime - b.startTime);
+    let maxConcurrent = 1;
+    let currentConcurrent = 0;
+    const endTimes: number[] = [];
+    
+    for (const event of sortedEvents) {
+      while (endTimes.length > 0 && endTimes[0] <= event.startTime) {
+        endTimes.shift();
+        currentConcurrent--;
+      }
+      
+      endTimes.push(event.endTime);
+      endTimes.sort((a, b) => a - b);
+      currentConcurrent++;
+      
+      maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
+    }
+    
+    return maxConcurrent;
+  }
+
   public setMixMode(isMixMode: boolean): void {
     this.isMixModeActive = isMixMode;
   }
 
   public getMixMode(): boolean {
     return this.isMixModeActive;
+  }
+
+  public isDeviceView(): boolean {
+    return this.isDeviceViewMerged;
   }
 
   public hasMixConfig(): boolean {
@@ -1032,6 +1302,19 @@ class SwimDataManager {
   private buildSwimLaneOrder(layout: any): void {
     this.swimLaneOrder = [];
     
+    const { aicpuOriginThreads, nonCounterThreads, counterThreads } = this.getNonMixThreadsSorted();
+    
+    for (const thread of aicpuOriginThreads) {
+      const threadHeight = this.getThreadHeight(thread, layout);
+      this.swimLaneOrder.push({
+        type: 'thread',
+        thread,
+        y: 0,
+        height: threadHeight,
+        wrapIds: []
+      });
+    }
+    
     const fakeCoreThreads = this.getFakeCoreThreads();
     for (const thread of fakeCoreThreads) {
       const threadHeight = this.getThreadHeight(thread, layout);
@@ -1075,8 +1358,6 @@ class SwimDataManager {
         });
       }
     }
-    
-    const { nonCounterThreads, counterThreads } = this.getNonMixThreadsSorted();
     
     for (const thread of nonCounterThreads) {
       const threadHeight = this.getThreadHeight(thread, layout);
@@ -1243,11 +1524,11 @@ class SwimDataManager {
   }
 
   private isComputeThread(thread: ThreadInfo): boolean {
-    return thread.threadName.includes('AIC_');
+    return thread.threadName.includes('AIC_') || thread.threadName.includes('AIC-');
   }
 
   private isVectorThread(thread: ThreadInfo): boolean {
-    return thread.threadName.includes('AIV_');
+    return thread.threadName.includes('AIV_') || thread.threadName.includes('AIV-');
   }
 
   public getWrapStartTime(wrapId: number): number {
@@ -1286,16 +1567,27 @@ class SwimDataManager {
     return nonMixThreads;
   }
 
-  private getNonMixThreadsSorted(): { nonCounterThreads: ThreadInfo[], counterThreads: ThreadInfo[] } {
+  private isAicpuOriginThread(thread: ThreadInfo): boolean {
+    const originalName = (thread as any)._originalThreadName;
+    if (!originalName) return false;
+    return originalName.includes('AICPU-CTRL') ||
+           originalName.includes('AICPU-SCHED') ||
+           /^(SCHED\d+-(AIC|AIV)-\d+|(AIC|AIV)-\d+-SCHED\d+)$/.test(originalName);
+  }
+
+  private getNonMixThreadsSorted(): { aicpuOriginThreads: ThreadInfo[], nonCounterThreads: ThreadInfo[], counterThreads: ThreadInfo[] } {
     const nonMixThreads = this.getNonMixThreads();
-    
-    const nonCounterThreads = nonMixThreads.filter(t => !t.isCounter && !t.isFakeCore && !t.threadName.includes('Fake Core'));
-    const counterThreads = nonMixThreads.filter(t => t.isCounter && !t.isFakeCore && !t.threadName.includes('Fake Core'));
-    
+    const isNotFake = (t: ThreadInfo) => !t.isFakeCore && !t.threadName.includes('Fake Core');
+
+    const aicpuOriginThreads = nonMixThreads.filter(t => this.isAicpuOriginThread(t) && !t.isCounter && isNotFake(t));
+    const nonCounterThreads = nonMixThreads.filter(t => !this.isAicpuOriginThread(t) && !t.isCounter && isNotFake(t));
+    const counterThreads = nonMixThreads.filter(t => t.isCounter && isNotFake(t));
+
+    aicpuOriginThreads.sort((a, b) => Number(a.tid) - Number(b.tid));
     nonCounterThreads.sort((a, b) => Number(a.tid) - Number(b.tid));
     counterThreads.sort((a, b) => Number(a.tid) - Number(b.tid));
-    
-    return { nonCounterThreads, counterThreads };
+
+    return { aicpuOriginThreads, nonCounterThreads, counterThreads };
   }
 
   private getThreadHeight(thread: ThreadInfo, layout: any): number {
