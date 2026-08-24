@@ -75,18 +75,6 @@ function computeEarliestSuccStart(event, allEventsMap) {
   return earliestSuccStart;
 }
 
-function applyGlobalClip(event, globalMaxTime, originalDuration) {
-  if (event.renderEndTime > globalMaxTime) {
-    event.renderEndTime = globalMaxTime;
-    event.renderStartTime = Math.max(event.renderStartTime, globalMaxTime - originalDuration);
-    if (event.renderStartTime >= event.renderEndTime) {
-      event.renderStartTime = globalMaxTime - 1;
-      event.renderEndTime = globalMaxTime;
-    }
-    event.renderDuration = event.renderEndTime - event.renderStartTime;
-  }
-}
-
 function setEventRender(event, renderStart, renderEnd, lineIndex) {
   event.renderStartTime = renderStart;
   event.renderDuration = Math.round((renderEnd - renderStart) / 10);
@@ -104,7 +92,6 @@ function tryPlaceInExistingLine(event, lines, minStart, maxEnd, originalDuration
     const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
     setEventRender(event, renderStart, renderEnd, i);
     lines[i] = event.renderEndTime;
-    applyGlobalClip(event, globalMaxTime, originalDuration);
     return true;
   }
   return false;
@@ -115,7 +102,6 @@ function placeInNewLine(event, lines, minStart, maxEnd, originalDuration, global
   const renderEnd = Math.min(renderStart + originalDuration, maxEnd);
   setEventRender(event, renderStart, renderEnd, lines.length);
   lines.push(event.renderEndTime);
-  applyGlobalClip(event, globalMaxTime, originalDuration);
 }
 
 function layoutFakeCoreEvent(event, lines, allEventsMap, globalMaxTime) {

@@ -289,7 +289,6 @@ export class ThreeColumnServer
       return stream.Readable.toWeb(stream.Readable.from(data!));
     }
     return data;
-    return;
   };
   @viewApi()
   public getOtherData = async () => {
@@ -679,7 +678,7 @@ class codeMsgHandler {
   }
 }
 
-class ComGraphHandler extends SingleGraphHandler {
+export class ComGraphHandler extends SingleGraphHandler {
   static searchFuncHashInProject(server: any, funcHash: string) {
     vscode.workspace.findFiles(`**/*${funcHash}*.json`).then((fileList) => {
       const res = fileList.map((uri) => uri.fsPath);
@@ -709,9 +708,9 @@ class ComGraphHandler extends SingleGraphHandler {
   }
 
   static getSemanticByType(semanticInfo: any, op: any) {
-    let lineno = undefined;
-    let label = undefined;
-    let filename = undefined;
+    let lineno: number | undefined;
+    let label: string | undefined;
+    let filename: string | undefined;
     if (Array.isArray(semanticInfo)) {
       if (op.file) {
         lineno = op.line;

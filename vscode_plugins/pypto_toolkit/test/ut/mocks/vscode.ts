@@ -44,7 +44,11 @@ export const Range = vi.fn();
 export const ConfigurationTarget = { Global: 1, Workspace: 2, WorkspaceFolder: 3 };
 export const WebviewPanel = vi.fn();
 export const ColorThemeKind = { Light: 1, Dark: 2, HighContrast: 3 };
-export const Disposable = vi.fn(() => disposable);
+export class Disposable {
+  private _dispose: () => void;
+  constructor(fn: () => void) { this._dispose = fn; }
+  dispose() { this._dispose(); }
+}
 
 export class EventEmitter {
   private listeners: ((e: any) => void)[] = [];

@@ -123,7 +123,7 @@ export class PerfSwimlaneConverter {
     const edges = depsData.edges || [];
     
     const depsEdges = new Map<number, number[]>();
-    const seen = new Set<[number, number]>();
+    const seen = new Set<string>();
     
     for (const edge of edges) {
       if (!edge.pred || !edge.succ) {
@@ -141,7 +141,7 @@ export class PerfSwimlaneConverter {
         succ = succ & ((1 << 64) - 1);
       }
     
-      const key: [number, number] = [pred, succ];
+      const key = `${pred},${succ}`;
       if (seen.has(key)) {
         continue;
       }
