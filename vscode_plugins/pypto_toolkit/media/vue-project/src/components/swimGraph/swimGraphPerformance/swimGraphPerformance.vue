@@ -177,7 +177,9 @@
           <div class="aicore-container-column" :style="{height: 46 + 'px', marginTop: 8 + 'px', gap: deviceContainerColumnGap + 'px'}">
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
-                <div class="task-title">{{ $t('AICPUOverhead') }}</div>
+                <d-tooltip :content="$t('AICPUOverhead')">
+                  <div class="task-title">{{ $t('AICPUOverhead') }}</div>
+                </d-tooltip>
                 <d-tooltip :content="$t('AICPUOverheadTip')">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
@@ -186,7 +188,9 @@
             </div>
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
-                <div class="task-title">{{ $t('AICPUTail') }}</div>
+                <d-tooltip :content="$t('AICPUTail')">
+                  <div class="task-title">{{ $t('AICPUTail') }}</div>
+                </d-tooltip>
                 <d-tooltip :content="$t('AICPUTailTip')">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
@@ -1377,6 +1381,13 @@ provide('swimGraphPmuBarMethod', {
   border-radius: 8px;
   background: var(--devui-category-search-bg);
   padding: 16px;
+
+  .task-title {
+    max-width: 116px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .aicore-container-column {

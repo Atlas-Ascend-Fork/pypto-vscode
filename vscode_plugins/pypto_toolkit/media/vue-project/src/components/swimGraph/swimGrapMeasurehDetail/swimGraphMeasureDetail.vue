@@ -9,9 +9,9 @@
  -->
 <template>
   <div style="z-index: 11;">
-    <div class="measure-details" :class="{ expanded: mulDetailsExpanded }">
-      <div class="measure-details-content">
-        <div class="measure-detail-tabs-header">
+    <div class="measure-details" :class="{ expanded: mulDetailsExpanded, 'no-tabs': !isDeviceView }">
+      <div class="measure-details-content" :class="{ 'no-tabs': !isDeviceView }">
+        <div class="measure-detail-tabs-header" v-if="isDeviceView">
           <d-tabs v-model="selectedTab" class="measure-detail-tabs" :show-content="false"
             @active-tab-change="selectTab">
             <d-tab id="device" :title="$t('DeviceOverview')"></d-tab>
@@ -20,7 +20,7 @@
         </div>
         <div class="measure-detail-tabs-content">
           <!-- Device概览 -->
-          <div v-show="selectedTab === 'device'" class="measure-detail-device-content">
+          <div v-show="selectedTab === 'device' || (!isDeviceView && isAicpu)" class="measure-detail-device-content">
             <div class="measure-detail-left-section">
               <div class="measure-detail-data-area">
                 <div class="measure-detail-data-uparea">
@@ -47,7 +47,9 @@
                   <div class="measure-detail-data-downarea-time">
                     <div class="measure-detail-data-item">
                       <div class="data-title-row">
-                        <div class='data-title'>{{ $t('coreHeadToTail') }}</div>
+                        <d-tooltip :content="$t('coreHeadToTail')">
+                          <div class='data-title'>{{ $t('coreHeadToTail') }}</div>
+                        </d-tooltip>
                         <d-tooltip :content="$t('coreHeadToTailTip')">
                           <d-icon name="helping" size="16px"></d-icon>
                         </d-tooltip>
@@ -56,7 +58,9 @@
                     </div>
                     <div class="measure-detail-data-item">
                       <div class="data-title-row">
-                        <div class='data-title'>{{ $t('coreExecutionTime') }}</div>
+                        <d-tooltip :content="$t('coreExecutionTime')">
+                          <div class='data-title'>{{ $t('coreExecutionTime') }}</div>
+                        </d-tooltip>
                         <d-tooltip :content="$t('coreExecutionTimeTip')">
                           <d-icon name="helping" size="16px"></d-icon>
                         </d-tooltip>
@@ -65,13 +69,19 @@
                     </div>
                   </div>
                   <div class="measure-detail-data-downarea-time-ratio">
-                    <div v-if="coreWaitTimeRateValue > 0" class="device-cube-time-bar"
-                      :style="{ flex: `${coreWaitTimeRateValue}%` }">
-                      <div class="cube-time-num">{{ coreWaitTimeRate }}</div>
+                    <div v-if="coreWaitTimeBarVisible" class="device-cube-time-bar"
+                      :style="getDeviceCubeBarStyle()">
+                      <d-tooltip v-if="coreWaitTimeRate === '--'" :content="`${coreWaitTimeRateOriginal}%`">
+                        <div class="cube-time-num">{{ coreWaitTimeRate }}</div>
+                      </d-tooltip>
+                      <div v-else class="cube-time-num">{{ coreWaitTimeRate }}</div>
                     </div>
-                    <div v-if="coreExecutTimeRateValue > 0" class="device-vector-time-bar"
-                      :style="{ flex: `${coreExecutTimeRateValue}%` }">
-                      <div class="vector-time-num">{{ coreExecutTimeRate }}</div>
+                    <div v-if="coreExecutTimeBarVisible" class="device-vector-time-bar"
+                      :style="getDeviceVectorBarStyle()">
+                      <d-tooltip v-if="coreExecutTimeRate === '--'" :content="`${coreExecutTimeRateOriginal}%`">
+                        <div class="vector-time-num">{{ coreExecutTimeRate }}</div>
+                      </d-tooltip>
+                      <div v-else class="vector-time-num">{{ coreExecutTimeRate }}</div>
                     </div>
                   </div>
                 </div>
@@ -89,7 +99,7 @@
               </div>
               <div class="measure-detail-data-table">
                 <d-table :data="deviceMeasureDetailTableData" style="width: 100%" class="mulDetailTable">
-                  <d-column field="Event name" header="Worker Phase"></d-column>
+                  <d-column field="Event name" header="Worker Phase" :show-overflow-tooltip="{ position: 'bottom' }"></d-column>
                   <d-column field="Max duration line" :header="$t('MaxConsumingLane')"></d-column>
                   <d-column field="Max duration" :header="$t('MaxConsuming')"></d-column>
                   <d-column field="Avg duration" :header="$t('arverConsuming')"></d-column>
@@ -98,7 +108,7 @@
             </div>
           </div>
           <!-- 核内统计 -->
-          <div v-show="selectedTab === 'cores'" class="measure-detail-cores-content">
+          <div v-show="selectedTab === 'cores' || (!isDeviceView && !isAicpu)" class="measure-detail-cores-content">
             <div class="measure-detail-left-section">
               <div class="measure-detail-data-area">
                 <div class="measure-detail-data-uparea">
@@ -152,13 +162,19 @@
                     </div>
                   </div>
                   <div class="measure-detail-data-downarea-time-ratio">
-                    <div v-if="cubeCycleRateValue > 0" class="cube-time-bar"
-                      :style="{ flex: `${cubeCycleRateValue}%` }">
-                      <div class="cube-time-num">{{ cubeCycleRate }}</div>
+                    <div v-if="cubeCycleBarVisible" class="cube-time-bar"
+                      :style="getCubeBarStyle()">
+                      <d-tooltip v-if="cubeCycleRate === '--'" :content="`${cubeCycleRateOriginal}%`">
+                        <div class="cube-time-num">{{ cubeCycleRate }}</div>
+                      </d-tooltip>
+                      <div v-else class="cube-time-num">{{ cubeCycleRate }}</div>
                     </div>
-                    <div v-if="vectorCycleRateValue > 0" class="vector-time-bar"
-                      :style="{ flex: `${vectorCycleRateValue}%` }">
-                      <div class="vector-time-num">{{ vectorCycleRate }}</div>
+                    <div v-if="vectorCycleBarVisible" class="vector-time-bar"
+                      :style="getVectorBarStyle()">
+                      <d-tooltip v-if="vectorCycleRate === '--'" :content="`${vectorCycleRateOriginal}%`">
+                        <div class="vector-time-num">{{ vectorCycleRate }}</div>
+                      </d-tooltip>
+                      <div v-else class="vector-time-num">{{ vectorCycleRate }}</div>
                     </div>
                   </div>
                 </div>
@@ -226,7 +242,9 @@ const {
   leafHashes,
   leafHashMap,
   isPerfSwim,
-  deviceDataMap
+  deviceDataMap,
+  isDeviceView,
+  isAicpu
 } = inject('swimGraphState');
 
 const {
@@ -246,6 +264,18 @@ const coreWaitTimeRate = ref('0');
 const coreExecutTimeRate = ref('0');
 const coreWaitTimeRateValue = ref('0');
 const coreExecutTimeRateValue = ref('0');
+
+const cubeCycleRateOriginal = ref(0);
+const vectorCycleRateOriginal = ref(0);
+const coreWaitTimeRateOriginal = ref(0);
+const coreExecutTimeRateOriginal = ref(0);
+
+const cubeCycleBarVisible = ref(false);
+const vectorCycleBarVisible = ref(false);
+const coreWaitTimeBarVisible = ref(false);
+const coreExecutTimeBarVisible = ref(false);
+
+const MIN_RATE_THRESHOLD = 15;
 const AICPUUsage = ref('0');
 const coreWaitTime = ref('0');
 const coreExecutTime = ref('0');
@@ -285,6 +315,9 @@ let category = [
 ];
 let deviceSearchKeyInfo = '';
 const deviceDefaultSearchField = ['EventName'];
+let originalEventNum = '0';
+let originalCoreEventNum = '0';
+let isClearingSearch = false;
 let deviceCategory = [
   {
     label: 'Event Name',
@@ -309,7 +342,10 @@ const onSearch = (event) => {
   const { searchKey } = event;
   searchKeyInfo = searchKey;
   if (searchKey === '') {
+    eventNum.value = originalEventNum;
+    isClearingSearch = true;
     onMeasureSearch(event);
+    isClearingSearch = false;
   }
 };
 const onMeasureSearch = (event) => {
@@ -336,13 +372,22 @@ const onMeasureSearch = (event) => {
   if (measureDetailTableData.value.length === 0) {
     measureDetailTableData.value = [];
   }
+  if (!isClearingSearch) {
+    eventNum.value = filteredData.length.toString();
+    if (event.operation === 'clear') {
+      coreEventNum.value = originalEventNum;
+    }
+  }
 };
 
 const onDeviceSearch = (event) => {
   const { searchKey } = event;
   deviceSearchKeyInfo = searchKey;
-  if (searchKey === '') {
+  if (searchKey === '') {    
+    coreEventNum.value = originalCoreEventNum;
+    isClearingSearch = true;
     onDeviceMeasureSearch(event);
+    isClearingSearch = false;
   }
 };
 const onDeviceMeasureSearch = (event) => {
@@ -350,14 +395,15 @@ const onDeviceMeasureSearch = (event) => {
   const { selectedTags } = event;
   let defaultFilterData = deviceMeasureDetailTableData.value;
   if (deviceSearchKeyInfo) {
+    const searchKeyLower = deviceSearchKeyInfo.toLowerCase();
     defaultFilterData = deviceMeasureDetailTableData.value.filter(item =>
-      item['Event name'].includes(deviceSearchKeyInfo)
+      item['Event name'].toLowerCase().includes(searchKeyLower)
     );
   }
   const filteredData = selectedTags.reduce((item, { field, value: { Option } }) => {
     return item.filter(row => {
       if (field === 'EventName') {
-        return row['Event name'] === Option;
+        return row['Event name'].toLowerCase() === Option.toLowerCase();
       }
       return true;
     });
@@ -366,27 +412,68 @@ const onDeviceMeasureSearch = (event) => {
   if (deviceMeasureDetailTableData.value.length === 0) {
     deviceMeasureDetailTableData.value = [];
   }
+  if (!isClearingSearch) {
+    coreEventNum.value = filteredData.length.toString();
+    if (event.operation === 'clear') {
+      coreEventNum.value = originalCoreEventNum;
+    }
+  }
 };
+const MIN_BAR_WIDTH = 20;
+const getCubeBarStyle = () => {
+  if (cubeCycleRate.value === '--') {
+    return { flex: `0 0 ${MIN_BAR_WIDTH}px`, width: `${MIN_BAR_WIDTH}px` };
+  }
+  return { flex: `${cubeCycleRateValue.value}%` };
+};
+
+const getVectorBarStyle = () => {
+  if (vectorCycleRate.value === '--') {
+    return { flex: `0 0 ${MIN_BAR_WIDTH}px`, width: `${MIN_BAR_WIDTH}px` };
+  }
+  return { flex: `${vectorCycleRateValue.value}%` };
+};
+
+const getDeviceCubeBarStyle = () => {
+  if (coreWaitTimeRate.value === '--') {
+    return { flex: `0 0 ${MIN_BAR_WIDTH}px`, width: `${MIN_BAR_WIDTH}px` };
+  }
+  return { flex: `${coreWaitTimeRateValue.value}%` };
+};
+
+const getDeviceVectorBarStyle = () => {
+  if (coreExecutTimeRate.value === '--') {
+    return { flex: `0 0 ${MIN_BAR_WIDTH}px`, width: `${MIN_BAR_WIDTH}px` };
+  }
+  return { flex: `${coreExecutTimeRateValue.value}%` };
+};
+
 const rateToValue = () => {
-  cubeCycleRateValue.value = cubeCycleRate.value === '--' ? 0 : cubeCycleRate.value;
-  vectorCycleRateValue.value = vectorCycleRate.value === '--' ? 0 : vectorCycleRate.value;
+  cubeCycleRateValue.value = cubeCycleRate.value === '--' ? cubeCycleRateOriginal.value : cubeCycleRate.value;
+  vectorCycleRateValue.value = vectorCycleRate.value === '--' ? vectorCycleRateOriginal.value : vectorCycleRate.value;
   if (cubeCycleRateValue.value === 0 && vectorCycleRateValue.value === 0) {
     cubeCycleRateValue.value = 50;
     vectorCycleRateValue.value = 50;
   }
   cubeCycleRate.value = cubeCycleRate.value === '--' ? cubeCycleRate.value : `${cubeCycleRate.value}%`;
   vectorCycleRate.value = vectorCycleRate.value === '--' ? vectorCycleRate.value : `${vectorCycleRate.value}%`;
+
+  cubeCycleBarVisible.value = cubeCycleRateOriginal.value > 0;
+  vectorCycleBarVisible.value = vectorCycleRateOriginal.value > 0;
 };
 
 const deviceRateToValue = () => {
-  coreWaitTimeRateValue.value = coreWaitTimeRate.value === '--' ? 0 : coreWaitTimeRate.value;
-  coreExecutTimeRateValue.value = coreExecutTimeRate.value === '--' ? 0 : coreExecutTimeRate.value;
+  coreWaitTimeRateValue.value = coreWaitTimeRate.value === '--' ? coreWaitTimeRateOriginal.value : coreWaitTimeRate.value;
+  coreExecutTimeRateValue.value = coreExecutTimeRate.value === '--' ? coreExecutTimeRateOriginal.value : coreExecutTimeRate.value;
   if (coreWaitTimeRateValue.value === 0 && coreExecutTimeRateValue.value === 0) {
     coreWaitTimeRateValue.value = 50;
     coreExecutTimeRateValue.value = 50;
   }
   coreWaitTimeRate.value = coreWaitTimeRate.value === '--' ? coreWaitTimeRate.value : `${coreWaitTimeRate.value}%`;
   coreExecutTimeRate.value = coreExecutTimeRate.value === '--' ? coreExecutTimeRate.value : `${coreExecutTimeRate.value}%`;
+
+  coreWaitTimeBarVisible.value = coreWaitTimeRateOriginal.value > 0;
+  coreExecutTimeBarVisible.value = coreExecutTimeRateOriginal.value > 0;
 };
 
 const initDatas = () => {
@@ -412,6 +499,8 @@ const initDatas = () => {
   AICPUUsage.value = usageValue(handleNaN(data.AICPUusage));
   eventNum.value = handleNaN(data.eventnum);
   coreEventNum.value = handleNaN(data.coreEventNum);
+  originalEventNum = handleNaN(data.eventnum);
+  originalCoreEventNum = handleNaN(data.coreEventNum);
 
   const processCycleValue = (value) => {
     return value === 0 ? '--' : handleNaN(value);
@@ -428,16 +517,34 @@ const initDatas = () => {
   if (isNaN(cubeCycleNum) && isNaN(vectorCycleNum)) {
     cubeCycleRate.value = '--';
     vectorCycleRate.value = '--';
+    cubeCycleRateOriginal.value = 0;
+    vectorCycleRateOriginal.value = 0;
   } else if (isNaN(cubeCycleNum)) {
     cubeCycleRate.value = '--';
     vectorCycleRate.value = 100;
+    cubeCycleRateOriginal.value = 0;
+    vectorCycleRateOriginal.value = 100;
   } else if (isNaN(vectorCycleNum)) {
     cubeCycleRate.value = 100;
     vectorCycleRate.value = '--';
+    cubeCycleRateOriginal.value = 100;
+    vectorCycleRateOriginal.value = 0;
   } else {
     const total = cubeCycleNum + vectorCycleNum;
-    cubeCycleRate.value = parseFloat(((cubeCycleNum / total) * 100).toFixed(2));
-    vectorCycleRate.value = parseFloat(((vectorCycleNum / total) * 100).toFixed(2));
+    cubeCycleRateOriginal.value = parseFloat(((cubeCycleNum / total) * 100).toFixed(2));
+    vectorCycleRateOriginal.value = parseFloat(((vectorCycleNum / total) * 100).toFixed(2));
+
+    if (cubeCycleRateOriginal.value < MIN_RATE_THRESHOLD) {
+      cubeCycleRate.value = '--';
+    } else {
+      cubeCycleRate.value = cubeCycleRateOriginal.value;
+    }
+
+    if (vectorCycleRateOriginal.value < MIN_RATE_THRESHOLD) {
+      vectorCycleRate.value = '--';
+    } else {
+      vectorCycleRate.value = vectorCycleRateOriginal.value;
+    }
   }
   rateToValue();
 
@@ -447,16 +554,34 @@ const initDatas = () => {
   if (isNaN(coreWaitTimeNum) && isNaN(coreExecutTimeNum)) {
     coreWaitTimeRate.value = '--';
     coreExecutTimeRate.value = '--';
+    coreWaitTimeRateOriginal.value = 0;
+    coreExecutTimeRateOriginal.value = 0;
   } else if (isNaN(coreWaitTimeNum)) {
     coreWaitTimeRate.value = '--';
     coreExecutTimeRate.value = 100;
+    coreWaitTimeRateOriginal.value = 0;
+    coreExecutTimeRateOriginal.value = 100;
   } else if (isNaN(coreExecutTimeNum)) {
     coreWaitTimeRate.value = 100;
     coreExecutTimeRate.value = '--';
+    coreWaitTimeRateOriginal.value = 100;
+    coreExecutTimeRateOriginal.value = 0;
   } else {
     const deviceTotal = coreWaitTimeNum + coreExecutTimeNum;
-    coreWaitTimeRate.value = parseFloat(((coreWaitTimeNum / deviceTotal) * 100).toFixed(2));
-    coreExecutTimeRate.value = parseFloat(((coreExecutTimeNum / deviceTotal) * 100).toFixed(2));
+    coreWaitTimeRateOriginal.value = parseFloat(((coreWaitTimeNum / deviceTotal) * 100).toFixed(2));
+    coreExecutTimeRateOriginal.value = parseFloat(((coreExecutTimeNum / deviceTotal) * 100).toFixed(2));
+
+    if (coreWaitTimeRateOriginal.value < MIN_RATE_THRESHOLD) {
+      coreWaitTimeRate.value = '--';
+    } else {
+      coreWaitTimeRate.value = coreWaitTimeRateOriginal.value;
+    }
+
+    if (coreExecutTimeRateOriginal.value < MIN_RATE_THRESHOLD) {
+      coreExecutTimeRate.value = '--';
+    } else {
+      coreExecutTimeRate.value = coreExecutTimeRateOriginal.value;
+    }
   }
   deviceRateToValue();
 };
@@ -497,6 +622,13 @@ defineExpose({
 
 watch([mulDetailsExpanded, measureDetailsExpanded], ([newMulValue, newMeasureValue]) => {
   if (newMulValue === true || newMeasureValue === true) {
+    if (newMulValue === true) {
+      if (isDeviceView?.value) {
+        selectedTab.value = 'device';
+      } else {
+        selectedTab.value = isAicpu?.value ? 'device' : 'cores';
+      }
+    }
     initDatas();
     initTableDatas();
     category.forEach((item, index) => {
@@ -507,6 +639,19 @@ watch([mulDetailsExpanded, measureDetailsExpanded], ([newMulValue, newMeasureVal
       item.options = transformToDeviceEventNameOptions(deviceDataMap.value);
     });
     deviceCategory = JSON.parse(JSON.stringify(deviceCategory));
+  }
+});
+watch(isDeviceView, (newValue) => {
+  if (newValue) {
+    selectedTab.value = 'device';
+  } else {
+    selectedTab.value = isAicpu?.value ? 'device' : 'cores';
+  }
+});
+
+watch(isAicpu, (newValue) => {
+  if (!isDeviceView?.value) {
+    selectedTab.value = newValue ? 'device' : 'cores';
   }
 });
 const transformToOptions = (source) =>

@@ -10,6 +10,10 @@
   height: 276px;
 }
 
+.measure-details.expanded.no-tabs {
+  height: 226px;
+}
+
 .measure-details-content {
   display: flex;
   flex-direction: column;
@@ -19,6 +23,10 @@
   box-shadow: var(--devui-detail-boxshadow);
   background: var(--devui-swim-detail-bg);
   position: relative;
+}
+
+.measure-details-content.no-tabs {
+  height: 226px !important;
 }
 
 .measure-detail-tabs-header {

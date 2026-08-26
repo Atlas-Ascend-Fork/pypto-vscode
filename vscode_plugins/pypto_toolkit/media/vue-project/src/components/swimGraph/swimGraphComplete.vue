@@ -3112,7 +3112,7 @@ const calculateAndAddCoreWaitTime = (coreWaitEvents, startTime, endTime) => {
   }
 
   if (measureDetailsData.value.length > 0) {
-    measureDetailsData.value[measureDetailsData.value.length - 1].coreWaitTime = parseInt(coreWaitTime / 100);
+    measureDetailsData.value[measureDetailsData.value.length - 1].coreWaitTime = parseFloat((coreWaitTime / 100).toFixed(2));
     measureDetailsData.value[measureDetailsData.value.length - 1].coreEventNum = coreWaitEvents.length;
   }
 
@@ -3182,7 +3182,7 @@ const calculateAndAddCoreExecutTime = (matchingAICEvents, matchingAIVEvents, sta
   }
 
   if (measureDetailsData.value.length > 0) {
-    measureDetailsData.value[measureDetailsData.value.length - 1].coreExecutTime = parseInt(coreExecutTime / 100);
+    measureDetailsData.value[measureDetailsData.value.length - 1].coreExecutTime = parseFloat((coreExecutTime / 100).toFixed(2));
   }
 };
 

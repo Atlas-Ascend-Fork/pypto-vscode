@@ -1790,14 +1790,7 @@ const checkInSelection = () => {
     });
   }
   selectionEvents = [...selectionMatchingAICEvents, ...selectionMatchingAIVEvents, ...selectionMatchingAICPUEvents];
-  const [selectionStartTime, selectionEndTime] = selectionEvents.reduce(
-    ([min, max], { startTime, endTime }) => [
-      Math.min(min, startTime),
-      Math.max(max, endTime)
-    ],
-    selectionEvents.length ? [selectionEvents[0].startTime, selectionEvents[0].endTime] : [0, 0]
-  );
-  const timeRange = selectionEndTime - selectionStartTime;
+  const timeRange = Math.abs(end - start);
   // 最终统计
   measureDetailGet(selectionMatchingAICEvents, selectionMatchingAIVEvents, timeRange, selectionAICCount, selectionAIVCount);
   calculateAndAddAICPUusage(selectionMatchingAICPUEvents, timeRange, selectionAICPUCount);
