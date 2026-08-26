@@ -29,24 +29,31 @@ vi.mock(import('../../../src/handler/baseGraphMsgHandler'), () => ({
   },
 }));
 
-vi.mock(import('../../../src/core/json-graph/parseSymbolicAttr'), () => ({
-  AttrReader: vi.fn().mockImplementation((server: any, attr: any[]) => ({
-    hasNext: vi.fn(() => attr && attr.length > 0),
-    readIndex: vi.fn(() => 0),
-    readNumber: vi.fn(() => attr && attr.length > 0 ? attr.shift() : NaN),
-    readStringOrNumberArray: vi.fn(() => {
-      if (attr && attr.length > 0) {
-        const val = attr.shift();
+vi.mock(import('../../../src/core/json-graph/parseSymbolicAttr'), () => {
+  class MockAttrReader {
+    private attr: any[];
+    constructor(public server: any, attr: any[]) {
+      this.attr = attr ? [...attr] : [];
+    }
+    hasNext() { return this.attr.length > 0; }
+    readIndex() { return 0; }
+    readNumber() { return this.attr.length > 0 ? this.attr.shift() : NaN; }
+    readStringOrNumberArray() {
+      if (this.attr.length > 0) {
+        const val = this.attr.shift();
         return Array.isArray(val) ? val : undefined;
       }
       return undefined;
-    }),
-    readOptionalNumber: vi.fn(() => attr && attr.length > 0 ? attr.shift() : null),
-  })),
-  genMathScalarExpr: vi.fn(() => 'mock_expr'),
-  parseSymbolicOrIntList: vi.fn(() => ['1', '2']),
-  parseExprList: vi.fn(() => ['1', '2']),
-}));
+    }
+    readOptionalNumber() { return this.attr.length > 0 ? this.attr.shift() : null; }
+  }
+  return {
+    AttrReader: MockAttrReader,
+    genMathScalarExpr: vi.fn(() => 'mock_expr'),
+    parseSymbolicOrIntList: vi.fn(() => ['1', '2']),
+    parseExprList: vi.fn(() => ['1', '2']),
+  };
+});
 
 import { AscppDagBuilder } from '../../../src/core/json-graph/jsonGraph';
 import { BaseGraphMsgHandler } from '../../../src/handler/baseGraphMsgHandler';
