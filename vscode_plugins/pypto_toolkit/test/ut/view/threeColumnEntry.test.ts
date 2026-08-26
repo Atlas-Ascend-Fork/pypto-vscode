@@ -150,7 +150,8 @@ describe('Fider.findByCodePath', () => {
     mockUtil.readSwim2ComGraphMap.mockReturnValue({});
     mockWorkspace.workspaceFolders = [{ uri: { fsPath: '/workspace' } }];
     mockFs.existsSync.mockImplementation((path: string) => {
-      return path === '/workspace/output' || path.includes('program.json') || path.includes('merged_swimlane.json');
+      const p = path.replace(/\\/g, '/');
+      return p === '/workspace/output' || p.includes('program.json') || p.includes('merged_swimlane.json');
     });
     mockFs.readdirSync.mockReturnValue([
       { name: 'output_001', isDirectory: () => true },

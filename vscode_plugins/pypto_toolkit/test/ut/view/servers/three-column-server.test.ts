@@ -947,6 +947,16 @@ describe('ComGraphHandler internal methods (via ThreeColumnServer)', () => {
     expect(server.getRef('CompleteData')).toBeDefined();
   });
 
+  it('getSemanticObj with relative filename (triggers isAbsolute false + resolve)', async () => {
+    mocks.fs.readFileSync.mockReturnValue('code');
+    const mockGraphData = { fsPath: '/com.json', getCompleteData: vi.fn().mockResolvedValue({ functions: [{ operations: [{ semantic_label: ['label'], file: 'test.py', line: 5 }] }] }) };
+    mocks.singleGraphHandler.SingleGraphHandler.getGrahpDataExtend = vi.fn().mockReturnValue(mockGraphData) as any;
+    const server = createServer();
+    server.codePath = '/test/code.py';
+    await server.singleSelectFile({ graphType: 'editor' });
+    expect(server.getRef('CompleteData')).toBeDefined();
+  });
+
   it('getSemanticObj with array semantic_label without op.file', async () => {
     mocks.fs.readFileSync.mockReturnValue('code');
     const mockGraphData = { fsPath: '/com.json', getCompleteData: vi.fn().mockResolvedValue({ functions: [{ operations: [{ semantic_label: ['label'] }] }] }) };
