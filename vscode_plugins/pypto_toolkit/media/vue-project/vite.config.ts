@@ -43,6 +43,13 @@ export default defineConfig(({ mode }) => ({
       origin: /^vscode-webview:\/\//,
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        silenceDeprecations: ['import', 'legacy-js-api'],
+      },
+    },
+  },
   build: {
     outDir: mode === 'test' ? '../../.test-webview-dist' : '../../webview-dist',
     emptyOutDir: true,

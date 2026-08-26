@@ -95,7 +95,7 @@ provide(ComGraphReportProvideKey, { graphName, jsonData, rootEmits: emits });
 </script>
 
 <style lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .com-graph-report {
   position: fixed;

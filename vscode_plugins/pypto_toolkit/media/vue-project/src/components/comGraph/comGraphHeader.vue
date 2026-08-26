@@ -162,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, inject, onBeforeMount, onMounted, reactive, watch, nextTick, computed } from 'vue';
+import { ref, inject, onMounted, watch, nextTick, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { GraphType, ComGraphProvideKey } from './type';
 import type { ComGraphContext } from './type';
@@ -866,7 +866,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .com-graph-header {
   height: 160px;

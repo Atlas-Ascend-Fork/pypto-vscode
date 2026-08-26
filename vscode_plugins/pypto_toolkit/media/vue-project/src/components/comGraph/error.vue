@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, ref, inject, onMounted, defineEmits } from 'vue';
+import { ref, inject, onMounted } from 'vue';
 import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/types';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
 import { useViewServer } from '../../core/use-view-server';
@@ -76,7 +76,7 @@ const openSelectedFileWindow = () => {
 </script>
 
 <style lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .com-graph-error-container {
   display: flex;

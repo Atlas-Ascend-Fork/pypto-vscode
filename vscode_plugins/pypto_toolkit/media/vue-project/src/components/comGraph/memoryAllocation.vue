@@ -394,7 +394,7 @@ watch(showDetailModal, (val) => {
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 .splitter-border {
   height:100%;
   background-color: var(--devui-global-bg);

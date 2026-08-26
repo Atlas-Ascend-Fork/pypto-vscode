@@ -339,7 +339,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .task-check-detail-wrap {
   height: 100%;

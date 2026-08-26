@@ -190,7 +190,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 .com-graph-error-node {
   position: absolute;
   z-index: 2;

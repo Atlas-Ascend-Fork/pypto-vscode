@@ -139,7 +139,7 @@ const onExpandChange = () => {
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .taskcheck-list-container {
   position: relative;
@@ -344,7 +344,7 @@ const onExpandChange = () => {
 }
 </style>
 <style lang="css">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 .parse-task-modal.devui-modal {
   width: 508px;
   border: 1px solid var(--welcome-banner-point);

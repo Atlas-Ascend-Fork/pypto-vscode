@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { inject, provide, ref, defineExpose, watch, computed, onUnmounted } from 'vue';
+import { inject, provide, ref, watch, computed, onUnmounted } from 'vue';
 import SwimGraphProcessItem from './SwimGraphProcessItem.vue';
 import { getThreadHeight, getThreadStartY } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';

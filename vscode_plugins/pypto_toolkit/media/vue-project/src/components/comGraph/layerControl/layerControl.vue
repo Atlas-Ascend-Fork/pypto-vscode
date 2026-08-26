@@ -135,7 +135,7 @@ const linkLevel = ref<number>(Number(defaultSearchLevel.value));
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .layer-control-container {
   position: fixed;

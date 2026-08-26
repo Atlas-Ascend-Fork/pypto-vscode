@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
-import { onMounted, watch, defineProps, ref, provide, inject, computed, onBeforeUnmount, nextTick } from 'vue';
+import { onMounted, watch, ref, provide, inject, computed, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';

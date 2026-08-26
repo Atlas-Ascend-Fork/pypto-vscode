@@ -172,7 +172,7 @@ defineExpose({ getCurrentPass: () => currentData.value });
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .pass-list-container {
   display: flex;
@@ -246,7 +246,7 @@ defineExpose({ getCurrentPass: () => currentData.value });
 </style>
 
 <style lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .devui-flexible-overlay:has(.pass-list-menu-wrap) {
   border-radius: 8px;

@@ -191,7 +191,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, defineProps } from 'vue';
+import { ref, watch } from 'vue';
 import { getQuery } from '@/core/query';
 import { useViewServer } from '@/core/use-view-server';
 import {

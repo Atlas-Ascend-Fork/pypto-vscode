@@ -407,7 +407,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 .com-graph-minimap-container {
   box-shadow: 0px -1px 6px 0px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(12px);

@@ -59,7 +59,7 @@ const onJump = (it) => {
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .layer-cur {
   white-space: nowrap;

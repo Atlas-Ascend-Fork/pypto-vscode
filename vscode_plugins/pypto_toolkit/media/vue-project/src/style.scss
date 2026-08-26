@@ -1,4 +1,4 @@
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 html {
   scrollbar-color: unset;

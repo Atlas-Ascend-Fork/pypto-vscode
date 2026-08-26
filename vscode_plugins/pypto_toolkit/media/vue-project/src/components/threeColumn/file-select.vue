@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, defineProps } from 'vue';
+import { inject } from 'vue';
 import type { IThreeColumnCtx, GraphType, ISwimGraphState } from './types';
 import { ThreeColumnProvideKey, SwimGraphStateKey } from './types';
 import { useViewServer } from '../../core/use-view-server';

@@ -194,7 +194,7 @@ const handleCancelSelect = () => {
 };
 </script>
 <style lang="scss" scoped>
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 @mixin block-base-style($r, $g, $b) {
   border-left-color: rgba($r, $g, $b, 1);

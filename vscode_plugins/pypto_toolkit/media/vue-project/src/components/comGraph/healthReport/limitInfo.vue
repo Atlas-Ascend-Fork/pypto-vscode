@@ -25,7 +25,7 @@ const iconPath = computed(() => `${(window as any).staticPath}/static-assets/com
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .limit-info {
   display: flex;

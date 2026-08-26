@@ -154,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, onMounted, reactive, watch, capitalize} from 'vue';
+import { ref, onMounted, reactive, watch, capitalize} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { comGraphStore } from '../../service/com-graph-store';
 import { getTextWidth } from '../../utils/index';
@@ -708,7 +708,7 @@ watch(server.GlobalSearchResult, (newValue) => {
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .com-graph-header {
   height: 100vh;

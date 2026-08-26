@@ -50,7 +50,7 @@ const onClickSearchMode = () => {
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .search-entry-container {
   display: flex;

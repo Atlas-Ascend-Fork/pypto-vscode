@@ -64,7 +64,7 @@ const renderTime = computed(() => {
 </script>
 
 <style lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .com-graph-loading {
   position: absolute;

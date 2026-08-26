@@ -560,7 +560,7 @@ const onJumpToSwimGraph = async (data: { seqNo?: number; taskId?: string }) => {
 </script>
 
 <style scoped lang="scss">
-@import 'devui-theme/styles-var/devui-var.scss';
+@use 'devui-theme/styles-var/devui-var.scss' as *;
 
 .taskcheck-layout-container {
   display: flex;
