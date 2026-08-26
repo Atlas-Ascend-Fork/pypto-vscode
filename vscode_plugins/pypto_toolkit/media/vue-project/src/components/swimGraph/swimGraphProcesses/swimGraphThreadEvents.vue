@@ -3649,6 +3649,7 @@ const showTooltip = (e, event) => {
     tooltipContent += `<div class="tooltip-item"><span class="tooltip-key">${$t('duration')}</span><span class="tooltip-value">${formatTimeWithUnit(duration * 1000 / tsScale.value).value}${formatTimeWithUnit(duration * 1000 / tsScale.value).unit}</span></div>`;
   }
   const hashOrderStr = event.args?.['hashOrder-hint'] ?? event.args?.hashorder;
+  document.documentElement.style.removeProperty('--tool-tip-key-width');
   if (hashOrderStr) {
     setHashOrderTipColor(event);
     let result = {};
