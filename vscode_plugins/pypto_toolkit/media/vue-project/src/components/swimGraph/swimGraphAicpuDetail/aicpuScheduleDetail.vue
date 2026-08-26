@@ -108,8 +108,8 @@ const aivmin = ref(0);
 const aicmax = ref(0);
 const aivmax = ref(0);
 const aicendmax = ref(0);
-let aicThreadNum = 0;
-let aivThreadNum = 0;
+const aicThreadNum = ref(0);
+const aivThreadNum = ref(0);
 
 let buildTaskColor = computed(() => {
   return getBaseColor(aicpuBuildTask.value, { processes: swimDataManager.getAllProcesses(), isDarkTheme, kernelColorRending });
@@ -142,6 +142,31 @@ let aicEndmax = computed(() => {
   return aicendmax.value;
 });
 
+const updateScheduleRange = (entry, type, number) => {
+  if (entry[type].min === null) {
+    entry[type].min = number;
+    entry[type].max = number;
+  } else {
+    entry[type].min = Math.min(entry[type].min, number);
+    entry[type].max = Math.max(entry[type].max, number) + 1;
+  }
+};
+
+const processScheduleKey = (key, result, controlGroups) => {
+  const aicMatch = key.match(/^SCHED(?<group>\d+)-AIC-(?<number>\d+)$/) || key.match(/^AIC-(?<number>\d+)-SCHED(?<group>\d+)$/);
+  const aivMatch = key.match(/^SCHED(?<group>\d+)-AIV-(?<number>\d+)$/) || key.match(/^AIV-(?<number>\d+)-SCHED(?<group>\d+)$/);
+
+  if (aicMatch && controlGroups.has(aicMatch.groups.group)) {
+    const keyName = `AICPU-CTRL-${aicMatch.groups.group}`;
+    updateScheduleRange(result.get(keyName), 'aic', parseInt(aicMatch.groups.number));
+  }
+
+  if (aivMatch && controlGroups.has(aivMatch.groups.group)) {
+    const keyName = `AICPU-CTRL-${aivMatch.groups.group}`;
+    updateScheduleRange(result.get(keyName), 'aiv', parseInt(aivMatch.groups.number));
+  }
+};
+
 const scheduleGraphData = () => {
   const result = new Map();
   if (!aicpuScheduleMaps.value) {
@@ -169,47 +194,21 @@ const scheduleGraphData = () => {
   }
 
   for (const [key, value] of aicpuScheduleMaps.value.entries()) {
-    const aicMatch = key.match(/^SCHED(?<group>\d+)-AIC-(?<number>\d+)$/) || key.match(/^AIC-(?<number>\d+)-SCHED(?<group>\d+)$/);
-    const aivMatch = key.match(/^SCHED(?<group>\d+)-AIV-(?<number>\d+)$/) || key.match(/^AIV-(?<number>\d+)-SCHED(?<group>\d+)$/);
-
-    if (aicMatch) {
-      const groupNumber = aicMatch.groups.group;
-      const secondNumber = parseInt(aicMatch.groups.number);
-
-      if (controlGroups.has(groupNumber)) {
-        const keyName = `AICPU-CTRL-${groupNumber}`;
-        const current = result.get(keyName);
-        if (current.aic.min === null) {
-          current.aic.min = secondNumber;
-          current.aic.max = secondNumber;
-        } else {
-          current.aic.min = Math.min(current.aic.min, secondNumber);
-          current.aic.max = Math.max(current.aic.max, secondNumber) + 1;
-        }
-      }
+    processScheduleKey(key, result, controlGroups);
+  }
+  let globalAicMax = 0;
+  let globalAivMax = 0;
+  for (const data of result.values()) {
+    if (data.aic.max !== null && data.aic.max > globalAicMax) {
+      globalAicMax = data.aic.max;
     }
-
-    if (aivMatch) {
-      const groupNumber = aivMatch.groups.group;
-      const secondNumber = parseInt(aivMatch.groups.number);
-
-      if (controlGroups.has(groupNumber)) {
-        const keyName = `AICPU-CTRL-${groupNumber}`;
-        const current = result.get(keyName);
-        if (current.aiv.min === null) {
-          current.aiv.min = secondNumber;
-          current.aiv.max = secondNumber;
-        } else {
-          current.aiv.min = Math.min(current.aiv.min, secondNumber);
-          current.aiv.max = Math.max(current.aiv.max, secondNumber) + 1;
-        }
-      }
+    if (data.aiv.max !== null && data.aiv.max > globalAivMax) {
+      globalAivMax = data.aiv.max;
     }
   }
-  const keyNumName = `AICPU-CTRL-3`;
-  const currentNum = result.get(keyNumName);
-  aicThreadNum = currentNum.aic.max - 1;
-  aivThreadNum = currentNum.aiv.max - aicThreadNum - 1;
+  aicThreadNum.value = globalAicMax > 0 ? globalAicMax - 1 : 0;
+  aivThreadNum.value = globalAicMax > 0 ? globalAivMax - globalAicMax : 0;
+  aicendmax.value = globalAicMax;
   return result;
 };
 
@@ -217,7 +216,8 @@ watch(selectedEvent, (newEvent) => {
   if (aicpuHasRelevent) {
     const smap = scheduleGraphData();
     if (newEvent) {
-      const match = newEvent.threadName.match(/^AICPU-SCHED-(?<number>\d+)$/);
+      const effectiveThreadName = newEvent.originalThreadName || newEvent.threadName;
+      const match = effectiveThreadName.match(/^AICPU-SCHED-(?<number>\d+)$/);
         if(match && match.groups.number) {
           const groupNumber = match.groups.number;
           const keyName = `AICPU-CTRL-${groupNumber}`;
@@ -229,11 +229,6 @@ watch(selectedEvent, (newEvent) => {
             aivmax.value = data.aiv.max;
           }
         }
-    }
-    const aicEndkeyName = `AICPU-CTRL-3`;
-    if (smap.has(aicEndkeyName)) {
-      const data = smap.get(aicEndkeyName);
-      aicendmax.value = data.aic.max;
     }
   }
 });

@@ -1033,6 +1033,7 @@ class SwimDataManager {
     this.reorderMachineViewThreads(machineProcess);
     this.recalculateLane2Line();
     machineProcess.name = 'Device View';
+    machineProcess.isRendered = true;
     this.isDeviceViewMerged = true;
     
     // 更新 processExpanded：删除 AICPU 进程，展开 Machine View 进程
