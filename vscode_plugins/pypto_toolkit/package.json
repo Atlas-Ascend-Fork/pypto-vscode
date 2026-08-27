@@ -81,6 +81,11 @@
           "light": "webview-dist/static-assets/boot_steps/boot_steps_open_sideBar-light.svg",
           "dark": "webview-dist/static-assets/boot_steps/boot_steps_open_sideBar.svg"
         }
+      },
+      {
+        "command": "PyPTO.ExecuteRemoteCommand",
+        "title": "%pypto.remoteTool.executeCommand%",
+        "category": "PyPTO.RemoteTool"
       }
     ],
     "menus": {
@@ -227,7 +232,7 @@
     "lint:check": "eslint .",
     "lint:webview": "cd media/vue-project && npm run lint",
     "lint:webview:check": "cd media/vue-project && npm run lint:check",
-    "postcompile": "node scripts/copy-wasm.js",
+    "postcompile": "node scripts/copy-deps.js",
     "check": "npm run compile:vscode && npm run type-check:webview",
     "test:memory": "npm run type-check:webview:tests && npm --prefix media/vue-project run test:memory",
     "test:gm-e2e:type-check": "tsc --noEmit -p test/e2e/tsconfig.json",
@@ -266,7 +271,7 @@
     "@playwright/test": "1.61.1",
     "@types/lodash": "^4.17.21",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.12.0",
     "@types/sql.js": "^1.4.4",
     "@vitest/coverage-v8": "^4.1.11",
     "@vscode/test-cli": "0.0.15",

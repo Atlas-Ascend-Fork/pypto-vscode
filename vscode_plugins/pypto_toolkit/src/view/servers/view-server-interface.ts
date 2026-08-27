@@ -281,7 +281,8 @@ export type IControlFlowApis =
   | 'savePyCode'
   | 'getInitialData'
   | 'fetchVscodeState'
-  | 'setCurAccuFilePathApi';
+  | 'setCurAccuFilePathApi'
+  | 'executeRemoteCommand';
 export type IControlFlowRefs = {
   parseFlag: unknown;
   SetParsingMode: unknown;
@@ -296,6 +297,7 @@ export interface IControlFlowViewServer extends ViewServer<IControlFlowApis, ICo
     filePath: string;
     fileType: string;
   }) => Promise<void>;
+  executeRemoteCommand: () => Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }>;
 }
 
 // 内存追踪视图服务接口

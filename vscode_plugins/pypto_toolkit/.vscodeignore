@@ -5,7 +5,6 @@
 .omo/**
 .trae/**
 docs/**
-scripts/**
 out/test/**
 dist/test/**
 src/**
@@ -26,13 +25,77 @@ commitlint.config.js
 media/**
 !media/images/logo.png
 
-# typescript compiler lib (runtime not needed, only JsxEmit enum used via vite bundle)
-**/node_modules/typescript/lib/**
-
-# sql.js
-**/node_modules/sql.js/dist/sqljs-all.zip
-**/node_modules/sql.js/dist/sql-wasm-debug.wasm
+# Dev dependencies (not needed at runtime)
+node_modules/@playwright/**
+node_modules/@vitest/**
+node_modules/@commitlint/**
+node_modules/@eslint/**
+node_modules/@eslint-community/**
+node_modules/@babel/**
+node_modules/@rolldown/**
+node_modules/@vscode/test-cli/**
+node_modules/@vscode/test-electron/**
+node_modules/@humanfs/**
+node_modules/@humanwhocodes/**
+node_modules/@typescript-eslint/**
+node_modules/@oxc-project/**
+node_modules/@standard-schema/**
+node_modules/@isaacs/**
+node_modules/@pkgjs/**
+node_modules/@ungap/**
+node_modules/@bcoe/**
+node_modules/@istanbuljs/**
+node_modules/@inversifyjs/**
+node_modules/@simple-libs/**
+node_modules/@conventional-changelog/**
+node_modules/playwright/**
+node_modules/playwright-core/**
+node_modules/vitest/**
+node_modules/vite/**
+node_modules/eslint/**
+node_modules/mocha/**
+node_modules/husky/**
+node_modules/concurrently/**
+node_modules/acorn/**
+node_modules/acorn-jsx/**
+node_modules/rollup/**
+node_modules/esbuild/**
+node_modules/lightningcss-win32-x64-msvc/**
+node_modules/path-scurry/**
+node_modules/brace-expansion/**
+node_modules/minimatch/**
+node_modules/glob/**
+node_modules/lru-cache/**
+node_modules/foreground-child/**
+node_modules/signal-exit/**
+node_modules/which/**
+node_modules/isexe/**
+node_modules/jackspeak/**
+node_modules/eastasianwidth/**
+node_modules/emoji-regex/**
+node_modules/string-width/**
+node_modules/strip-ansi/**
+node_modules/wrap-ansi/**
+node_modules/ansi-regex/**
+node_modules/ansi-styles/**
+node_modules/color-convert/**
+node_modules/color-name/**
+node_modules/chalk/**
+node_modules/supports-color/**
+node_modules/has-flag/**
+node_modules/debug/**
+node_modules/ms/**
+node_modules/picomatch/**
+node_modules/readdirp/**
+node_modules/fsevents/**
 
 # type declarations and docs not needed at runtime
 **/node_modules/@types/**
 **/node_modules/**/*.md
+
+# sql.js large files not needed at runtime
+**/node_modules/sql.js/dist/sqljs-all.zip
+**/node_modules/sql.js/dist/sql-wasm-debug.wasm
+
+# typescript compiler lib (runtime not needed, only JsxEmit enum used via vite bundle)
+**/node_modules/typescript/lib/**
