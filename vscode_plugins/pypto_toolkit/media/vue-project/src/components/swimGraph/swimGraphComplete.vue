@@ -114,7 +114,7 @@
                 :style="{ left: pathLockedHighlightStyle.textLeft + 'px' }">{{ pathLockedHighlightStyle.text }}</span>
           </div>
         </div>
-        <swim-graph-measure-detail v-if="!isAicpu" ref="measureDetailComponent" />
+        <swim-graph-measure-detail ref="measureDetailComponent" />
         <swim-graph-detail ref="detailComponent" />
         <aicpu-control-detail ref="aicpuControlDetailComponent" />
         <aicpu-schedule-detail ref="aicpuscheduleDetailComponent" />        
@@ -3129,7 +3129,7 @@ const calculateAndAddCoreWaitTime = (coreWaitEvents, startTime, endTime) => {
   }
 
   if (measureDetailsData.value.length > 0) {
-    measureDetailsData.value[measureDetailsData.value.length - 1].coreWaitTime = parseFloat((coreWaitTime / 100).toFixed(2));
+    measureDetailsData.value[measureDetailsData.value.length - 1].coreWaitTime = parseFloat(((coreWaitTime * 1000 / tsScale.value) / 1000).toFixed(2));
     measureDetailsData.value[measureDetailsData.value.length - 1].coreEventNum = coreWaitEvents.length;
   }
 
@@ -3177,8 +3177,8 @@ const calculateDeviceDataMap = (coreWaitEvents, startTime, endTime) => {
     deviceDataMap.value.set(eventName, {
       'Event name': eventName,
       'Max duration line': maxDurationLine,
-      'Max duration': parseFloat((maxDuration / 100).toFixed(2)),
-      'Avg duration': parseFloat((avgDuration / 100).toFixed(2))
+      'Max duration': parseFloat(((maxDuration * 1000 / tsScale.value) / 1000).toFixed(2)),
+      'Avg duration': parseFloat(((avgDuration * 1000 / tsScale.value) / 1000).toFixed(2))
     });
   }
 };
@@ -3199,7 +3199,7 @@ const calculateAndAddCoreExecutTime = (matchingAICEvents, matchingAIVEvents, sta
   }
 
   if (measureDetailsData.value.length > 0) {
-    measureDetailsData.value[measureDetailsData.value.length - 1].coreExecutTime = parseFloat((coreExecutTime / 100).toFixed(2));
+    measureDetailsData.value[measureDetailsData.value.length - 1].coreExecutTime = parseFloat(((coreExecutTime * 1000 / tsScale.value) / 1000).toFixed(2));
   }
 };
 
@@ -3546,9 +3546,6 @@ const isCoreUtilizationSupported = (isSelection, process = null) => {
   }
   if (!isSelection) {
     return;
-  }
-  if (process.type === 'aicpu') {
-    postMessageInfo($t('aicpuUnavailableInfo'));
   }
   if (process.type === 'PerfSwim') {
     if (process.processName !== 'AICore View') {

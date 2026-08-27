@@ -71,14 +71,14 @@
                   <div class="measure-detail-data-downarea-time-ratio">
                     <div v-if="coreWaitTimeBarVisible" class="device-cube-time-bar"
                       :style="getDeviceCubeBarStyle()">
-                      <d-tooltip v-if="coreWaitTimeRate === '--'" :content="`${coreWaitTimeRateOriginal}%`">
+                      <d-tooltip v-if="coreWaitTimeRate === '···'" :content="`${coreWaitTimeRateOriginal}%`">
                         <div class="cube-time-num">{{ coreWaitTimeRate }}</div>
                       </d-tooltip>
                       <div v-else class="cube-time-num">{{ coreWaitTimeRate }}</div>
                     </div>
                     <div v-if="coreExecutTimeBarVisible" class="device-vector-time-bar"
                       :style="getDeviceVectorBarStyle()">
-                      <d-tooltip v-if="coreExecutTimeRate === '--'" :content="`${coreExecutTimeRateOriginal}%`">
+                      <d-tooltip v-if="coreExecutTimeRate === '···'" :content="`${coreExecutTimeRateOriginal}%`">
                         <div class="vector-time-num">{{ coreExecutTimeRate }}</div>
                       </d-tooltip>
                       <div v-else class="vector-time-num">{{ coreExecutTimeRate }}</div>
@@ -435,14 +435,14 @@ const getVectorBarStyle = () => {
 };
 
 const getDeviceCubeBarStyle = () => {
-  if (coreWaitTimeRate.value === '--') {
+  if (coreWaitTimeRate.value === '···') {
     return { flex: `0 0 ${MIN_BAR_WIDTH}px`, width: `${MIN_BAR_WIDTH}px` };
   }
   return { flex: `${coreWaitTimeRateValue.value}%` };
 };
 
 const getDeviceVectorBarStyle = () => {
-  if (coreExecutTimeRate.value === '--') {
+  if (coreExecutTimeRate.value === '···') {
     return { flex: `0 0 ${MIN_BAR_WIDTH}px`, width: `${MIN_BAR_WIDTH}px` };
   }
   return { flex: `${coreExecutTimeRateValue.value}%` };
@@ -463,14 +463,14 @@ const rateToValue = () => {
 };
 
 const deviceRateToValue = () => {
-  coreWaitTimeRateValue.value = coreWaitTimeRate.value === '--' ? coreWaitTimeRateOriginal.value : coreWaitTimeRate.value;
-  coreExecutTimeRateValue.value = coreExecutTimeRate.value === '--' ? coreExecutTimeRateOriginal.value : coreExecutTimeRate.value;
+  coreWaitTimeRateValue.value = coreWaitTimeRate.value === '···' ? coreWaitTimeRateOriginal.value : coreWaitTimeRate.value;
+  coreExecutTimeRateValue.value = coreExecutTimeRate.value === '···' ? coreExecutTimeRateOriginal.value : coreExecutTimeRate.value;
   if (coreWaitTimeRateValue.value === 0 && coreExecutTimeRateValue.value === 0) {
     coreWaitTimeRateValue.value = 50;
     coreExecutTimeRateValue.value = 50;
   }
-  coreWaitTimeRate.value = coreWaitTimeRate.value === '--' ? coreWaitTimeRate.value : `${coreWaitTimeRate.value}%`;
-  coreExecutTimeRate.value = coreExecutTimeRate.value === '--' ? coreExecutTimeRate.value : `${coreExecutTimeRate.value}%`;
+  coreWaitTimeRate.value = coreWaitTimeRate.value === '···' ? coreWaitTimeRate.value : `${coreWaitTimeRate.value}%`;
+  coreExecutTimeRate.value = coreExecutTimeRate.value === '···' ? coreExecutTimeRate.value : `${coreExecutTimeRate.value}%`;
 
   coreWaitTimeBarVisible.value = coreWaitTimeRateOriginal.value > 0;
   coreExecutTimeBarVisible.value = coreExecutTimeRateOriginal.value > 0;
@@ -552,18 +552,18 @@ const initDatas = () => {
   const coreExecutTimeNum = coreExecutTime.value === '--' ? NaN : parseFloat(coreExecutTime.value);
 
   if (isNaN(coreWaitTimeNum) && isNaN(coreExecutTimeNum)) {
-    coreWaitTimeRate.value = '--';
-    coreExecutTimeRate.value = '--';
+    coreWaitTimeRate.value = '···';
+    coreExecutTimeRate.value = '···';
     coreWaitTimeRateOriginal.value = 0;
     coreExecutTimeRateOriginal.value = 0;
   } else if (isNaN(coreWaitTimeNum)) {
-    coreWaitTimeRate.value = '--';
+    coreWaitTimeRate.value = '···';
     coreExecutTimeRate.value = 100;
     coreWaitTimeRateOriginal.value = 0;
     coreExecutTimeRateOriginal.value = 100;
   } else if (isNaN(coreExecutTimeNum)) {
     coreWaitTimeRate.value = 100;
-    coreExecutTimeRate.value = '--';
+    coreExecutTimeRate.value = '···';
     coreWaitTimeRateOriginal.value = 100;
     coreExecutTimeRateOriginal.value = 0;
   } else {
@@ -572,13 +572,13 @@ const initDatas = () => {
     coreExecutTimeRateOriginal.value = parseFloat(((coreExecutTimeNum / deviceTotal) * 100).toFixed(2));
 
     if (coreWaitTimeRateOriginal.value < MIN_RATE_THRESHOLD) {
-      coreWaitTimeRate.value = '--';
+      coreWaitTimeRate.value = '···';
     } else {
       coreWaitTimeRate.value = coreWaitTimeRateOriginal.value;
     }
 
     if (coreExecutTimeRateOriginal.value < MIN_RATE_THRESHOLD) {
-      coreExecutTimeRate.value = '--';
+      coreExecutTimeRate.value = '···';
     } else {
       coreExecutTimeRate.value = coreExecutTimeRateOriginal.value;
     }

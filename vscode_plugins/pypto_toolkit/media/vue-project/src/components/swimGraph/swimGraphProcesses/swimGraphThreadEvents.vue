@@ -283,9 +283,6 @@ const canDragSelect = (process) => {
   if (isMsProf.value) {
     return false;
   }
-  if (process.type === 'aicpu') {
-    return false;
-  }
   if (process.type === 'PerfSwim') {
     return process.name === 'AICore View';
   }
@@ -1571,7 +1568,7 @@ const handleSelection = () => {
   }
   // 清掉其他泳道的框选
   swimDataManager.getAllProcesses().forEach((process, processKey) => {
-    if (!processExpanded.get(processKey) || process.type === 'aicpu' || processKey === props.processKey) {
+    if (!processExpanded.get(processKey) || processKey === props.processKey) {
       return;
     }
     const canvasRef = document.querySelector(`[data-selection-process-key="${processKey}"]`);
@@ -1785,8 +1782,25 @@ const checkInSelection = () => {
       }
       selectionMatchingAICPUEvents.push(...matched);
     });
+
+    process.threads.forEach((thread, threadKey) => {
+      const { threadName, eventIds } = thread;
+      const { renderInfo } = swimDataManager.getEventById(eventIds[0]);
+      if (!renderInfo) {
+        return;
+      }
+      const { y } = renderInfo;
+      if (y < selectMinY || (y + layout.eventHeight) > selectMaxY) {
+        return;
+      }
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
+        if (event.startTime >= start && event.endTime <= end) {
+          selectionEvents.push(event);
+        }
+      }
+    });
   }
-  selectionEvents = [...selectionMatchingAICEvents, ...selectionMatchingAIVEvents, ...selectionMatchingAICPUEvents];
   const timeRange = Math.abs(end - start);
   // 最终统计
   measureDetailGet(selectionMatchingAICEvents, selectionMatchingAIVEvents, timeRange, selectionAICCount, selectionAIVCount);

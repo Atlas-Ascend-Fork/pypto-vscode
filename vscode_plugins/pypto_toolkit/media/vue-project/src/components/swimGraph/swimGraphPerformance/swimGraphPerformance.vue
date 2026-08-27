@@ -163,7 +163,9 @@
           <div class="aicore-container-column" :style="{gap: deviceContainerColumnGap + 'px'}">
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
-                <div class="task-title">{{ $t('AICPUExecution') }}</div>
+                <d-tooltip :content="$t('AICPUExecution')">
+                  <div class="task-title">{{ $t('AICPUExecution') }}</div>
+                </d-tooltip>
               </div>
               <div class="task-data">{{ AICPUExecutionTime }}</div>
             </div>
@@ -742,26 +744,76 @@ const processAicpuThread = (threadName, events) => {
   return result;
 };
 
+const extractEventIndex = (eventName) => {
+  if (!eventName) {
+    return -1;
+  }
+  const match = eventName.match(/$(?<index>\d+)$$/);
+  return match ? parseInt(match.groups.index, 10) : -1;
+};
+
+const isAicpuEvent = (event) => {
+  return event.originalThreadName !== undefined && event.originalThreadName !== null;
+};
+
+const isKernelEvent = (event) => {
+  return !isAicpuEvent(event);
+};
+
 const processAicAivThread = (events) => {
-  let beforeHeadTime = 0;
-  let afterHeadTime = 0;
-  let firstHeadEventIndex = -1;
-  for (let i = 0; i < events.length; i++) {
-    const eventName = events[i].name || '';
-    if (eventName.startsWith('DEV_TASK_ALL_CALLOP_TASK_EXEC') || eventName.startsWith('DEV_TASK_ALL_LEAF_TASK_EXEC')) {
-      firstHeadEventIndex = i;
-      break;
+  let threadHeadTime = 0;
+  let threadTailTime = 0;
+
+  let i = 0;
+  while (i < events.length) {
+    const event = events[i];
+    const eventName = event.name || '';
+
+    if (isKernelEvent(event)) {
+      i++;
+      continue;
     }
+
+    const currentIndex = extractEventIndex(eventName);
+    const currentEventDuration = event.duration || 0;
+    
+    let beforeKernelTime = currentEventDuration;
+    let j = i + 1;
+    while (j < events.length) {
+      const nextEvent = events[j];
+      const nextEventName = nextEvent.name || '';
+      const nextIndex = extractEventIndex(nextEventName);
+
+      if (isKernelEvent(nextEvent) || (nextIndex !== -1 && nextIndex !== currentIndex)) {
+        break;
+      }
+
+      beforeKernelTime += nextEvent.duration || 0;
+      j++;
+    }
+    i = j;
+    
+    while(i < events.length && isKernelEvent(events[i])) {
+      i++;
+    }
+
+    let afterKernelTime = 0;
+    while (i < events.length) {
+      const nextEvent = events[i];
+      const nextEventName = nextEvent.name || '';
+      const nextIndex = extractEventIndex(nextEventName);
+      if (isKernelEvent(nextEvent) || (nextIndex !== -1 && nextIndex !== currentIndex)) {
+        break;
+      }
+
+      afterKernelTime += nextEvent.duration || 0;
+      i++;
+    }
+    threadHeadTime += beforeKernelTime;
+    threadTailTime += afterKernelTime;
   }
-  if (firstHeadEventIndex !== -1) {
-    for (let i = 0; i < firstHeadEventIndex; i++) {
-      beforeHeadTime += events[i].duration || 0;
-    }
-    for (let i = firstHeadEventIndex + 1; i < events.length; i++) {
-      afterHeadTime += events[i].duration || 0;
-    }
-  }
-  return { beforeHeadTime, afterHeadTime };
+
+  return { beforeHeadTime: threadHeadTime, afterHeadTime: threadTailTime };
 };
 
 const calculateDeviceBarMetrics = (beforeHead, afterHead) => {
@@ -1382,11 +1434,17 @@ provide('swimGraphPmuBarMethod', {
   background: var(--devui-category-search-bg);
   padding: 16px;
 
-  .task-title {
-    max-width: 116px;
+  .task-title-container {
+    max-width: 110px;
     overflow: hidden;
-    text-overflow: ellipsis;
+  }
+
+  .task-title {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
     white-space: nowrap;
+    text-overflow: ellipsis;
   }
 }
 
