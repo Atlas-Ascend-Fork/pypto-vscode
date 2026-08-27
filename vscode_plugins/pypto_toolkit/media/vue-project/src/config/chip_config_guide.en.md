@@ -532,7 +532,7 @@ The demo trace is useful because it exercises behavior that differs from the 910
 | `metadata.chipArch: "DAV_3510"` | Demonstrates architecture-based config selection. This key selects the bundled Ascend910_95 sample config. |
 | Separate `MEM_UB0` and `MEM_UB1` events | Demonstrates that multiple UB blocks require distinct runtime memType keys and distinct visual node ids. |
 | `MEM_L1 -> MEM_L0A` and `MEM_L1 -> MEM_L0B` operation | Demonstrates one source memory activating multiple transfer paths. |
-| `MEM_L0A`/`MEM_L0B -> MEM_L0C` through Cube | Demonstrates the current Cube/L0C animation expansion. |
+| `MEM_L0A`/`MEM_L0B` -> MEM_L0C` through Cube | Demonstrates the current Cube/L0C animation expansion. |
 | `ALLOC_FAIL` on `MEM_UB1` | Demonstrates independent failure highlighting for a specific memory bank. |
 
 The current branch bundles `DAV_3510` in `chip-config-loader.ts`, so the demo trace should select the sample topology directly. If that mapping is removed in a future cleanup, the trace will safely fall back to the default 910B config but will no longer show the custom DAV_3510 topology.
