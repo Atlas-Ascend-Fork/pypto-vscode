@@ -68,20 +68,20 @@
             </svg>            
             <div class="cube-content" ref="cubes">
               <div class="schedule-title">{{$t('aiCubeSched')}}</div>
-              <template v-for="(key, index) in sortedResultKeys.slice(0, 3)" :key="key">
-                <aic-cube-schedule-detail 
-                  :aic-dispatch-numstart="aicpuScheduleData.get(key).aic.min" 
+              <template v-for="(key, index) in sortedResultKeys" :key="key">
+                <aic-cube-schedule-detail
+                  :aic-dispatch-numstart="aicpuScheduleData.get(key).aic.min"
                   :aic-dispatch-numend="aicpuScheduleData.get(key).aic.max"
-                  :aic-thread-num="aicpuScheduleData.get(sortedResultKeys[2]).aic.max"/>
+                  :aic-thread-num="globalAicMax"/>
               </template>
             </div>
             <div class="vec-content">
               <div class="schedule-title">{{$t('aiVectorSched')}}</div>
-              <template v-for="(key, index) in sortedResultKeys.slice(0, 3)" :key="key">
-                <aiv-cube-schedule-detail 
-                  :aiv-dispatch-numstart="aicpuScheduleData.get(key).aiv.min" 
+              <template v-for="(key, index) in sortedResultKeys" :key="key">
+                <aiv-cube-schedule-detail
+                  :aiv-dispatch-numstart="aicpuScheduleData.get(key).aiv.min"
                   :aiv-dispatch-numend="aicpuScheduleData.get(key).aiv.max"
-                  :aic-end-num="aicpuScheduleData.get(sortedResultKeys[2]).aic.max"
+                  :aic-end-num="globalAicMax"
                   :aiv-thread-num="aivThreadNum"/>
               </template>
             </div>
@@ -137,6 +137,7 @@ const {
 
 const aicpuScheduleData = ref(new Map());
 let aivThreadNum = 0;
+let globalAicMax = 0;
 
 const AicpuControlDetailsPanel = () => {
   aicpuControlDetailsExpanded.value = !aicpuControlDetailsExpanded.value;
@@ -201,21 +202,44 @@ let startColor = computed(() => {
 let stopColor = computed(() => {
   return isDarkTheme.value ? '#ffffff' : '#000000';
 });
+const updateScheduleRange = (current, type, number) => {
+  if (current[type].min === null) {
+    current[type].min = number;
+    current[type].max = number;
+  } else {
+    current[type].min = Math.min(current[type].min, number);
+    current[type].max = Math.max(current[type].max, number) + 1;
+  }
+};
+const collectControlGroups = (scheduleMaps) => {
+  const controlGroups = new Set();
+  for (const [key] of scheduleMaps.entries()) {
+    const ctrlMatch = key.match(/^AICPU-SCHED-(?<number>\d+)$/);
+    if (ctrlMatch) {
+      controlGroups.add(ctrlMatch.groups.number);
+    }
+  }
+  return controlGroups;
+};
+const fillScheduleRanges = (scheduleMaps, result, controlGroups) => {
+  for (const [key] of scheduleMaps.entries()) {
+    const aicMatch = key.match(/^SCHED(?<group>\d+)-AIC-(?<number>\d+)$/) || key.match(/^AIC-(?<number>\d+)-SCHED(?<group>\d+)$/);
+    const aivMatch = key.match(/^SCHED(?<group>\d+)-AIV-(?<number>\d+)$/) || key.match(/^AIV-(?<number>\d+)-SCHED(?<group>\d+)$/);
+    if (aicMatch && controlGroups.has(aicMatch.groups.group)) {
+      updateScheduleRange(result.get(`AICPU-CTRL-${aicMatch.groups.group}`), 'aic', parseInt(aicMatch.groups.number));
+    }
+    if (aivMatch && controlGroups.has(aivMatch.groups.group)) {
+      updateScheduleRange(result.get(`AICPU-CTRL-${aivMatch.groups.group}`), 'aiv', parseInt(aivMatch.groups.number));
+    }
+  }
+};
 const scheduleGraphData = () => {
   const result = new Map();
   if (!aicpuScheduleMaps.value) {
     return result;
   }
 
-  const controlGroups = new Set();
-
-  for (const [key, value] of aicpuScheduleMaps.value.entries()) {
-    const ctrlMatch = key.match(/^AICPU-SCHED-(?<number>\d+)$/);
-    if (ctrlMatch) {
-      controlGroups.add(ctrlMatch.groups.number);
-    }
-  }
-
+  const controlGroups = collectControlGroups(aicpuScheduleMaps.value);
   if (controlGroups.size === 0) {
     return result;
   }
@@ -227,52 +251,26 @@ const scheduleGraphData = () => {
     });
   }
 
-  for (const [key, value] of aicpuScheduleMaps.value.entries()) {
-    const aicMatch = key.match(/^SCHED(?<group>\d+)-AIC-(?<number>\d+)$/) || key.match(/^AIC-(?<number>\d+)-SCHED(?<group>\d+)$/);
-    const aivMatch = key.match(/^SCHED(?<group>\d+)-AIV-(?<number>\d+)$/) || key.match(/^AIV-(?<number>\d+)-SCHED(?<group>\d+)$/);
+  fillScheduleRanges(aicpuScheduleMaps.value, result, controlGroups);
 
-    if (aicMatch) {
-      const groupNumber = aicMatch.groups.group;
-      const secondNumber = parseInt(aicMatch.groups.number);
-
-      if (controlGroups.has(groupNumber)) {
-        const keyName = `AICPU-CTRL-${groupNumber}`;
-        const current = result.get(keyName);
-        if (current.aic.min === null) {
-          current.aic.min = secondNumber;
-          current.aic.max = secondNumber;
-        } else {
-          current.aic.min = Math.min(current.aic.min, secondNumber);
-          current.aic.max = Math.max(current.aic.max, secondNumber) + 1;
-        }
-      }
+  globalAicMax = 0;
+  let globalAivMax = 0;
+  for (const data of result.values()) {
+    if (data.aic.max !== null && data.aic.max > globalAicMax) {
+      globalAicMax = data.aic.max;
     }
-
-    if (aivMatch) {
-      const groupNumber = aivMatch.groups.group;
-      const secondNumber = parseInt(aivMatch.groups.number);
-
-      if (controlGroups.has(groupNumber)) {
-        const keyName = `AICPU-CTRL-${groupNumber}`;
-        const current = result.get(keyName);
-        if (current.aiv.min === null) {
-          current.aiv.min = secondNumber;
-          current.aiv.max = secondNumber;
-        } else {
-          current.aiv.min = Math.min(current.aiv.min, secondNumber);
-          current.aiv.max = Math.max(current.aiv.max, secondNumber) + 1;
-        }
-      }
+    if (data.aiv.max !== null && data.aiv.max > globalAivMax) {
+      globalAivMax = data.aiv.max;
     }
   }
-  aivThreadNum = result.get('AICPU-CTRL-3')?.aiv.max - result.get('AICPU-CTRL-3')?.aic.max || 0;
+  aivThreadNum = globalAicMax > 0 ? globalAivMax - globalAicMax : 0;
   return result;
 };
 
 const sortedResultKeys = computed(() => {
   return Array.from(aicpuScheduleData.value.keys()).sort((a, b) => {
-    const numA = parseInt(a.split('-')[3]);
-    const numB = parseInt(b.split('-')[3]);
+    const numA = parseInt(a.split('-')[2]);
+    const numB = parseInt(b.split('-')[2]);
     return numA - numB;
   });
 });

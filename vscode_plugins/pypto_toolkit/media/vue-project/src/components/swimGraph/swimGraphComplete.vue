@@ -2445,6 +2445,9 @@ const getTwoConfigName = (event, name) => {
 
 const getDisplayName = (event) => {
   let { name: displayName } = event;
+  if (event.originalThreadName || swimDataManager.getProcess(event.processKey)?.type === 'aicpu') {
+    return displayName;
+  }
   const textOption = userConfig.value.kernelTextRending ?? ['taskName', 'taskLabel'];
   if (textOption.length === 1 && textOption[0] === 'taskName') {
     if(isMixMode?.value) {

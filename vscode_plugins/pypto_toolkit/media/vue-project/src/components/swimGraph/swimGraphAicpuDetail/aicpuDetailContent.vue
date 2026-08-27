@@ -90,12 +90,15 @@ const getEventTruncateText = (event) => {
 };
 
 const getScheduleKey = (event) => {
-  if (event) {
-    const numbers = event.threadName.match(/\d+/);
-    const threadid = numbers ? numbers[0] : 0;
-    return `SCHED-${threadid}`;
+  if (!event) {
+    return '';
   }
-  return '';
+  const name = event.originalThreadName || event.threadName;
+  if (!name) {
+    return '';
+  }
+  const match = name.match(/SCHED-?(?<num>\d+)/);
+  return match ? `SCHED-${match.groups.num}` : '';
 };
 
 const TimeWithUsUint = (time) => {
