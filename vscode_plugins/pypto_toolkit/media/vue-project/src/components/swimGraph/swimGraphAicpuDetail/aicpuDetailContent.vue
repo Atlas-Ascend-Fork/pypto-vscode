@@ -119,16 +119,16 @@ const aicpuFormatTimeWithUnit = (timeInNanoseconds) => {
       value: '', unit: ''
      };
   }
-  if (minutes >= 1) {
-    return { value: minutes.toFixed(0), unit: 'min' };
+   if (minutes >= 1) {
+    return { value: parseFloat(minutes.toFixed(2)), unit: 'min' };
   } else if (seconds >= 1) {
-    return { value: seconds.toFixed(0), unit: 's' };
+    return { value: parseFloat(seconds.toFixed(2)), unit: 's' };
   } else if (milliseconds >= 1) {
-    return { value: milliseconds.toFixed(0), unit: 'ms' };
+    return { value: parseFloat(milliseconds.toFixed(2)), unit: 'ms' };
   } else if (microseconds >= 1) {
-    return { value: microseconds.toFixed(0), unit: 'μs' };
+    return { value: parseFloat(microseconds.toFixed(2)), unit: 'μs' };
   } else {
-    return { value: nanoseconds.toFixed(0), unit: 'ns' };
+    return { value: parseFloat(nanoseconds.toFixed(2)), unit: 'ns' };
   }
 };
 

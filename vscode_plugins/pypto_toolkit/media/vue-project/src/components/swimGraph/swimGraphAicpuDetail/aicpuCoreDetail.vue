@@ -85,6 +85,7 @@ const {
     aicpuSchedTask,
     aicpuHasRelevent,
     viewState,
+    tsScale,
     layout,
     lane2line,
     timelineState,
@@ -184,22 +185,39 @@ const renderCoreDetailTimeline = (startTimeInfo, endTimeInfo) => {
     return;
   }
   const timePerPixel = timeRange / canvasWidth;
-  const USE_NS = timeRange < 1000;
-  const UNIT_DIVISOR = USE_NS ? 1 : 1000;
-  const UNIT_LABEL = USE_NS ? 'ns' : 'μs';
+  const endNs = ((endTimeInfo - viewState.minTime) * 1000) / tsScale.value;
+  let UNIT_DIVISOR;
+  let UNIT_LABEL;
+  if (endNs >= 6e10) {
+    UNIT_DIVISOR = 6e10;
+    UNIT_LABEL = 'min';
+  } else if (endNs >= 1e9) {
+    UNIT_DIVISOR = 1e9;
+    UNIT_LABEL = 's';
+  } else if (endNs >= 1e6) {
+    UNIT_DIVISOR = 1e6;
+    UNIT_LABEL = 'ms';
+  } else if (endNs >= 1e3) {
+    UNIT_DIVISOR = 1e3;
+    UNIT_LABEL = 'μs';
+  } else {
+    UNIT_DIVISOR = 1;
+    UNIT_LABEL = 'ns';
+  }
   const totalTicks = TOTAL_TICKS.value;
   const availableWidth = canvasWidth - 60;
   const stepX = availableWidth / (totalTicks - 1);
   const MIN_SPACING = 80;
   const drawTick = (index, x) => {
     let time = getTimeByIndex(index, x, timePerPixel, { startTimeInfo, endTimeInfo });
+    const timeNs = ((time - viewState.minTime) * 1000) / tsScale.value;
     let displayValue;
     if (index === 0) {
-      displayValue = Math.floor(startTimeInfo / UNIT_DIVISOR);
+      displayValue = Math.floor((((startTimeInfo - viewState.minTime) * 1000) / tsScale.value) / UNIT_DIVISOR);
     } else if (index === totalTicks - 1) {
-      displayValue = Math.ceil(endTimeInfo / UNIT_DIVISOR);
+      displayValue = Math.ceil((((endTimeInfo - viewState.minTime) * 1000) / tsScale.value) / UNIT_DIVISOR);
     } else {
-      displayValue = Math.round(time / UNIT_DIVISOR);
+      displayValue = Math.round(timeNs / UNIT_DIVISOR);
     }
     const text = `${displayValue}${UNIT_LABEL}`;
     ctx.beginPath();

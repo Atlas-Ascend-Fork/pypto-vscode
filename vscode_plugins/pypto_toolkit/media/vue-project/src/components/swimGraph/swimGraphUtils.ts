@@ -545,13 +545,8 @@ export const findSchedGraphMap = (threads, roundNo, taskNo, clickedEvent) => {
 
   for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
     const eventArr = findBuildCoreEvent(eventIds, roundNo, taskNo, threadMap);
-    threadMap.set(origThreadName, eventArr);
-    if (eventArr.length === 0) {
-      const fallbackEvents = findFallbackKernelEvents(eventIds, clickedEvent);
-      if (fallbackEvents.length > 0) {
-        threadMap.set(origThreadName, fallbackEvents);
-      }
-    }
+    const fallbackEvents = findFallbackKernelEvents(eventIds, clickedEvent);
+    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
   }
 
   return threadMap;
@@ -574,20 +569,55 @@ const collectFilteredMergedCoreEvents = (thread, threadName, mergedCoreEvents, s
   }
 };
 
-const findFallbackKernelEvents = (eventIds, clickedEvent) => {
-  if (!eventIds || eventIds.length === 0 || !clickedEvent) return [];
-  const { startTime, endTime } = clickedEvent;
+const findFallbackKernelEvents = (eventIds, clickedEvent, schedEvents) => {
+  if (!eventIds || eventIds.length === 0) {
+    return [];
+  }
   const thread = swimDataManager.getThreadByEvent(eventIds[0]);
-  if (!thread) return [];
+  if (!thread) {
+    return [];
+  }
+  const schedRanges = (schedEvents || [])
+    .filter(e => e && e.name && e.name.includes('DEV_TASK_SCHED_EXEC'))
+    .map(e => ({ startTime: e.startTime, endTime: e.endTime }));
+  const execRanges = eventIds
+    .map(id => swimDataManager.getEventById(id))
+    .filter(e => e && e.name && e.name.includes('DEV_TASK_ALL_CALLOP_TASK_EXEC'))
+    .map(e => ({ startTime: e.startTime, endTime: e.endTime }));
+  let ranges;
+  if (schedRanges.length > 0) {
+    ranges = schedRanges;
+  } else if (execRanges.length > 0) {
+    ranges = execRanges;
+  } else if (clickedEvent) {
+    ranges = [{ startTime: clickedEvent.startTime, endTime: clickedEvent.endTime }];
+  } else {
+    ranges = [];
+  }
+  if (ranges.length === 0) {
+    return [];
+  }
   const result = [];
   for (const eventId of thread.eventIds) {
     const event = swimDataManager.getEventById(eventId);
-    if (!event || event.originalThreadName) continue;
-    if (event.startTime <= endTime && event.endTime >= startTime) {
+    if (!event || event.originalThreadName) {
+      continue;
+    }
+    if (ranges.some(r => event.startTime <= r.endTime && event.endTime >= r.startTime)) {
       result.push(event);
     }
   }
   return result;
+};
+
+const setCoreWithFallback = (threadMap, origThreadName, eventArr, fallbackEvents) => {
+  if (eventArr.length > 0 && fallbackEvents.length > 0) {
+    threadMap.set(origThreadName, [...eventArr, ...fallbackEvents]);
+  } else if (eventArr.length > 0) {
+    threadMap.set(origThreadName, eventArr);
+  } else if (fallbackEvents.length > 0) {
+    threadMap.set(origThreadName, fallbackEvents);
+  }
 };
 
 // 获取ctrl类的map
@@ -629,17 +659,19 @@ export const findSchedCoreMapByNo = (event, threads) => {
     }
   }
 
+  // 收集 SCHED 的 DEV_TASK_SCHED_EXEC 事件时间段，用于联动高亮 kernel
+  const schedExecEvents = [];
+  for (const [key, value] of threadMap) {
+    if (key.includes('AICPU-SCHED')) {
+      schedExecEvents.push(...value.filter(e => e && e.name && e.name.includes('DEV_TASK_SCHED_EXEC')));
+    }
+  }
+
   // 处理合并后的核心事件
   for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
     const eventArr = findBuildCoreEvent(eventIds, roundNo, taskNo, threadMap);
-    if (eventArr.length > 0) {
-      threadMap.set(origThreadName, eventArr);
-    } else {
-      const fallbackEvents = findFallbackKernelEvents(eventIds, event);
-      if (fallbackEvents.length > 0) {
-        threadMap.set(origThreadName, fallbackEvents);
-      }
-    }
+    const fallbackEvents = findFallbackKernelEvents(eventIds, event, schedExecEvents);
+    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
   }
 
   return threadMap;
@@ -701,16 +733,10 @@ export const findSchedMapByNo = ({roundNo, taskNo, schedNo}, currentEventName, t
   for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
     const schedThread = threadMap.get(schedStr);
     const eventArr = findCoreEvent(eventIds, currentEventName, roundNo, taskNo, schedThread);
-    if (eventArr.length > 0) {
-      threadMap.set(origThreadName, eventArr);
-    } else {
-      const fallbackEvents = findFallbackKernelEvents(eventIds, event);
-      if (fallbackEvents.length > 0) {
-        threadMap.set(origThreadName, fallbackEvents);
-      }
-    }
+    const fallbackEvents = findFallbackKernelEvents(eventIds, event);
+    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
   }
-  
+
   return threadMap;
 };
 // 通过SCHED类的map获取events
@@ -769,16 +795,10 @@ export const findCoreMapByNo = (schedNo, threadNameInfo, event, threads) => {
   for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
     const schedThread = threadMap.get(schedStr);
     const eventArr = schedThread?.length > 0 ? findCoreEvent(eventIds, name, roundNo, taskNo, schedThread) : [event];
-    if (eventArr.length > 0) {
-      threadMap.set(origThreadName, eventArr);
-    } else {
-      const fallbackEvents = findFallbackKernelEvents(eventIds, event);
-      if (fallbackEvents.length > 0) {
-        threadMap.set(origThreadName, fallbackEvents);
-      }
-    }
+    const fallbackEvents = findFallbackKernelEvents(eventIds, event);
+    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
   }
-  
+
   return threadMap;
 };
 // 通过AICORE类的map获取events
