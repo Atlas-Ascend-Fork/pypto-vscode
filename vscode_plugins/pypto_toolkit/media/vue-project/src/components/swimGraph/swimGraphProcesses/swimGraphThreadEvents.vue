@@ -1531,37 +1531,34 @@ const drawSelectionBoxCanvas = (startLocalX, startLocalY, endLocalX, endLocalY, 
 };
 
 const drawSelectionBox = () => {
-  const {startLocalX, startLocalY, endLocalX, endLocalY} = selection;
-  const undefinedValues = [startLocalX, startLocalY, endLocalX, endLocalY];
-
-  if (undefinedValues.some(value => value === undefined)) {
-    if (props.processKey === draggingSelectionProcessKey.value) {
-      return;
-    } else {
-      if (draggingSelection.value) {
-        const {startLocalX: dragStartX, startLocalY: dragStartY, endLocalX: dragEndX, endLocalY: dragEndY} = draggingSelection.value;
-        drawSelectionBoxCanvas(dragStartX, dragStartY, dragEndX, dragEndY, draggingSelectionProcessKey.value);
-      }
+  if (isDragging.value) {
+    const {startLocalX, startLocalY, endLocalX, endLocalY} = selection;
+    if ([startLocalX, startLocalY, endLocalX, endLocalY].some(v => v === undefined)) {
       return;
     }
+    drawSelectionBoxCanvas(startLocalX, startLocalY, endLocalX, endLocalY, props.processKey);
+    draggingSelectionProcessKey.value = props.processKey;
+    draggingSelection.value = {
+      ...draggingSelection.value,
+      startLocalX: selection.startLocalX,
+      startLocalY: selection.startLocalY,
+      endLocalX: selection.endLocalX,
+      endLocalY: selection.endLocalY,
+    };
+    return;
   }
-
-  drawSelectionBoxCanvas(startLocalX, startLocalY, endLocalX, endLocalY, props.processKey);
-
-  draggingSelectionProcessKey.value = props.processKey;
-  draggingSelection.value = {
-    ...draggingSelection.value,
-    startLocalX: selection.startLocalX,
-    startLocalY: selection.startLocalY,
-    endLocalX: selection.endLocalX,
-    endLocalY: selection.endLocalY,
-  };
+  if (draggingSelection.value && draggingSelectionProcessKey.value) {
+    const {startLocalX, startLocalY, endLocalX, endLocalY} = draggingSelection.value;
+    drawSelectionBoxCanvas(startLocalX, startLocalY, endLocalX, endLocalY, draggingSelectionProcessKey.value);
+  }
 };
 const drawSelectionHightlight = () => {
-  const canvasRef = document.querySelector(`[data-selection-process-key="${props.processKey}"]`);
+  const highlightProcessKey = draggingSelectionProcessKey.value || props.processKey;
+  const canvasRef = document.querySelector(`[data-selection-process-key="${highlightProcessKey}"]`);
+  if (!canvasRef) { return };
   const ctx = canvasRef.getContext('2d');
   selectionEvents.forEach(eventItem => {
-    onSelectionEvent(eventItem, ctx, props.processKey, true);
+    onSelectionEvent(eventItem, ctx, highlightProcessKey, true);
   });
 };
 const handleSelection = () => {

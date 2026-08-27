@@ -2589,9 +2589,17 @@ const doResizeFastPhase = () => {
 
   const newCanvasCssWidth = viewState.canvasCssWidth;
   if (oldCanvasCssWidth && newCanvasCssWidth && oldCanvasCssWidth !== newCanvasCssWidth) {
-    viewState.offsetX = oldOffsetX * (newCanvasCssWidth / oldCanvasCssWidth);
+    const widthRatio = newCanvasCssWidth / oldCanvasCssWidth;
+    viewState.offsetX = oldOffsetX * widthRatio;
     viewState.pixelOffsetX = viewState.offsetX * getDevicePixelRatio();
     viewState.pixelScale = viewState.scale * getDevicePixelRatio();
+    if (draggingSelection.value) {
+      draggingSelection.value = {
+        ...draggingSelection.value,
+        startLocalX: draggingSelection.value.startLocalX * widthRatio,
+        endLocalX: draggingSelection.value.endLocalX * widthRatio,
+      };
+    }
   }
 
   transform();
