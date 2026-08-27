@@ -1871,9 +1871,15 @@ const highlightAicpu = (process, processKey, isResize) => {
     aicpuBuildTask.value = findBuildTaskByNo(coreMap);
     aicpuSchedTask.value = `AICPU-SCHED-${schedNo}`;
   }
+  const isAicpuProcess = process.type === 'aicpu';
+  ctx.font = getFontStyle(eventTextSize);
   for (const eventItme of aicpuEventsData) {
     highlightedPaths.add(eventItme.id);
     childContextMap.threadEvent.updateDrawDataColor(eventItme, childContextMap.threadEvent.eventRenderer.deps, processKey);
+    if (eventItme.drawData) {
+      eventItme.drawData.width = eventItme.drawData.eventWidth;
+      childContextMap.threadEvent.fillTextInfo(eventItme, ctx, eventItme.drawData, true, isAicpuProcess);
+    }
     drawDatas.push(eventItme.drawData);
   }
   childContextMap.threadEvent.eventRenderer.drawEvent(drawDatas, ctx);
