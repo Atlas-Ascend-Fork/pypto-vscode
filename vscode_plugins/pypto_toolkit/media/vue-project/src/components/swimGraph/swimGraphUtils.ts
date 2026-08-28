@@ -70,6 +70,7 @@ export const AICPU_SCHED_TO_CORE_TASK_RELATION = {
   DEV_TASK_SEND_FIRST_CALLOP_TASK: 'DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK',
   DEV_TASK_SCHED_EXEC: "DEV_TASK_ALL_CALLOP_TASK_EXEC",
   DEV_TASK_SYNC_CORE_STOP: 'DEV_TASK_WAIT_SYNC_STOP_NOTIFY',
+  DEV_TASK_SEND_FIRST_LEAF_TASK: 'DEV_TASK_WAIT_RCV_FIRST_LEAF_TASK',
 } as const;
 
 export const AICPU_CORE_TO_SCHED_TASK_RELATION = Object.fromEntries(
@@ -515,10 +516,33 @@ const collectMergedCoreEventsFromThread = (thread, mergedCoreEvents) => {
   }
 };
 
+const collectSchedExecEvents = (threadMap) => {
+  const schedExecEvents = [];
+  for (const [key, value] of threadMap) {
+    if (key.includes('AICPU-SCHED')) {
+      schedExecEvents.push(...value.filter(e => e && e.name && e.name.includes('DEV_TASK_SCHED_EXEC')));
+    }
+  }
+  return schedExecEvents;
+};
+
+const processMergedCoreEvents = (mergedCoreEvents, threadMap, fallbackEvent, schedExecEvents, computeEventArr) => {
+  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
+    const eventArr = computeEventArr(eventIds, threadMap);
+    const fallbackEvents = findFallbackKernelEvents(eventIds, fallbackEvent, schedExecEvents);
+    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
+  }
+};
+
 export const findSchedGraphMap = (threads, roundNo, taskNo, clickedEvent) => {
+  const schedNo = clickedEvent.threadName.split('-').pop();
+  const schedStr = `AICPU-SCHED-${schedNo}`;
+  if (!taskNo) {
+    taskNo = getTaskNo(schedStr, clickedEvent.id, threads);
+  }
   const threadMap = new Map();
   const mergedCoreEvents = new Map<string, string[]>();
-  
+
   for (const [, thread] of threads.entries()) {
     if (thread.isCounter) continue;
     const threadName = getEffectiveThreadNameForThread(thread);
@@ -534,20 +558,15 @@ export const findSchedGraphMap = (threads, roundNo, taskNo, clickedEvent) => {
       eventArr = findBuildSchedEvent(thread, roundNo, taskNo);
     } else if (isCore) {
       threadMap.set(threadName, []);
-      eventArr = findBuildCoreEvent(thread.eventIds, roundNo, taskNo, threadMap);
+       eventArr = findBuildCoreEvent(thread.eventIds, roundNo, taskNo, threadMap);
     } else {
       collectMergedCoreEventsFromThread(thread, mergedCoreEvents);
     }
-    if (eventArr.length > 0) {
-      threadMap.set(threadName, eventArr);
-    }
+    threadMap.set(threadName, eventArr);
   }
 
-  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
-    const eventArr = findBuildCoreEvent(eventIds, roundNo, taskNo, threadMap);
-    const fallbackEvents = findFallbackKernelEvents(eventIds, clickedEvent);
-    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
-  }
+  const schedExecEvents = collectSchedExecEvents(threadMap);
+  processMergedCoreEvents(mergedCoreEvents, threadMap, clickedEvent, schedExecEvents, (ids, map) => findBuildCoreEvent(ids, roundNo, taskNo, map));
 
   return threadMap;
 }
@@ -659,20 +678,8 @@ export const findSchedCoreMapByNo = (event, threads) => {
     }
   }
 
-  // 收集 SCHED 的 DEV_TASK_SCHED_EXEC 事件时间段，用于联动高亮 kernel
-  const schedExecEvents = [];
-  for (const [key, value] of threadMap) {
-    if (key.includes('AICPU-SCHED')) {
-      schedExecEvents.push(...value.filter(e => e && e.name && e.name.includes('DEV_TASK_SCHED_EXEC')));
-    }
-  }
-
-  // 处理合并后的核心事件
-  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
-    const eventArr = findBuildCoreEvent(eventIds, roundNo, taskNo, threadMap);
-    const fallbackEvents = findFallbackKernelEvents(eventIds, event, schedExecEvents);
-    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
-  }
+  const schedExecEvents = collectSchedExecEvents(threadMap);
+  processMergedCoreEvents(mergedCoreEvents, threadMap, event, schedExecEvents, (ids, map) => findBuildCoreEvent(ids, roundNo, taskNo, map));
 
   return threadMap;
 };
@@ -729,13 +736,8 @@ export const findSchedMapByNo = ({roundNo, taskNo, schedNo}, currentEventName, t
     }
   }
 
-  // 处理合并后的核心事件
-  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
-    const schedThread = threadMap.get(schedStr);
-    const eventArr = findCoreEvent(eventIds, currentEventName, roundNo, taskNo, schedThread);
-    const fallbackEvents = findFallbackKernelEvents(eventIds, event);
-    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
-  }
+  const schedExecEvents = collectSchedExecEvents(threadMap);
+  processMergedCoreEvents(mergedCoreEvents, threadMap, event, schedExecEvents, (ids, map) => findCoreEvent(ids, currentEventName, roundNo, taskNo, map.get(schedStr)));
 
   return threadMap;
 };
@@ -791,13 +793,11 @@ export const findCoreMapByNo = (schedNo, threadNameInfo, event, threads) => {
     }
   }
   
-  // 处理合并后的核心事件
-  for (const [origThreadName, eventIds] of mergedCoreEvents.entries()) {
-    const schedThread = threadMap.get(schedStr);
-    const eventArr = schedThread?.length > 0 ? findCoreEvent(eventIds, name, roundNo, taskNo, schedThread) : [event];
-    const fallbackEvents = findFallbackKernelEvents(eventIds, event);
-    setCoreWithFallback(threadMap, origThreadName, eventArr, fallbackEvents);
-  }
+  const schedExecEvents = collectSchedExecEvents(threadMap);
+  processMergedCoreEvents(mergedCoreEvents, threadMap, event, schedExecEvents, (ids, map) => {
+    const schedThread = map.get(schedStr);
+    return schedThread?.length > 0 ? findCoreEvent(ids, name, roundNo, taskNo, schedThread) : [event];
+  });
 
   return threadMap;
 };
@@ -869,6 +869,7 @@ export const findAllCoreEvent = (eventIds, roundNo, taskNo, schedThread) => {
     [`DEV_TASK_RCV_MODEL_${roundNo}(${taskNo})`]: 'hasRcv',
     [`DEV_TASK_ALL_CALLOP_TASK_EXEC_${roundNo}(${taskNo})`]: 'hasExec',
     [`DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK_${roundNo}(${taskNo})`]: 'hasSend',
+    [`DEV_TASK_WAIT_RCV_FIRST_LEAF_TASK_${roundNo}(${taskNo})`]: 'hasSend',
     [`DEV_TASK_WAIT_SYNC_STOP_NOTIFY_${roundNo}(${taskNo})`]: 'hasStop'
   };
   for (const eventId of eventIds) {
@@ -888,6 +889,7 @@ export const findCoreEvent = (eventIds, eventName, roundNo, taskNo, schedThread)
     [`DEV_TASK_RCV_MODEL_${roundNo}(${taskNo})`]: 'hasRcv',
     [`DEV_TASK_ALL_CALLOP_TASK_EXEC_${roundNo}(${taskNo})`]: 'hasExec',
     [`DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK_${roundNo}(${taskNo})`]: 'hasSend',
+    [`DEV_TASK_WAIT_RCV_FIRST_LEAF_TASK_${roundNo}(${taskNo})`]: 'hasSend',
     [`DEV_TASK_WAIT_SYNC_STOP_NOTIFY_${roundNo}(${taskNo})`]: 'hasStop'
   };
   for (const eventId of eventIds) {
@@ -938,7 +940,8 @@ export const getCoreRelationEvent = (roundNo, taskNo, currentEventName) => {
     [`DEV_TASK_RCV_MODEL${suffix}`, `DEV_TASK_RCV${suffix}`],
     [`DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK${suffix}`, `DEV_TASK_SEND_FIRST_CALLOP_TASK${schedSuffix}`],
     [`DEV_TASK_ALL_CALLOP_TASK_EXEC${suffix}`, `DEV_TASK_SCHED_EXEC${suffix}`],
-    [`DEV_TASK_WAIT_SYNC_STOP_NOTIFY${suffix}`, `DEV_TASK_SYNC_CORE_STOP${suffix}`]
+    [`DEV_TASK_WAIT_SYNC_STOP_NOTIFY${suffix}`, `DEV_TASK_SYNC_CORE_STOP${suffix}`],
+    [`DEV_TASK_WAIT_RCV_FIRST_LEAF_TASK${suffix}`, `DEV_TASK_SEND_FIRST_LEAF_TASK${schedSuffix}`],
   ]);
   return relationMap.get(currentEventName) || '';
 };
@@ -949,7 +952,8 @@ export const getSchedRelationEvent = (roundNo, taskNo, currentEventName) => {
     [`DEV_TASK_RCV${suffix}`, `DEV_TASK_RCV_MODEL${suffix}`],
     [`DEV_TASK_SEND_FIRST_CALLOP_TASK${schedSuffix}`, `DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK${suffix}`],
     [`DEV_TASK_SCHED_EXEC${suffix}`, `DEV_TASK_ALL_CALLOP_TASK_EXEC${suffix}`],
-    [`DEV_TASK_SYNC_CORE_STOP${suffix}`, `DEV_TASK_WAIT_SYNC_STOP_NOTIFY${suffix}`]
+    [`DEV_TASK_SYNC_CORE_STOP${suffix}`, `DEV_TASK_WAIT_SYNC_STOP_NOTIFY${suffix}`],
+    [`DEV_TASK_SEND_FIRST_LEAF_TASK${schedSuffix}`, `DEV_TASK_WAIT_RCV_FIRST_LEAF_TASK${suffix}`],
   ]);
   return relationMap.get(currentEventName) || '';
 };
@@ -978,7 +982,7 @@ export const findCtrlEvent = (thread, roundNo, taskNo, hasEvent) => {
   return [];
 };
 export const checkSchedEventRange = (currentEventName) => {
-  const highSchedEventsArr = ['DEV_TASK_RCV', 'DEV_TASK_SEND_FIRST_CALLOP_TASK', 'DEV_TASK_SCHED_EXEC','DEV_TASK_SYNC_CORE_STOP','WAIT_ALL_DEV_TASK_FINISH', 'DEV_TASK_RSP'];
+  const highSchedEventsArr = ['DEV_TASK_RCV', 'DEV_TASK_SEND_FIRST_CALLOP_TASK', 'DEV_TASK_SCHED_EXEC','DEV_TASK_SYNC_CORE_STOP','WAIT_ALL_DEV_TASK_FINISH', 'DEV_TASK_RSP', 'DEV_TASK_SEND_FIRST_LEAF_TASK'];
   let hasMatch = false;
   for (let i = 0; i < highSchedEventsArr.length; i++) {
     if (currentEventName.includes(highSchedEventsArr[i])) {
@@ -989,7 +993,7 @@ export const checkSchedEventRange = (currentEventName) => {
   return hasMatch;
 };
 export const checkCoreEventRange = (currentEventName) => {
-  const highCoreEventsArr = ['DEV_TASK_RCV_MODEL', 'DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK', 'DEV_TASK_ALL_CALLOP_TASK_EXEC','WAIT_ALL_DEV_TASK_CALLOP_EXEC_FINISH','DEV_TASK_WAIT_SYNC_STOP_NOTIFY'];
+  const highCoreEventsArr = ['DEV_TASK_RCV_MODEL', 'DEV_TASK_WAIT_RCV_FIRST_CALLOP_TASK', 'DEV_TASK_WAIT_RCV_FIRST_LEAF_TASK', 'DEV_TASK_ALL_CALLOP_TASK_EXEC','WAIT_ALL_DEV_TASK_CALLOP_EXEC_FINISH','DEV_TASK_WAIT_SYNC_STOP_NOTIFY'];
   let hasMatch = false;
   for (let i = 0; i < highCoreEventsArr.length; i++) {
     if (currentEventName.includes(highCoreEventsArr[i])) {
@@ -1004,6 +1008,7 @@ export const getSchedRelatation = (schedThread, roundNo, taskNo) => {
   const sendStr = `DEV_TASK_SEND_FIRST_CALLOP_TASK_${roundNo}`;
   const execStr = `DEV_TASK_SCHED_EXEC_${roundNo}(${taskNo})`;
   const stopStr = `DEV_TASK_SYNC_CORE_STOP_${roundNo}(${taskNo})`;
+  const sendLeafStr = `DEV_TASK_SEND_FIRST_LEAF_TASK_${roundNo}`;
   const result = {
     hasRcv: false,
     hasSend: false,
@@ -1015,6 +1020,8 @@ export const getSchedRelatation = (schedThread, roundNo, taskNo) => {
     if (name === rcvStr) {
       result.hasRcv = true;
     } else if (name === sendStr) {
+      result.hasSend = true;
+    } else if (name === sendLeafStr) {
       result.hasSend = true;
     } else if (name === execStr) {
       result.hasExec = true;
