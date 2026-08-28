@@ -145,9 +145,9 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
 
-  - **端到端（AICPU + Kernel）泳道图**
+  - **端到端泳道图（ Device 视图 ）**
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/deviceView.gif)
 
   - **pypto3.0泳道图**
 
@@ -160,9 +160,9 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
 
-  - **AICPU View**
+  - **Device View**
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/deviceViewNodeDetail.gif)
 
   - **pypto3.0泳道图**
 
@@ -212,7 +212,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
   鼠标悬浮泳道左侧区域，会显示置顶图标，点击即可将本泳道置顶
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/deviceViewPin.gif)
 
 - **Mix子图**
 

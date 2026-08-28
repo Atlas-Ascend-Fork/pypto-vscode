@@ -144,9 +144,9 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
 
-  - **End To End (AICPU + Kernel) Swimlane Diagram**
+  - **End To End Swimlane Diagram ( Device View )**
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuOpen.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/deviceView.gif)
 
   - **pypto3.0 Swimlane Diagram**
 
@@ -159,9 +159,9 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
     ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/swimGraphNodeDetail.gif)
 
-  - **AICPU View**
+  - **Device View**
 
-    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/aicpuDetail.gif)
+    ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/deviceViewNodeDetail.gif)
 
   - **pypto3.0 Swimlane Diagram**
 
@@ -211,7 +211,7 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
   Move the mouse over the left area of the lane. The top icon will be displayed. Click to top the lane.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.9/pinn.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/deviceViewPin.gif)
 
 - **Mix Subgraph**
 
