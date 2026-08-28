@@ -928,7 +928,7 @@ export const findSchedEvent = (thread, roundNo, taskNo, hasEvent, currentEventNa
     return [];
   } else {
     const foundEvent = originEventIds.find((eId) => swimDataManager.getEventById(eId).name === currentEventName);
-    return foundEvent ? [foundEvent] : [];
+    return foundEvent ? [swimDataManager.getEventById(foundEvent)] : [];
   }
 };
 export const getCoreRelationEvent = (roundNo, taskNo, currentEventName) => {
