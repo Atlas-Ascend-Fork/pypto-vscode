@@ -192,8 +192,8 @@
               </div>
               <div class="measure-detail-data-table">
                 <d-table :data="measureDetailTableData" style="width: 100%" class="mulDetailTable">
-                  <d-column field="rootFuncHash" header="Root Func. Hash"></d-column>
-                  <d-column field="leafFuncHash" header="Leaf Func. Hash"></d-column>
+                  <d-column field="rootFuncHash" header="Root Func. Hash" :show-overflow-tooltip="{ position: 'bottom' }"></d-column>
+                  <d-column field="leafFuncHash" header="Leaf Func. Hash" :show-overflow-tooltip="{ position: 'bottom' }"></d-column>
                   <d-column field="occurrences" header="Occurrences"></d-column>
                   <d-column field="wallDuration" header="Wall duration(ms)"></d-column>
                   <d-column field="avgDuration" header="AvG. Wall duration(ms)"></d-column>
