@@ -12,13 +12,7 @@ import { Util } from '../util';
 import { dirname, join, extname, resolve, basename } from 'path';
 import { accessSync, constants, existsSync, readFileSync, readdirSync } from 'fs';
 import { t } from 'i18next';
-let _dataCompress: typeof import('@pypto/data-compress') | undefined;
-async function getDataCompress() {
-  if (!_dataCompress) {
-    _dataCompress = await import('@pypto/data-compress');
-  }
-  return _dataCompress;
-}
+import { readCompressedFile, runCompress } from '@pypto/data-compress';
 import { getIDETheme } from '../theme';
 import Filter from 'stream-json/filters/Filter';
 import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, saveCompressedDataPathToDB, writeLargeObjectToFileThreadGranular, getSavedSwimDataFileStreamAll, checkPmuDataValid} from '../process';
@@ -464,8 +458,6 @@ export abstract class SwimGraphMsgHandler {
           server.setRef('noSwimFile', { errMsg: err.message });
           return;
         }
-
-        const { readCompressedFile, runCompress } = await getDataCompress();
 
         const swimFileStat = await fs.stat(swimPath);
 

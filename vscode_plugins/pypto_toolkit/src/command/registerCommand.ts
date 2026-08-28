@@ -16,8 +16,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { readCsv, getCsvData } from '../common/csvReader';
 import * as fs from 'fs';
-import * as os from 'os';
-import { exec } from 'child_process';
 import { SwimGraphMsgHandler } from '../handler/swimGraphMsgHandler';
 
 export class RegisterCommand {
@@ -41,7 +39,6 @@ export class RegisterCommand {
       this.registerOpenSwimGraph(),
       this.registerCloseAllToolPages(),
       this.registerPostLayoutData(),
-      this.registerExecuteRemoteCommand(),
     ];
   }
 
@@ -171,68 +168,6 @@ export class RegisterCommand {
       const server = this.editorView.editorView.openServer.get(serverId);
       if (server) {
         server.renderLayout(data, infoStr);
-      }
-    });
-  }
-
-  private registerExecuteRemoteCommand() {
-    return commands.registerCommand('PyPTO.ExecuteRemoteCommand', async () => {
-      if (os.platform() !== 'linux') {
-        vscode.window.showErrorMessage(_('pypto.remoteTool.linuxOnly'));
-        return;
-      }
-
-      const envCheck = await new Promise<boolean>((resolve) => {
-        exec('remote_tool.sh -h', { encoding: 'utf8', timeout: 5000 }, (error) => {
-          resolve(!error);
-        });
-      });
-      if (!envCheck) {
-        vscode.window.showErrorMessage(_('pypto.remoteTool.notTargetEnv'));
-        return;
-      }
-
-      const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      const userHome = process.env.PYPTO_HOME || process.env.HOME || process.env.USERPROFILE;
-
-      if (!workspace || !userHome) {
-        const missingVars = [!workspace && 'workspace folder', !userHome && 'PYPTO_HOME/HOME/USERPROFILE'].filter(Boolean).join(', ');
-        vscode.window.showErrorMessage(_('pypto.remoteTool.envVarMissing', { vars: missingVars }));
-        return;
-      }
-
-      const pullDir = `${workspace},${userHome}/.pypto`;
-      const mkdirPaths = `${workspace} ${userHome}/.pypto`;
-      const execCommand = `remote_tool.sh exec --command 'mkdir -p ${mkdirPaths}' --pull-dir '${pullDir}'`;
-
-      const result = await new Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }>(
-        (resolve) => {
-          exec(
-            execCommand,
-            {
-              encoding: 'utf8',
-              timeout: 300000,
-              maxBuffer: 1024 * 1024 * 10,
-            },
-            (error, stdout, stderr) => {
-              const exitCode = error ? (error as any).code ?? 1 : 0;
-              resolve({
-                success: !error,
-                stdout: (stdout as string).trim(),
-                stderr: (stderr as string).trim(),
-                exitCode: typeof exitCode === 'number' ? exitCode : 1,
-              });
-            },
-          );
-        },
-      );
-
-      if (result.success) {
-        vscode.window.showInformationMessage(_('pypto.remoteTool.execSuccess'));
-      } else {
-        vscode.window.showErrorMessage(
-          _('pypto.remoteTool.execFailed', { exitCode: result.exitCode, stderr: result.stderr || 'Unknown error' }),
-        );
       }
     });
   }
