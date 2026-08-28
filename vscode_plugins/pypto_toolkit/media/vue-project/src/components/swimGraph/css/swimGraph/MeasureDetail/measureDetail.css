@@ -249,6 +249,7 @@
   top: 2px;
   left: 50%;
   transform: translateX(-50%);
+  color: #FFF;
 }
 
 .vector-time-num {
@@ -260,6 +261,7 @@
   top: 2px;
   left: 50%;
   transform: translateX(-50%);
+  color: #FFF;
 }
 
 .measure-detail-right-section {

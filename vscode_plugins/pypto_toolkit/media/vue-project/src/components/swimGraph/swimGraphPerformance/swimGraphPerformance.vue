@@ -186,7 +186,7 @@
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-              <div class="device-cube-rate-cycle">{{ AICPUBeforeHeadTime }}</div>
+              <div class="device-cube-rate-cycle" :class="{ 'light-theme': !isDarkTheme }">{{ AICPUBeforeHeadTime }}</div>
             </div>
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
@@ -197,7 +197,7 @@
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-              <div class="device-vec-rate-cycle">{{ AICPUAfterHeadTime }}</div>
+              <div class="device-vec-rate-cycle" :class="{ 'light-theme': !isDarkTheme }">{{ AICPUAfterHeadTime }}</div>
             </div>
           </div>
           <div class="cube-data-chart" :style="{width: cubeDataChartWidth + 'px'}">
@@ -287,6 +287,7 @@ import TimeStatistics from './timeStatistics/timeStatistics.vue';
 import PmuInsightTab from './pmuInsightTab.vue';
 import { executionTimeData, formatTimeUnit, formatTimeValue, US_TO_MS_THRESHOLD, US_TO_S_THRESHOLD, UNIT_US, UNIT_MS, UNIT_S } from './utils';
 import { swimDataManager } from '../swimData';
+import { eventTextSize } from '../swimGraphUtils';
 const swimGraphBarChartComponent = ref(null);
 
 const { t: $t } = useI18n();
@@ -760,57 +761,84 @@ const isKernelEvent = (event) => {
   return !isAicpuEvent(event);
 };
 
+const collectBeforeKernelEvents = (events, startIndex, currentIndex) => {
+  let beforeKernelTime = 0;
+  let endIndex = startIndex;
+
+  while (endIndex < events.length) {
+    const event = events[endIndex];
+    if (isKernelEvent(event) || isNextSequence(event, currentIndex)) {
+      break;
+    }
+    beforeKernelTime += event.duration || 0;
+    endIndex++;
+  }
+
+  return { beforeKernelTime, endIndex };
+};
+
+const isNextSequence = (event, currentIndex) => {
+  const nextIndex = extractEventIndex(event.name || '');
+  return nextIndex !== -1 && nextIndex !== currentIndex;
+};
+
+const hasKernelBetweenSequences = (events, afterBeforeKernelIndex) => {
+  if (afterBeforeKernelIndex >= events.length) {
+    return false;
+  }
+  return isKernelEvent(events[afterBeforeKernelIndex]);
+};
+
+const skipKernelEvents = (events, startIndex) => {
+  let index = startIndex;
+  while (index < events.length && isKernelEvent(events[index])) {
+    index++;
+  }
+  return index;
+};
+
+const collectAfterKernelEvents = (events, startIndex, currentIndex) => {
+  let afterKernelTime = 0;
+  let endIndex = startIndex;
+
+  while (endIndex < events.length) {
+    const event = events[endIndex];
+    if (isKernelEvent(event) || isNextSequence(event, currentIndex)) {
+      break;
+    }
+    afterKernelTime += event.duration || 0;
+    endIndex++;
+  }
+
+  return { afterKernelTime, endIndex };
+};
+
 const processAicAivThread = (events) => {
   let threadHeadTime = 0;
   let threadTailTime = 0;
-
   let i = 0;
-  while (i < events.length) {
-    const event = events[i];
-    const eventName = event.name || '';
 
-    if (isKernelEvent(event)) {
+  while (i < events.length) {
+    if (isKernelEvent(events[i])) {
       i++;
       continue;
     }
 
-    const currentIndex = extractEventIndex(eventName);
-    const currentEventDuration = event.duration || 0;
-    
-    let beforeKernelTime = currentEventDuration;
-    let j = i + 1;
-    while (j < events.length) {
-      const nextEvent = events[j];
-      const nextEventName = nextEvent.name || '';
-      const nextIndex = extractEventIndex(nextEventName);
+    const currentIndex = extractEventIndex(events[i].name || '');
+    const { beforeKernelTime, endIndex: beforeKernelEndIndex } = collectBeforeKernelEvents(events, i, currentIndex);
 
-      if (isKernelEvent(nextEvent) || (nextIndex !== -1 && nextIndex !== currentIndex)) {
-        break;
-      }
-
-      beforeKernelTime += nextEvent.duration || 0;
-      j++;
-    }
-    i = j;
-    
-    while(i < events.length && isKernelEvent(events[i])) {
-      i++;
+    if (!hasKernelBetweenSequences(events, beforeKernelEndIndex)) {
+      i = beforeKernelEndIndex;
+      continue;
     }
 
-    let afterKernelTime = 0;
-    while (i < events.length) {
-      const nextEvent = events[i];
-      const nextEventName = nextEvent.name || '';
-      const nextIndex = extractEventIndex(nextEventName);
-      if (isKernelEvent(nextEvent) || (nextIndex !== -1 && nextIndex !== currentIndex)) {
-        break;
-      }
+    i = skipKernelEvents(events, beforeKernelEndIndex);
 
-      afterKernelTime += nextEvent.duration || 0;
-      i++;
-    }
+    const { afterKernelTime, endIndex: afterKernelEndIndex } = collectAfterKernelEvents(events, i, currentIndex);
+  
     threadHeadTime += beforeKernelTime;
     threadTailTime += afterKernelTime;
+    i = afterKernelEndIndex;
   }
 
   return { beforeHeadTime: threadHeadTime, afterHeadTime: threadTailTime };
@@ -818,14 +846,14 @@ const processAicAivThread = (events) => {
 
 const calculateDeviceBarMetrics = (beforeHead, afterHead) => {
   const deviceBarWidth = 450;
-  const minBarWidth = 38;
-  const deviceBarGap = 2;
+  const minBarWidth = 70;
+  const deviceBarGap = 0;
   if (beforeHead + afterHead > 0) {
     const totalTime = beforeHead + afterHead;
     const rawCubeWidth = deviceBarWidth * beforeHead / totalTime;
     const rawVectorWidth = deviceBarWidth * afterHead / totalTime;
-    deviceCubeTimePercentage.value = Math.floor(beforeHead / totalTime * 100) + '%';
-    deviceVectorTimePercentage.value = String(100 - Math.floor(beforeHead / totalTime * 100)) + '%';
+    deviceCubeTimePercentage.value = (beforeHead / totalTime * 100).toFixed(2) + '%';
+    deviceVectorTimePercentage.value = String((100 - beforeHead / totalTime * 100).toFixed(2)) + '%';
     if (rawCubeWidth < minBarWidth && rawVectorWidth > minBarWidth) {
       deviceCubeTimeWidth.value = minBarWidth + deviceBarGap;
       deviceVectorTimeWidth.value = deviceBarWidth - minBarWidth;
@@ -1484,6 +1512,14 @@ provide('swimGraphPmuBarMethod', {
   font-size: 18px;
   font-weight: 700;
   line-height: 20px;
+}
+
+.light-theme.device-cube-rate-cycle {
+  color: rgba(13, 170, 112, 1);
+}
+
+.light-theme.device-vec-rate-cycle  {
+  color: rgba(98, 180, 46, 1);
 }
 
 .cube-data-chart {

@@ -54,7 +54,7 @@
                           <d-icon name="helping" size="16px"></d-icon>
                         </d-tooltip>
                       </div>
-                      <div class="device-cube-time-value">{{ formatNumber(coreWaitTime) }}</div>
+                      <div class="device-cube-time-value" :class="{ 'light-theme': !isDarkTheme }">{{ formatNumber(coreWaitTime) }}</div>
                     </div>
                     <div class="measure-detail-data-item">
                       <div class="data-title-row">
@@ -65,7 +65,7 @@
                           <d-icon name="helping" size="16px"></d-icon>
                         </d-tooltip>
                       </div>
-                      <div class="device-vector-time-value">{{ formatNumber(coreExecutTime) }}</div>
+                      <div class="device-vector-time-value" :class="{ 'light-theme': !isDarkTheme }">{{ formatNumber(coreExecutTime) }}</div>
                     </div>
                   </div>
                   <div class="measure-detail-data-downarea-time-ratio">

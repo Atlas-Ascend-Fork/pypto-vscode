@@ -3119,6 +3119,17 @@ const processThreadEventSearchWithOriginalThreadName = (thread, startTime, endTi
   return matchedEvents;
 };
 
+const processAicpuThreadEventSearchWithOriginalThreadName = (thread, startTime, endTime) => {
+  const matchedEvents = [];
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (event.startTime >= startTime && event.endTime <= endTime) {
+      matchedEvents.push(event);
+    }
+  }
+  return matchedEvents;
+};
+
 const calculateAndAddCoreWaitTime = (coreWaitEvents, startTime, endTime) => {
   let coreWaitTime = 0;
 
@@ -3225,7 +3236,9 @@ const collectThreadMeasureEvents = (thread, startTime, endTime) => {
       result.aicpuCount = 1;
     }
     result.aicpuEvents = matched;
-  } else { }
+  } else if(thread.threadName.includes('AIC-') || thread.threadName.includes('AIV-')) {
+    result.coreWaitEvents = processAicpuThreadEventSearchWithOriginalThreadName(thread, startTime, endTime);
+  } else {}
   return result;
 };
 
@@ -3259,7 +3272,8 @@ const measureDetailSearch = () => {
 
   for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
     const processType = process.type || 'kernel';
-    const isNotExcludedPerfSwim = processType === 'PerfSwim' && process.name === 'AICore View';
+    const isNotExcludedPerfSwim = (processType === 'PerfSwim' && process.name === 'AICore View') || 
+                                  (processType === 'aicpu' && process.name === 'AICPU View');
     if (!(processExpanded.get(processKey) && (processType === 'kernel' || isNotExcludedPerfSwim))) {
       continue;
     }
