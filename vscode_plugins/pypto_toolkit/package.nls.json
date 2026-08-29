@@ -200,5 +200,10 @@
   "pypto.download.invalidBase64": "Invalid Base64",
   "pypto.download.invalidFilePath": "Invalid FilePath",
   "pypto.download.downloadFileFail": "Download File Fail",
-  "pypto.OpenSwimGraph": "PyPTO Toolkit: Open Swimlane Graph"
+  "pypto.OpenSwimGraph": "PyPTO Toolkit: Open Swimlane Graph",
+  "pypto.remoteTool.linuxOnly": "Remote command execution is only supported on Linux.",
+  "pypto.remoteTool.notTargetEnv": "remote_tool.sh not found. Please ensure the target environment is properly configured.",
+  "pypto.remoteTool.envVarMissing": "Environment variables missing: {{vars}}",
+  "pypto.remoteTool.execSuccess": "Remote command executed successfully.",
+  "pypto.remoteTool.execFailed": "Remote command failed (exit code: {{exitCode}}): {{stderr}}"
 }

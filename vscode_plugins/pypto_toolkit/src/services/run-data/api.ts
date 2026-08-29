@@ -9,6 +9,55 @@
  */
 import { OutputDetail, OutputRecord } from '../../types/workspace';
 import { useService } from '..';
+import * as os from 'os';
+import { exec } from 'child_process';
+import * as vscode from 'vscode';
+import { t } from 'i18next';
+
+async function syncRemoteData(): Promise<void> {
+  if (os.platform() !== 'linux') {
+    return;
+  }
+  try {
+    const envCheck = await new Promise<boolean>((resolve) => {
+      exec('remote_tool.sh -h', { encoding: 'utf8', timeout: 5000 }, (error) => {
+        resolve(!error);
+      });
+    });
+    if (!envCheck) {
+      return;
+    }
+    const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const userHome = process.env.PYPTO_HOME || process.env.HOME || process.env.USERPROFILE;
+    if (!workspace || !userHome) {
+      const missingVars = [!workspace && 'workspace folder', !userHome && 'PYPTO_HOME/HOME/USERPROFILE'].filter(Boolean).join(', ');
+      vscode.window.showErrorMessage(t('pypto.remoteTool.envVarMissing', { vars: missingVars }));
+      return;
+    }
+    const pullDir = `${workspace},${userHome}/.pypto`;
+    const mkdirPaths = `${workspace} ${userHome}/.pypto`;
+    const execCommand = `remote_tool.sh exec --no-sync --command 'mkdir -p ${mkdirPaths}' --pull-dir '${pullDir}'`;
+    const result = await new Promise<{ success: boolean; stderr: string; exitCode: number }>((resolve) => {
+      exec(execCommand, { encoding: 'utf8', timeout: 300000, maxBuffer: 1024 * 1024 * 10 }, (error, _stdout, stderr) => {
+        const exitCode = error ? (error as any).code ?? 1 : 0;
+        resolve({
+          success: !error,
+          stderr: (stderr as string).trim(),
+          exitCode: typeof exitCode === 'number' ? exitCode : 1,
+        });
+      });
+    });
+    if (result.success) {
+      vscode.window.showInformationMessage(t('pypto.remoteTool.execSuccess'));
+    } else {
+      vscode.window.showErrorMessage(
+        t('pypto.remoteTool.execFailed', { exitCode: result.exitCode, stderr: result.stderr || 'Unknown error' }),
+      );
+    }
+  } catch (err) {
+    console.warn('[PyPTO] Remote sync failed:', err);
+  }
+}
 
 export interface GetOutputRecordParams {
   /** 页码 */
@@ -48,6 +97,7 @@ export async function getRunDataList(params: GetOutputRecordParams): Promise<Get
   const { page, pageSize = 50, sortBy = 'executeTime', sortOrder = 'desc', forceReloadFromFiles, isThreeColumnNotNull = false, titleKeyword, isExactMatch = false } = params;
   const runDataService = useService('runData');
   if (forceReloadFromFiles) {
+    await syncRemoteData();
     await runDataService.scanDirectory();
   }
   const isDefaultSortCondition = sortBy === 'executeTime' && sortOrder === 'desc';
