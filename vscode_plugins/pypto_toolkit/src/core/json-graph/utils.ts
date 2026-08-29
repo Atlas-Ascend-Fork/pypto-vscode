@@ -378,7 +378,7 @@ export function buildTensorMetadataCompartment(nodeId: string, labelParts: strin
 
 export function createEmptyNodeWithPort(nodeId: string, magic: string): AstgrNode {
     const children: (SCompartment | AstgrPort)[] = [];
-    const truncatePortId = nodeId.replace(/-in.*$|-out.*$/, '');
+    const truncatePortId = nodeId.replace(/(-in|-out)$/, '');
     const labelChildren: SLabel[] = [
         {
             type: 'label',
@@ -481,7 +481,7 @@ export function createTokenNode(nodeId: string, tokenMagic: string): AstgrNode {
     const outPortId = nodeId.replace(/-in$/, '-out');
     const outPort: AstgrPort = { type: 'port', id: outPortId, role: 'output', size: { width: 8, height: 8 } };
     children.push(outPort);
-    const retid = nodeId.replace(/-in.*$|-out.*$/, '');
+    const retid = nodeId.replace(/(-in|-out)$/, '');
     return {
         type: 'node',
         id: retid,
