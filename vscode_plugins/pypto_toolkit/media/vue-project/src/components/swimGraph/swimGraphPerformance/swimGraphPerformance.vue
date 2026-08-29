@@ -749,7 +749,7 @@ const extractEventIndex = (eventName) => {
   if (!eventName) {
     return -1;
   }
-  const match = eventName.match(/$(?<index>\d+)$$/);
+  const match = eventName.match(/(?<index>\d+)\)$/);
   return match ? parseInt(match.groups.index, 10) : -1;
 };
 
@@ -761,13 +761,22 @@ const isKernelEvent = (event) => {
   return !isAicpuEvent(event);
 };
 
-const collectBeforeKernelEvents = (events, startIndex, currentIndex) => {
+const isBeginOrInitEvent = (eventName) => {
+  if (!eventName) {
+    return -1;
+  }
+  return eventName.startsWith('BEGIN') || eventName.startsWith('INIT');
+};
+
+const collectBeforeKernelEvents = (events, startIndex, currentRound) => {
   let beforeKernelTime = 0;
   let endIndex = startIndex;
 
   while (endIndex < events.length) {
     const event = events[endIndex];
-    if (isKernelEvent(event) || isNextSequence(event, currentIndex)) {
+    const eventName = event.name || '';
+    const eventRound = extractEventIndex(eventName);
+    if (isKernelEvent(event) || (eventRound !== -1 && eventRound !== currentRound)) {
       break;
     }
     beforeKernelTime += event.duration || 0;
@@ -777,12 +786,7 @@ const collectBeforeKernelEvents = (events, startIndex, currentIndex) => {
   return { beforeKernelTime, endIndex };
 };
 
-const isNextSequence = (event, currentIndex) => {
-  const nextIndex = extractEventIndex(event.name || '');
-  return nextIndex !== -1 && nextIndex !== currentIndex;
-};
-
-const hasKernelBetweenSequences = (events, afterBeforeKernelIndex) => {
+const hasKernelBetweenRounds = (events, afterBeforeKernelIndex) => {
   if (afterBeforeKernelIndex >= events.length) {
     return false;
   }
@@ -797,13 +801,15 @@ const skipKernelEvents = (events, startIndex) => {
   return index;
 };
 
-const collectAfterKernelEvents = (events, startIndex, currentIndex) => {
+const collectAfterKernelEvents = (events, startIndex, currentRound) => {
   let afterKernelTime = 0;
   let endIndex = startIndex;
 
   while (endIndex < events.length) {
     const event = events[endIndex];
-    if (isKernelEvent(event) || isNextSequence(event, currentIndex)) {
+    const eventName = event.name || '';
+    const eventRound = extractEventIndex(eventName);
+    if (isKernelEvent(event) || (eventRound !== -1 && eventRound !== currentRound)) {
       break;
     }
     afterKernelTime += event.duration || 0;
@@ -818,23 +824,37 @@ const processAicAivThread = (events) => {
   let threadTailTime = 0;
   let i = 0;
 
+  const hasKernelEvent = events.some(event => isKernelEvent(event));
+
   while (i < events.length) {
     if (isKernelEvent(events[i])) {
       i++;
       continue;
     }
+    const eventName = events[i].name || '';
 
-    const currentIndex = extractEventIndex(events[i].name || '');
-    const { beforeKernelTime, endIndex: beforeKernelEndIndex } = collectBeforeKernelEvents(events, i, currentIndex);
+    if (hasKernelEvent && isBeginOrInitEvent(eventName)) {
+      threadHeadTime += events[i].duration || 0;
+      i++;
+      continue;
+    }
 
-    if (!hasKernelBetweenSequences(events, beforeKernelEndIndex)) {
+    const currentRound = extractEventIndex(eventName);
+    if (currentRound === -1) {
+      i++;
+      continue;
+    }
+
+    const { beforeKernelTime, endIndex: beforeKernelEndIndex } = collectBeforeKernelEvents(events, i, currentRound);
+
+    if (!hasKernelBetweenRounds(events, beforeKernelEndIndex)) {
       i = beforeKernelEndIndex;
       continue;
     }
 
     i = skipKernelEvents(events, beforeKernelEndIndex);
 
-    const { afterKernelTime, endIndex: afterKernelEndIndex } = collectAfterKernelEvents(events, i, currentIndex);
+    const { afterKernelTime, endIndex: afterKernelEndIndex } = collectAfterKernelEvents(events, i, currentRound);
   
     threadHeadTime += beforeKernelTime;
     threadTailTime += afterKernelTime;
