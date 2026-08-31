@@ -116,6 +116,22 @@ export class RunDataService extends BasicService {
     }
   }
 
+  /**
+   * 强制从文件重读运行记录并更新缓存（展开时检查数据文件最新状态）
+   * @param runDataDirPath rundata目录
+   */
+  public async refreshOutputRecord(runDataDirPath: string): Promise<OutputRecord | undefined> {
+    const runDataUri = vscode.Uri.file(runDataDirPath);
+    const record = await readRunData(runDataUri);
+    if (record) {
+      await this.store.set({ noDirectoryTree: false, ...record });
+      return this.mergeOpeCheckFromComparelist(record);
+    }
+    // rundata.json 不存在或已失效时，删除缓存记录
+    await this.store.query().filter({ directoryPath: runDataDirPath }).delete();
+    return undefined;
+  }
+
   private async mergeOpeCheckFromComparelist(record: OutputRecord): Promise<OutputRecord> {
     if (!record.hasOpeCheck && !record.hasTaskCheck) {
         return record;
@@ -184,7 +200,7 @@ export class RunDataService extends BasicService {
     const directoryTree = await getOutputDirectory(outputUri, record);
     const recordWithDetail = {
       ...record,
-      noDirectoryTree: !directoryTree,
+      noDirectoryTree: false,
       directoryTree,
     };
     if (await this.store.find({ title: record.title })) {

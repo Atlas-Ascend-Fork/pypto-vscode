@@ -68,6 +68,13 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
   if (!runData || !runData.runtype || !executeTime.titleFormat) {
     return undefined;
   }
+  // rundata.json 未配置任何展示项（源码/控制流/泳道图/计算图/opcheck/taskcheck）时不展示该记录
+  const hasDisplayItemConfig = Boolean(
+    runData.pto_src_file || runData.program_file || runData.swim_graph_path || runData.compute_graph_path || runData.flow_verify_path || runData.verify_path,
+  );
+  if (!hasDisplayItemConfig) {
+    return undefined;
+  }
 
   const title = `${runData.runtype}_${executeTime.titleFormat}`;
   const directoryPath = runDataUri.fsPath;
@@ -82,10 +89,6 @@ export async function readRunData(runDataUri: vscode.Uri): Promise<OutputRecord 
   if (!flowVerifyPath) {
     computePath = computeGraphDirPath;
     verifyPath = COMPUTE_GRAPH_PATH_LEVER;
-  }
-
-  if (![sourceFilePath, controlFlowFilePath, swimlaneGraphFilePath, computeGraphDirPath].some(Boolean)) {
-    return undefined;
   }
 
   const { hasOpeCheck, opeCheckDirPath } = await findOpeCheck(computePath ?? undefined, verifyPath);

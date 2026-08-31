@@ -189,45 +189,91 @@ function toggleNode(node: DevUITreeNode): void {
   treeRef.value.treeFactory.toggleNode(node);
 }
 
-function transformData(outputData: OutputRecords): DevUITreeNode[] {
-  function transformChild(
-    subDirOrFile: DirectoryTree['children'],
-    prefix: string,
-    computeGraphDirPath?: string | null,
-    flowVerifyPath?: string | null,
-  ): DevUITreeNode[] {
-    const children: DevUITreeNode[] = [];
-    for (const dirOrFile of subDirOrFile) {
-      const child: DevUITreeNode = {
-        id: `${prefix}/${dirOrFile.name}`,
-        label: dirOrFile.name,
-        type: dirOrFile.type,
-        expanded: false,
-        isLeaf: !(dirOrFile.type === 'dir' && dirOrFile.children.length),
-        ...dirOrFile,
-        children: undefined,
-        // 如果是计算图节点，添加这两个参数
-        computeGraphDirPath: dirOrFile.type === 'file' && dirOrFile.fileType === 'computeGraph' ? computeGraphDirPath : undefined,
-        flowVerifyPath: dirOrFile.type === 'file' && dirOrFile.fileType === 'computeGraph' ? flowVerifyPath : undefined,
-      };
-      children.push(child);
-      if (dirOrFile.type === 'dir' && !child.isLeaf) {
-        nodeChildrenMap.set(
-          child.id,
-          Promise.resolve(
-            transformChild(
-              dirOrFile.children as unknown as DirectoryTree['children'],
-              child.id,
-              computeGraphDirPath,
-              flowVerifyPath,
-            ),
+function transformChild(
+  subDirOrFile: DirectoryTree['children'],
+  prefix: string,
+  computeGraphDirPath?: string | null,
+  flowVerifyPath?: string | null,
+): DevUITreeNode[] {
+  const children: DevUITreeNode[] = [];
+  for (const dirOrFile of subDirOrFile) {
+    const child: DevUITreeNode = {
+      id: `${prefix}/${dirOrFile.name}`,
+      label: dirOrFile.name,
+      type: dirOrFile.type,
+      expanded: false,
+      isLeaf: !(dirOrFile.type === 'dir' && dirOrFile.children.length),
+      ...dirOrFile,
+      children: undefined,
+      // 如果是计算图节点，添加这两个参数
+      computeGraphDirPath: dirOrFile.type === 'file' && dirOrFile.fileType === 'computeGraph' ? computeGraphDirPath : undefined,
+      flowVerifyPath: dirOrFile.type === 'file' && dirOrFile.fileType === 'computeGraph' ? flowVerifyPath : undefined,
+    };
+    children.push(child);
+    if (dirOrFile.type === 'dir' && !child.isLeaf) {
+      nodeChildrenMap.set(
+        child.id,
+        Promise.resolve(
+          transformChild(
+            dirOrFile.children as unknown as DirectoryTree['children'],
+            child.id,
+            computeGraphDirPath,
+            flowVerifyPath,
           ),
-        );
-      }
+        ),
+      );
     }
-    return children;
   }
+  return children;
+}
 
+/**
+ * 获取根节点（运行结果记录）的子节点，每次展开重新请求详情，无数据时每次提示
+ */
+async function fetchRootNodeChildren(rootNode: DevUITreeNode): Promise<DevUITreeNode[]> {
+  const detail = await getOutputDetail(rootNode.directoryPath);
+  // 无数据（文件可能已删除，扩展侧已提示）：返回空，由调用方收起节点
+  if (!detail.data) {
+    return [];
+  }
+  const children = transformChild(
+    detail.data?.directoryTree?.children ?? [],
+    rootNode.id,
+    detail.data?.computeGraphDirPath,
+    detail.data?.flowVerifyPath,
+  );
+  if (rootNode.hasOpeCheck && rootNode.opeCheckDirPath) {
+    children.push({
+      id: `${rootNode.id}/opCheck`,
+      label: 'OP Check',
+      type: 'file',
+      expanded: false,
+      isLeaf: true,
+      fileType: 'opCheck',
+      outputPath: rootNode.directoryPath,
+      opeCheckDirPath: rootNode.opeCheckDirPath,
+      flowVerifyPath: detail.data?.flowVerifyPath,
+      computeGraphDirPath: detail.data?.computeGraphDirPath,
+    });
+  }
+  if (rootNode.hasTaskCheck && rootNode.taskCheckDirPath) {
+    children.push({
+      id: `${rootNode.id}/taskCheck`,
+      label: 'Task Check',
+      type: 'file',
+      expanded: false,
+      isLeaf: true,
+      fileType: 'taskCheck',
+      outputPath: rootNode.directoryPath,
+      taskCheckDirPath: rootNode.taskCheckDirPath,
+      flowVerifyPath: detail.data?.flowVerifyPath,
+      computeGraphDirPath: detail.data?.computeGraphDirPath,
+    });
+  }
+  return children;
+}
+
+function transformData(outputData: OutputRecords): DevUITreeNode[] {
   const records: DevUITreeNode[] = [];
   for (const record of outputData) {
     const rootNode: DevUITreeNode = {
@@ -239,55 +285,32 @@ function transformData(outputData: OutputRecords): DevUITreeNode[] {
       isLeaf: false,
       ...record,
     };
-
-    // 记录子节点
-    const child = getOutputDetail(record.directoryPath).then((detail) => {
-      const baseChildren = transformChild(
-        detail.data?.directoryTree.children ?? [],
-        rootNode.id,
-        detail.data?.computeGraphDirPath,
-        detail.data?.flowVerifyPath,
-      );
-      if (record.hasOpeCheck && record.opeCheckDirPath) {
-        const opCheckNode: DevUITreeNode = {
-          id: `${rootNode.id}/opCheck`,
-          label: 'OP Check',
-          type: 'file',
-          expanded: false,
-          isLeaf: true,
-          fileType: 'opCheck',
-          outputPath: record.directoryPath,
-          opeCheckDirPath: record.opeCheckDirPath,
-          flowVerifyPath: detail.data?.flowVerifyPath,
-          computeGraphDirPath: detail.data?.computeGraphDirPath,
-        };
-        baseChildren.push(opCheckNode);
-      }
-      if (record.hasTaskCheck && record.taskCheckDirPath) {
-        const taskCheckNode: DevUITreeNode = {
-          id: `${rootNode.id}/taskCheck`,
-          label: 'Task Check',
-          type: 'file',
-          expanded: false,
-          isLeaf: true,
-          fileType: 'taskCheck',
-          outputPath: record.directoryPath,
-          taskCheckDirPath: record.taskCheckDirPath,
-          flowVerifyPath: detail.data?.flowVerifyPath,
-          computeGraphDirPath: detail.data?.computeGraphDirPath,
-        };
-        baseChildren.push(taskCheckNode);
-      }
-      return baseChildren;
-    });
-    nodeChildrenMap.set(rootNode.id, child);
-
     records.push(rootNode);
   }
   return records;
 }
 
 async function lazyLoad(parentNode: DevUITreeNode, callback: (response: { treeItems: DevUITreeNode[]; node: DevUITreeNode }) => void) {
+  // 根节点（运行结果记录）：每次展开重新请求详情，无数据时每次提示
+  if (parentNode.date) {
+    // 折叠触发的加载直接返回空，避免重复请求提示
+    if (!parentNode.expanded) {
+      callback({ treeItems: [], node: parentNode });
+      return;
+    }
+    let treeItems: DevUITreeNode[] = [];
+    try {
+      treeItems = await fetchRootNodeChildren(parentNode);
+    } catch {
+      // 请求失败视为无数据
+    }
+    callback({ treeItems, node: parentNode });
+    // 无数据（扩展侧已提示文件可能已删除）：收起节点，不展开
+    if (!treeItems.length) {
+      treeRef.value?.treeFactory?.collapseNode(parentNode);
+    }
+    return;
+  }
   const treeItems = await nodeChildrenMap.get(parentNode.id);
   callback({ treeItems, node: parentNode });
 }

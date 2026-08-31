@@ -206,5 +206,15 @@
   "pypto.remoteTool.notTargetEnv": "未找到 remote_tool.sh，请确认目标环境已正确配置。",
   "pypto.remoteTool.envVarMissing": "缺少环境变量: {{vars}}",
   "pypto.remoteTool.execSuccess": "远程命令执行成功。",
-  "pypto.remoteTool.execFailed": "远程命令执行失败（退出码: {{exitCode}}）: {{stderr}}"
+  "pypto.remoteTool.execFailed": "远程命令执行失败（退出码: {{exitCode}}）: {{stderr}}",
+  "pypto.remoteTool.syncing": "正在同步远程文件夹...",
+  "pypto.remoteTool.fileNotFound": "文件未找到: {{path}}",
+  "pypto.remoteTool.noFilesToSync": "rundata.json 中没有需要同步的文件",
+  "pypto.remoteTool.syncingFiles": "正在同步 {{count}} 个文件...",
+  "pypto.remoteTool.syncFilesSuccess": "成功同步 {{count}} 个文件。",
+  "pypto.remoteTool.syncFilesFailed": "同步 {{count}} 个文件失败（退出码: {{exitCode}}）: {{stderr}}",
+  "pypto.remoteTool.syncFilesError": "同步文件时出错: {{error}}",
+  "pypto.remoteTool.syncFilesPartial": "成功同步 {{synced}}/{{total}} 个文件，部分文件在远程可能不存在。",
+  "pypto.remoteTool.filesDeleted": "同步后仍未找到数据文件，文件可能已被删除。",
+  "pypto.remoteTool.filesNotFound": "未找到对应数据文件，文件可能已被删除。"
 }
