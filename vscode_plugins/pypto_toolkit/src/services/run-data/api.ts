@@ -34,11 +34,8 @@ function getWorkspaceOrFallback(fallbackPath: string): string {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || path.dirname(fallbackPath);
 }
 
-async function checkRemoteToolEnv(showError: boolean): Promise<boolean> {
+async function checkRemoteToolEnv(): Promise<boolean> {
   if (os.platform() !== 'linux') {
-    if (showError) {
-      vscode.window.showErrorMessage(t('pypto.remoteTool.linuxOnly'));
-    }
     return false;
   }
   const envCheck = await new Promise<boolean>((resolve) => {
@@ -47,9 +44,6 @@ async function checkRemoteToolEnv(showError: boolean): Promise<boolean> {
     });
   });
   if (!envCheck) {
-    if (showError) {
-      vscode.window.showErrorMessage(t('pypto.remoteTool.notTargetEnv'));
-    }
     return false;
   }
   return true;
@@ -83,7 +77,6 @@ function isFilePathEntry([key, value]: [string, unknown]): boolean {
 
 function parseRunDataFilePaths(rundataJsonPath: string): string[] | null {
   if (!fs.existsSync(rundataJsonPath)) {
-    vscode.window.showErrorMessage(t('pypto.remoteTool.fileNotFound', { path: rundataJsonPath }));
     return null;
   }
   const rundataContent = fs.readFileSync(rundataJsonPath, 'utf-8');
@@ -133,7 +126,7 @@ function showSyncFilesResult(result: ExecResult, syncedCount: number, totalCount
 
 async function syncRemoteData(): Promise<void> {
   try {
-    const envOk = await checkRemoteToolEnv(false);
+    const envOk = await checkRemoteToolEnv();
     if (!envOk) {
       return;
     }
@@ -154,7 +147,7 @@ async function syncRemoteData(): Promise<void> {
 
 export async function syncRunDataFiles(rundataJsonPath: string): Promise<void> {
   try {
-    const envOk = await checkRemoteToolEnv(true);
+    const envOk = await checkRemoteToolEnv();
     if (!envOk) {
       return;
     }
@@ -197,7 +190,7 @@ async function syncFirstRunDataFiles(firstRecord: OutputRecord | undefined): Pro
     return undefined;
   }
   // 静默检查环境，非目标环境直接跳过
-  if (!(await checkRemoteToolEnv(false))) {
+  if (!(await checkRemoteToolEnv())) {
     return undefined;
   }
   try {
