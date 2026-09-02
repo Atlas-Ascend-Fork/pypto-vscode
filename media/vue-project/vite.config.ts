@@ -37,6 +37,13 @@ export default defineConfig(({ mode }) => ({
       'ext:': fileURLToPath(new URL('../../src', import.meta.url)),
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        silenceDeprecations: ['import'],
+      }
+    }
+  },
   server: {
     hmr: mode !== 'test',
     cors: {
@@ -55,5 +62,10 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     sourcemap: false,
     cssMinify: 'esbuild',
+    rolldownOptions: {
+      checks: {
+        pluginTimings: false,
+      }
+    }
   },
 }));
