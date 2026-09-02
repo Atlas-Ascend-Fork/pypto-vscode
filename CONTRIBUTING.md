@@ -28,7 +28,7 @@
 
 ### 安装步骤
 
-1. 安装外层依赖：`cd vscode_plugins/pypto_toolkit && npm install`；
+1. 安装外层依赖：`npm install`；
 2. 安装 vue-project 依赖：`cd media/vue-project && npm install`；
 
 ### 远程开发（Linux）
@@ -39,7 +39,7 @@
 
 ## 调试启动
 
-用 VSCode 打开 `vscode_plugins/pypto_toolkit` 目录，按 F5 启动调试（选择 `Run Extension` 配置），将自动执行 `npm run watch` 编译并启动扩展开发宿主；
+用 VSCode 打开项目目录，按 F5 启动调试（选择 `Run Extension` 配置），将自动执行 `npm run watch` 编译并启动扩展开发宿主；
 
 ---
 
@@ -52,7 +52,7 @@
 ### 目录结构
 
 ```
-vscode_plugins/pypto_toolkit/
+pypto-tools
 ├── vitest.config.mts          # Vitest 配置（test.alias 指向 vscode mock，setupFiles 全局 mock）
 ├── test/
 │   └── ut/                     # 后端单元测试目录
@@ -101,7 +101,7 @@ npx vitest run test/ut --coverage
 本项目使用 ESLint 进行代码风格检查，覆盖后端（TypeScript 扩展宿主）和前端（Vue Webview）两部分。
 
 ```bash
-# 后端代码检查（在 vscode_plugins/pypto_toolkit 目录下）
+# 后端代码检查
 npm run lint:check        # 仅检查
 npm run lint              # 检查并自动修复
 

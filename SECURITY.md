@@ -25,7 +25,7 @@
 
 | 类型 | 开源代码地址 | 文件名 | 公网IP地址/公网URL地址/域名/邮箱地址/压缩文件地址 | 用途说明 |
 | --- | --- | --- | --- | --- |
-| 依赖 | 不涉及 | vscode_plugins/pypto_toolkit/src/services/welcome/index.ts | https://pypi.tuna.tsinghua.edu.cn/simple | 清华PyPI镜像源，用于欢迎页初始化Python示例工程时安装pip依赖 |
+| 依赖 | 不涉及 | src/services/welcome/index.ts | https://pypi.tuna.tsinghua.edu.cn/simple | 清华PyPI镜像源，用于欢迎页初始化Python示例工程时安装pip依赖 |
 
 ---
 

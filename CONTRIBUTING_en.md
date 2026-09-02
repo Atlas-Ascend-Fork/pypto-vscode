@@ -28,7 +28,7 @@ The main contribution scenarios for developers include:
 
 ### Installation Steps
 
-1. Install outer dependencies: `cd vscode_plugins/pypto_toolkit && npm install`;
+1. Install outer dependencies: `npm install`;
 2. Install vue-project dependencies: `cd media/vue-project && npm install`;
 
 ### Remote Development (Linux)
@@ -39,7 +39,7 @@ To develop and debug remotely on a Linux machine, install the official [Remote -
 
 ## Debug Startup
 
-Open the `vscode_plugins/pypto_toolkit` directory in VSCode, press F5 to start debugging (select the `Run Extension` configuration), which will automatically execute `npm run watch` to compile and start the extension development host;
+Open project in VSCode, press F5 to start debugging (select the `Run Extension` configuration), which will automatically execute `npm run watch` to compile and start the extension development host;
 
 ---
 
@@ -52,7 +52,7 @@ Backend unit tests use [Vitest](https://vitest.dev/). Tests run in the Node envi
 ### Directory Structure
 
 ```
-vscode_plugins/pypto_toolkit/
+pypto-tools
 ├── vitest.config.mts          # Vitest config (test.alias points to vscode mock, setupFiles for global mocks)
 ├── test/
 │   └── ut/                     # Backend unit test directory
@@ -101,7 +101,7 @@ The coverage report shows Statements, Branches, Functions, and Lines coverage fo
 This project uses ESLint for code style checks, covering both the backend (TypeScript extension host) and frontend (Vue Webview).
 
 ```bash
-# Backend code check (in the vscode_plugins/pypto_toolkit directory)
+# Backend code check
 npm run lint:check        # Check only
 npm run lint              # Check and auto-fix
 

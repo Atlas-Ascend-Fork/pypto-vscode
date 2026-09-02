@@ -11,11 +11,11 @@
             <filefilter name="defaultFilter" desc="files not to check">
                 <filteritem type="filepath" name="docs/.*.png" desc="filter docs png"/>
                 <filteritem type="filepath" name="docs/.*.gif" desc="filter docs gif"/>
-                <filteritem type="filepath" name="vscode_plugins/pypto_toolkit/media/vue-project/src/static-assets/.*png" desc="filter static assets png"/>
-                <filteritem type="filepath" name="vscode_plugins/pypto_toolkit/media/vue-project/src/static-assets/.*gif" desc="filter static assets gif"/>
-                <filteritem type="filepath" name="vscode_plugins/pypto_toolkit/media/images/logo.png" desc="filter logo png"/>
-                <filteritem type="filepath" name="vscode_plugins/pypto_toolkit/media/.*.scss" desc="filter style file"/>
-                <filteritem type="filepath" name="vscode_plugins/pypto_toolkit/src/boot-mock-data/rundata_20251224101343/Pass_37_CodegenPreproc/status" desc="filter sample lock file"/>
+                <filteritem type="filepath" name="media/vue-project/src/static-assets/.*png" desc="filter static assets png"/>
+                <filteritem type="filepath" name="media/vue-project/src/static-assets/.*gif" desc="filter static assets gif"/>
+                <filteritem type="filepath" name="media/images/logo.png" desc="filter logo png"/>
+                <filteritem type="filepath" name="media/.*.scss" desc="filter style file"/>
+                <filteritem type="filepath" name="src/boot-mock-data/rundata_20251224101343/Pass_37_CodegenPreproc/status" desc="filter sample lock file"/>
             </filefilter>
         </filefilterlist>
         <licensematcherlist>

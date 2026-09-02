@@ -12,25 +12,24 @@ PyPTO Toolkit - 华为PyPTO框架VSCode可视化插件。为AI算子开发者提
 
 ```
 pypto-tools/
-├── vscode_plugins/
-│   └── pypto_toolkit/          # VSCode扩展主模块
-│       ├── src/                # TypeScript源码 (100+文件)
-│       │   ├── extension.ts    # 扩展入口
-│       │   ├── view/           # 视图提供者
-│       │   ├── services/       # 业务服务
-│       │   ├── core/           # 核心存储
-│       │   ├── handler/        # 消息处理
-│       │   ├── converter/      # 数据转换器
-│       │   └── types/          # 类型定义
-│       ├── media/vue-project/  # Vue前端 (100+文件)
-│       ├── package.json        # 扩展配置
-│       └── tsconfig.json       # TypeScript配置
+├── src/                        # TypeScript源码 (100+文件)
+│   ├── extension.ts            # 扩展入口
+│   ├── view/                   # 视图提供者
+│   ├── services/               # 业务服务
+│   ├── core/                   # 核心存储
+│   ├── handler/                # 消息处理
+│   ├── converter/              # 数据转换器
+│   └── types/                  # 类型定义
+├── media/vue-project/          # Vue前端 (100+文件)
+├── test/                       # 测试 (ut/e2e/fixtures)
 ├── docs/                       # Sphinx文档
 │   ├── Makefile                # 文档构建入口
 │   ├── requirements.txt        # Sphinx依赖
 │   └── zh/                     # 中文文档
 │       ├── conf.py             # 文档构建配置
 │       └── index.md            # 文档首页
+├── package.json                # 扩展配置
+├── tsconfig.json               # TypeScript配置
 └── README.md
 ```
 
@@ -38,14 +37,14 @@ pypto-tools/
 
 | 任务 | 位置 | 说明 |
 |------|------|------|
-| 扩展入口 | `vscode_plugins/pypto_toolkit/src/extension.ts` | activate()初始化服务/视图/命令 |
-| 命令注册 | `vscode_plugins/pypto_toolkit/src/command/registerCommand.ts` | VSCode命令映射 |
-| 计算图视图 | `vscode_plugins/pypto_toolkit/src/view/graphView.ts` | ComGraph渲染 |
-| 泳道图视图 | `vscode_plugins/pypto_toolkit/src/view/servers/swim-graph-server.ts` | Swimlane渲染 |
-| 三栏联动 | `vscode_plugins/pypto_toolkit/src/view/threeColumnEntry.ts` | 代码-计算图-泳道图联动 |
-| 控制流服务 | `vscode_plugins/pypto_toolkit/src/services/control-flow/` | PATH解析/树构建 |
-| SQLite缓存 | `vscode_plugins/pypto_toolkit/src/core/store/sql-store/` | 图数据持久化 |
-| Vue前端 | `vscode_plugins/pypto_toolkit/media/vue-project/src/` | Webview组件 |
+| 扩展入口 | `src/extension.ts` | activate()初始化服务/视图/命令 |
+| 命令注册 | `src/command/registerCommand.ts` | VSCode命令映射 |
+| 计算图视图 | `src/view/graphView.ts` | ComGraph渲染 |
+| 泳道图视图 | `src/view/servers/swim-graph-server.ts` | Swimlane渲染 |
+| 三栏联动 | `src/view/threeColumnEntry.ts` | 代码-计算图-泳道图联动 |
+| 控制流服务 | `src/services/control-flow/` | PATH解析/树构建 |
+| SQLite缓存 | `src/core/store/sql-store/` | 图数据持久化 |
+| Vue前端 | `media/vue-project/src/` | Webview组件 |
 | 文档构建 | `docs/` | Sphinx文档 |
 
 ## 约定
@@ -108,7 +107,7 @@ const iconPath = `${window.staticPath}/icons/...`
 
 ```bash
 # 开发模式 (热更新)
-cd vscode_plugins/pypto_toolkit && npm run watch
+npm run watch
 
 # 构建
 npm run compile
@@ -127,8 +126,8 @@ cd docs && make html
 - **Webview调试**: 浏览器可见故障使用`webview-debugger`和`pypto-webview-debugging`，通过Vite、Playwright CLI、真实数据和模拟消息桥验证，不启动VS Code
 - **命令接线验证**: 使用`webview-command-contract-testing`检查manifest、命令注册、URI参数和View Server配置；界面行为单独使用浏览器验证
 - **界面验证**: GM内存Webview使用`test/fixtures/memory_usage_visualization.json`进行独立浏览器验证，并记录DOM、Canvas、截图、控制台和网络证据
-- **GM内存快速测试**: 修改`memoryUsage/`后在扩展目录运行`npm run test:memory`
+- **GM内存快速测试**: 修改`memoryUsage/`后在项目根目录运行`npm run test:memory`
 - **GM内存浏览器测试**: 运行`npx playwright install chromium`后使用`npm run test:gm-e2e`
 - **GM内存扩展测试**: 修改命令、View Server或Webview接线后运行`npm run test:gm-smoke`
-- **完整测试**: 在扩展目录运行`npm test`，依次执行Vitest、Playwright和VS Code Extension Host测试
+- **完整测试**: 在项目根目录运行`npm test`，依次执行Vitest、Playwright和VS Code Extension Host测试
 - **依赖安装**: 项目不提交npm lockfile，使用`npm install`而不是`npm ci`
