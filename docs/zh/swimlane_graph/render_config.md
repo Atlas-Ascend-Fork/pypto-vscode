@@ -24,7 +24,7 @@
 
     页面右边弹出渲染配置面板，配置项按生效范围分组展示。
 
-    ![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/renderConfig.png)
+    ![](../figures/renderConfig.png)
 
 ## 全局配置
 
@@ -58,7 +58,7 @@ AICPU 视图配置仅对 AICPU 泳道图和端到端泳道图生效，包括以�
 
 ## Kernel 视图配置
 
-Kernel 视图配置仅对 Kernel 泳道图生效，包括以下配置项：
+Kernel 视图配置对 Kernel 泳道图和端到端泳道图生效。在端到端泳道图中，配置分组的标题显示为“Device 视图”，包括以下配置项：
 
 **表 3**  Kernel 视图配置说明
 
