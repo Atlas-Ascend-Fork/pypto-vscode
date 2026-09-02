@@ -77,7 +77,7 @@ Test files follow the source code directory structure, e.g. `src/command/registe
 
 ```bash
 # Run backend unit tests
-npm run test:ut
+npx vitest run
 
 # Run backend unit tests with coverage report
 npx vitest run test/ut --coverage
@@ -106,7 +106,7 @@ npm run lint:check        # Check only
 npm run lint              # Check and auto-fix
 
 # Frontend code check (in the media/vue-project directory)
-npm run lint:check        # Check only, 0 warning tolerance
+npm run lint:check        # Check only
 npm run lint              # Check and auto-fix
 
 # Type check

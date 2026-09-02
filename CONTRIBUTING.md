@@ -77,7 +77,7 @@ pypto-tools
 
 ```bash
 # 运行后端单元测试
-npm run test:ut
+npx vitest run
 
 # 运行后端单元测试并生成覆盖率报告
 npx vitest run test/ut --coverage
@@ -106,7 +106,7 @@ npm run lint:check        # 仅检查
 npm run lint              # 检查并自动修复
 
 # 前端代码检查（在 media/vue-project 目录下）
-npm run lint:check        # 仅检查，0 warning 容忍
+npm run lint:check        # 仅检查
 npm run lint              # 检查并自动修复
 
 # 类型检查

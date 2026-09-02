@@ -8,11 +8,16 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 import globals from 'globals';
+import tsParser from '@typescript-eslint/parser';
 
 export default [
   {
+    ignores: ['dist/**', 'webview-dist/**', 'media/vue-project/**', 'node_modules/**', '*.min.js', 'test/**', '*thirdParty/**'],
+  },
+  {
     files: ['**/*.{ts,js,mjs}'],
     languageOptions: {
+      parser: tsParser,
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
@@ -22,7 +27,6 @@ export default [
         ...globals.mocha,
       },
     },
-    ignores: ['dist/**', 'webview-dist/**', 'media/vue-project/**', 'node_modules/**', '*.min.js', 'test/**', '*thirdParty/**'],
   },
   {
     rules: {
