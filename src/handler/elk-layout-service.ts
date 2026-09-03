@@ -16,7 +16,14 @@ import { workspace } from 'vscode';
 import { getMTime } from '../core/cache-query-helper';
 import { buildLayoutCacheKey } from './graph-cache-key';
 import { getComGraphLayoutStore } from '../core/sqlInit';
-import { graphLayout } from '@pypto/native-layout';
+let _graphLayout: typeof import('@pypto/native-layout').graphLayout | undefined;
+async function getGraphLayout() {
+  if (!_graphLayout) {
+    const mod = await import('@pypto/native-layout');
+    _graphLayout = mod.graphLayout;
+  }
+  return _graphLayout;
+}
 
 /**
  * 回调函数类型：从 server 中获取 comGraphData。
@@ -56,6 +63,7 @@ export async function layout(
     const nodeCount = gd.children?.length || 0;
 
     try {
+      const graphLayout = await getGraphLayout();
       const result = graphLayout(gd);
       if (result) {
         const elapsed = performance.now() - nativeStart;

@@ -1008,8 +1008,8 @@ export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo:
          let traceEvents: any[] = [];
          
           const detectFormat = (chunk: string | Buffer) => {
-           if (formatDetected) return;
-           buffer += chunk;
+            if (formatDetected) return;
+            buffer += typeof chunk === 'string' ? chunk : chunk.toString('utf8');
            const trimmed = buffer.trim();
            if (trimmed.startsWith('{')) {
              formatDetected = true;

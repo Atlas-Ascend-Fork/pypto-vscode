@@ -201,6 +201,8 @@
   "pypto.download.invalidFilePath": "Invalid FilePath",
   "pypto.download.downloadFileFail": "Download File Fail",
   "pypto.OpenSwimGraph": "PyPTO Toolkit: Open Swimlane Graph",
+  "pypto.remoteTool.linuxOnly": "Remote command execution is only supported on Linux.",
+  "pypto.remoteTool.notTargetEnv": "remote_tool.sh not found. Please ensure the target environment is properly configured.",
   "pypto.remoteTool.envVarMissing": "Environment variables missing: {{vars}}",
   "pypto.remoteTool.execSuccess": "Remote command executed successfully.",
   "pypto.remoteTool.execFailed": "Remote command failed (exit code: {{exitCode}}): {{stderr}}",
@@ -212,5 +214,6 @@
   "pypto.remoteTool.syncFilesError": "Error syncing files: {{error}}",
   "pypto.remoteTool.syncFilesPartial": "Synced {{synced}}/{{total}} files. Some files may not exist on the remote.",
   "pypto.remoteTool.filesDeleted": "No data files found after sync. The files may have been deleted.",
-  "pypto.remoteTool.filesNotFound": "No matching data files found. The files may have been deleted."
+  "pypto.remoteTool.filesNotFound": "No matching data files found. The files may have been deleted.",
+  "pypto.remoteTool.executeCommand": "Execute Remote Command"
 }
