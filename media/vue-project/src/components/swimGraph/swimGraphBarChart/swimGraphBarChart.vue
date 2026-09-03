@@ -51,7 +51,7 @@
 import { ref, reactive, nextTick, provide, inject} from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuBarBorderColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme} = inject('swimGraphPmuBarChartInfo');
+const {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuBarBorderColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme, pmuValid} = inject('swimGraphPmuBarChartInfo');
 
 const {
   isWideScreen,
@@ -136,7 +136,7 @@ for (const percent of pmuChartDataRight.value) {
 .occupy-rate-bar-line {
   z-index: 1;
   width: 1px;
-  height: 207px;
+  height: v-bind('pmuValid ? "207px" : "180px"');
   border-left: 1px dashed var(--devui-slider-bar);
   opacity: 0.1;
   position: absolute;

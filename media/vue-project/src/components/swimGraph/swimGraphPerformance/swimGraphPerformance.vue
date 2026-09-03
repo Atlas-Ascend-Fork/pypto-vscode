@@ -164,10 +164,10 @@
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
                 <d-tooltip :content="$t('AICPUExecution')">
-                  <div class="task-title">{{ $t('AICPUExecution') }}</div>
+                  <div class="task-title">{{ $t('AICPUExecution', {AICPUExecutionUint}) }}</div>
                 </d-tooltip>
               </div>
-              <div class="task-data">{{ AICPUExecutionTime }}</div>
+              <div class="task-data">{{ formatTimeValue(AICPUExecutionTime) }}</div>
             </div>
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
@@ -180,24 +180,24 @@
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
                 <d-tooltip :content="$t('AICPUOverhead')">
-                  <div class="task-title">{{ $t('AICPUOverhead') }}</div>
+                  <div class="task-title">{{ $t('AICPUOverhead', {AICPUOverheadUint}) }}</div>
                 </d-tooltip>
                 <d-tooltip :content="$t('AICPUOverheadTip')">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-              <div class="device-cube-rate-cycle" :class="{ 'light-theme': !isDarkTheme }">{{ AICPUBeforeHeadTime }}</div>
+              <div class="device-cube-rate-cycle" :class="{ 'light-theme': !isDarkTheme }">{{ formatTimeValue(AICPUBeforeHeadTime) }}</div>
             </div>
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
                 <d-tooltip :content="$t('AICPUTail')">
-                  <div class="task-title">{{ $t('AICPUTail') }}</div>
+                  <div class="task-title">{{ $t('AICPUTail', {AICPUTailUint}) }}</div>
                 </d-tooltip>
                 <d-tooltip :content="$t('AICPUTailTip')">
                   <d-icon name="helping" size="16px"></d-icon>
                 </d-tooltip>
               </div>
-              <div class="device-vec-rate-cycle" :class="{ 'light-theme': !isDarkTheme }">{{ AICPUAfterHeadTime }}</div>
+              <div class="device-vec-rate-cycle" :class="{ 'light-theme': !isDarkTheme }">{{ formatTimeValue(AICPUAfterHeadTime) }}</div>
             </div>
           </div>
           <div class="cube-data-chart" :style="{width: cubeDataChartWidth + 'px'}">
@@ -353,6 +353,9 @@ const mte1RatePercentage = ref(0);
 const mte2RatePercentage = ref(0);
 const mte3RatePercentage = ref(0);
 const iniComplete = ref(false);
+const AICPUExecutionUint = ref('μs');
+const AICPUOverheadUint = ref('μs');
+const AICPUTailUint = ref('μs');
 
 
 const maxGap = ref([]);
@@ -423,7 +426,7 @@ const {
   autoExpandkernelProcess
 } = inject('swimGraphMethods');
 
-provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuBarBorderColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme});
+provide('swimGraphPmuBarChartInfo', {pmuRowCoordList, pmuColCoordList, pmuRowCoordLoc, pmuBarColorList, pmuBarBorderColorList, pmuChartDataLeft, pmuChartDataRight, reportTitle, pmuBackLineLoc, isDarkTheme, pmuValid});
 
 const schedulingTask = ref($t('schedulingTask'));
 const schedulingSubTask = ref($t('schedulingSubTask'));
@@ -930,6 +933,7 @@ const calculateDevice = () => {
   }
 
   AICPUExecutionTime.value = parseFloat((aicpuExecutionTimeSum / tsScale.value).toFixed(2));
+  AICPUExecutionUint.value = formatTimeUnit(AICPUExecutionTime.value);
 
   if (aicpuSchedThreadCount > 0 && viewState.timeRange > 0) {
     const rate = (aicpuSchedExecTimeSum / tsScale.value) / (viewState.timeRange * aicpuSchedThreadCount / tsScale.value);
@@ -940,6 +944,8 @@ const calculateDevice = () => {
 
   AICPUBeforeHeadTime.value = parseFloat((aicpuBeforeHeadTimeSum / tsScale.value).toFixed(2));
   AICPUAfterHeadTime.value = parseFloat((aicpuAfterHeadTimeSum / tsScale.value).toFixed(2));
+  AICPUOverheadUint.value = formatTimeUnit(AICPUBeforeHeadTime.value);
+  AICPUTailUint.value = formatTimeUnit(AICPUAfterHeadTime.value);
 
   const beforeHead = aicpuBeforeHeadTimeSum / tsScale.value;
   const afterHead = aicpuAfterHeadTimeSum / tsScale.value;
@@ -989,12 +995,35 @@ const calculateRateCycles = () => {
 };
 
 const calculateRatePercentages = () => {
-  vectorRatePercentage.value = Math.round(pmuTotal.value.vec_ratio * 100);
-  cubeRatePercentage.value = Math.round(pmuTotal.value.cube_ratio * 100);
-  scalarRatePercentage.value = Math.round(pmuTotal.value.scalar_ratio * 100);
-  mte1RatePercentage.value = Math.round(pmuTotal.value.mte1_ratio * 100);
-  mte2RatePercentage.value = Math.round(pmuTotal.value.mte2_ratio * 100);
-  mte3RatePercentage.value = Math.round(pmuTotal.value.mte3_ratio * 100);
+  const vecCycles = Number(pmuTotal.value.vec_busy_cycles || pmuTotal.value.pmu_idc_aic_vec_busy_o || 0);
+  const cubeCycles = Number(pmuTotal.value.cube_busy_cycles || pmuTotal.value.cube_instr_busy || 0);
+  const scalarCycles = Number(pmuTotal.value.scalar_busy_cycles || pmuTotal.value.scalar_instr_busy || 0);
+  const mte1Cycles = Number(pmuTotal.value.mte1_busy_cycles || pmuTotal.value.mte1_instr_busy || 0);
+  const mte2Cycles = Number(pmuTotal.value.mte2_busy_cycles || pmuTotal.value.mte2_instr_busy || 0);
+  const mte3Cycles = Number(pmuTotal.value.mte3_busy_cycles || pmuTotal.value.mte3_instr_busy || 0);
+
+  let totalCycles = vecCycles + cubeCycles + scalarCycles + mte1Cycles + mte2Cycles + mte3Cycles;
+
+  if (pmuValid.value) {
+    const fixCycles = Number(pmuTotal.value.pmu_fix_instr_busy || 0);
+    totalCycles += fixCycles;
+  }
+
+  if (totalCycles === 0) {
+    vectorRatePercentage.value = 0;
+    cubeRatePercentage.value = 0;
+    scalarRatePercentage.value = 0;
+    mte1RatePercentage.value = 0;
+    mte2RatePercentage.value = 0;
+    mte3RatePercentage.value = 0;
+    return;
+  }
+  vectorRatePercentage.value = Math.round((vecCycles / totalCycles) * 100);
+  cubeRatePercentage.value = Math.round((cubeCycles / totalCycles) * 100);
+  scalarRatePercentage.value = Math.round((scalarCycles / totalCycles) * 100);
+  mte1RatePercentage.value = Math.round((mte1Cycles / totalCycles) * 100);
+  mte2RatePercentage.value = Math.round((mte2Cycles / totalCycles) * 100);
+  mte3RatePercentage.value = Math.round((mte3Cycles / totalCycles) * 100);
 };
 
 const calculateRateWidth = () => {
@@ -1011,27 +1040,52 @@ const setPmuConfigurations = () => {
   pmuRowCoordLoc.value = ['0%', '18%', '36%', '54%', '72%', '88%'];
   pmuBackLineLoc.value = ['20%', '40%', '60%', '80%'];
   pmuRowCoordList.value = ['0%', '20%', '40%', '60%', '80%', '100%'];
-  pmuColCoordList.value = ['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
-                            'MTE2 Cycles', 'MTE3 Cycles', 'FixP Cycles'];
-  pmuBarColorList.value = isDarkTheme.value
-    ? ['rgba(0, 117, 102, 1)', 'rgba(0, 113, 113, 1)', 'rgba(26, 116, 62, 1)',
-       'rgba(137, 93, 0, 1)', 'rgba(155, 83, 3, 1)', 'rgba(164, 75, 50, 1)', 'rgba(88, 110, 15, 1)']
-    : ['rgba(0, 240, 213, 1)', 'rgba(0, 233, 255, 1)', 'rgba(91, 239, 143, 1)',
-       'rgba(255, 202, 70, 1)', 'rgba(255, 201, 149, 1)', 'rgba(255, 201, 182, 1)', 'rgba(188, 277, 66, 1)'];
-  pmuBarBorderColorList.value = isDarkTheme.value
-    ? ['rgba(0, 117, 102, 0.3)', 'rgba(0, 113, 113, 0.3)', 'rgba(26, 116, 62, 0.3)',
-       'rgba(137, 93, 0, 0.3)', 'rgba(155, 83, 3, 0.3)', 'rgba(164, 75, 50, 0.3)', 'rgba(88, 110, 15, 0.3)']
-    : ['rgba(0, 240, 213, 1)', 'rgba(0, 233, 255, 1)', 'rgba(91, 239, 143, 1)',
-       'rgba(255, 202, 70, 1)', 'rgba(255, 201, 149, 1)', 'rgba(255, 201, 182, 1)', 'rgba(188, 277, 66, 1)'];
+
+  const baseColCoordList = ['Vector Cycles', 'Cube Cycles', 'Scalar Cycles', 'MTE1 Cycles', 
+                             'MTE2 Cycles', 'MTE3 Cycles'];
+  const baseDarkColors = ['rgba(0, 117, 102, 1)', 'rgba(0, 113, 113, 1)', 'rgba(26, 116, 62, 1)',
+                           'rgba(137, 93, 0, 1)', 'rgba(155, 83, 3, 1)', 'rgba(164, 75, 50, 1)'];
+  const baseLightColors = ['rgba(0, 240, 213, 1)', 'rgba(0, 233, 255, 1)', 'rgba(91, 239, 143, 1)',
+                            'rgba(255, 202, 70, 1)', 'rgba(255, 201, 149, 1)', 'rgba(255, 201, 182, 1)'];
+  const baseDarkBorderColors = ['rgba(0, 117, 102, 0.3)', 'rgba(0, 113, 113, 0.3)', 'rgba(26, 116, 62, 0.3)',
+                                 'rgba(137, 93, 0, 0.3)', 'rgba(155, 83, 3, 0.3)', 'rgba(164, 75, 50, 0.3)'];
+  const baseLightBorderColors = ['rgba(0, 240, 213, 1)', 'rgba(0, 233, 255, 1)', 'rgba(91, 239, 143, 1)',
+                                  'rgba(255, 202, 70, 1)', 'rgba(255, 201, 149, 1)', 'rgba(255, 201, 182, 1)'];
+  
+  if (pmuValid.value) {
+    baseColCoordList.push('FixP Cycles');
+    baseDarkColors.push('rgba(88, 110, 15, 1)');
+    baseLightColors.push('rgba(188, 277, 66, 1)');
+    baseDarkBorderColors.push('rgba(88, 110, 15, 0.3)');
+    baseLightBorderColors.push('rgba(188, 277, 66, 1)');
+  }
+
+  pmuColCoordList.value = baseColCoordList;
+  pmuBarColorList.value = isDarkTheme.value ? baseDarkColors : baseLightColors;
+  pmuBarBorderColorList.value = isDarkTheme.value ? baseDarkBorderColors : baseLightBorderColors;
 };
 
 const setPmuChartData = () => {
-  pmuChartDataLeft.value = [vectorRateCycle.value, cubeRateCycle.value, scalarRateCycle.value,
-                            mte1RateCycle.value, mte2RateCycle.value, mte3RateCycle.value, pmuTotal.value.pmu_fix_instr_busy || '/'];
-  const totalCycle = Number(pmuTotal.value['total cycle'] || 1);
-  const fixInstrBusy = Number(pmuTotal.value.pmu_fix_instr_busy || 0);
-  pmuChartDataRight.value = [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
-                              mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value, Math.round(fixInstrBusy / totalCycle * 100)];
+  const baseChartDataLeft =  [vectorRateCycle.value, cubeRateCycle.value, scalarRateCycle.value,
+                               mte1RateCycle.value, mte2RateCycle.value, mte3RateCycle.value];
+  const baseChartDataRight =  [vectorRatePercentage.value, cubeRatePercentage.value, scalarRatePercentage.value,
+                                mte1RatePercentage.value, mte2RatePercentage.value, mte3RatePercentage.value];
+  
+  if (pmuValid.value) {
+    baseChartDataLeft.push(pmuTotal.value.pmu_fix_instr_busy || '/');
+    const vecCycles = Number(pmuTotal.value.vec_busy_cycles || pmuTotal.value.pmu_idc_aic_vec_busy_o || 0);
+    const cubeCycles = Number(pmuTotal.value.cube_busy_cycles || pmuTotal.value.cube_instr_busy || 0);
+    const scalarCycles = Number(pmuTotal.value.scalar_busy_cycles || pmuTotal.value.scalar_instr_busy || 0);
+    const mte1Cycles = Number(pmuTotal.value.mte1_busy_cycles || pmuTotal.value.mte1_instr_busy || 0);
+    const mte2Cycles = Number(pmuTotal.value.mte2_busy_cycles || pmuTotal.value.mte2_instr_busy || 0);
+    const mte3Cycles = Number(pmuTotal.value.mte3_busy_cycles || pmuTotal.value.mte3_instr_busy || 0);
+    const fixCycles = Number(pmuTotal.value.pmu_fix_instr_busy || 0);
+    const totalSevenCycles = vecCycles + cubeCycles + scalarCycles + mte1Cycles + mte2Cycles + mte3Cycles + fixCycles;
+    baseChartDataRight.push( Math.round((fixCycles / totalSevenCycles) * 100));
+  }
+
+  pmuChartDataLeft.value = baseChartDataLeft;
+  pmuChartDataRight.value = baseChartDataRight;
 };
 
 const calculatePmuMetrics = () => {

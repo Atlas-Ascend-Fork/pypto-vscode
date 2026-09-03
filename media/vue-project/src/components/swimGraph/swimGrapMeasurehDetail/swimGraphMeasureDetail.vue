@@ -98,12 +98,11 @@
                 <div class="event-num">{{ $t('totalCoreEvents', { coreEventNum }) }}</div>
               </div>
               <div class="measure-detail-data-table">
-                <d-table :data="deviceMeasureDetailTableData" style="width: 100%" class="mulDetailTable">
-                  <d-column field="Event name" header="Worker Phase" :show-overflow-tooltip="{ position: 'bottom' }"></d-column>
-                  <d-column field="Max duration line" :header="$t('MaxConsumingLane')"></d-column>
-                  <d-column field="Max duration" :header="$t('MaxConsuming')"></d-column>
-                  <d-column field="Avg duration" :header="$t('arverConsuming')"></d-column>
-                </d-table>
+                <d-data-grid :data = "deviceMeasureDetailTableData"
+                :columns ="deviceMeasureColumnData"
+                :show-overflow-tooltip = "showOverflowTooltip"
+                :show-head-overflow-tooltip = "showOverflowTooltip"
+                class="mulDetailTable" fix-header style="width: 100%"></d-data-grid>
               </div>
             </div>
           </div>
@@ -191,13 +190,11 @@
                 <div class="event-num">{{ $t('totalEvents', { eventNum }) }}</div>
               </div>
               <div class="measure-detail-data-table">
-                <d-table :data="measureDetailTableData" style="width: 100%" class="mulDetailTable">
-                  <d-column field="rootFuncHash" header="Root Func. Hash" :show-overflow-tooltip="{ position: 'bottom' }"></d-column>
-                  <d-column field="leafFuncHash" header="Leaf Func. Hash" :show-overflow-tooltip="{ position: 'bottom' }"></d-column>
-                  <d-column field="occurrences" header="Occurrences"></d-column>
-                  <d-column field="wallDuration" header="Wall duration(ms)"></d-column>
-                  <d-column field="avgDuration" header="AvG. Wall duration(ms)"></d-column>
-                </d-table>
+                <d-data-grid :data = "measureDetailTableData"
+                :columns ="measureColumnData"
+                :show-overflow-tooltip = "showOverflowTooltip"
+                :show-head-overflow-tooltip = "showOverflowTooltip"
+                class="mulDetailTable" fix-header style="width: 100%"></d-data-grid>
               </div>
             </div>
             <div v-else class="measure-detail-right-section no-file-container">
@@ -284,6 +281,20 @@ const coreEventNum = ref('0');
 
 const measureDetailTableData = ref([]);
 const deviceMeasureDetailTableData = ref([]);
+const deviceMeasureColumnData = computed(() => [
+  { field: 'Event name', header: 'Worker Phase', showOverflowTooltip: true, showHeadOverflowTooltip: true },
+  { field: 'Max duration line', header: t('MaxConsumingLane'), showOverflowTooltip: true, showHeadOverflowTooltip: true },
+  { field: 'Max duration', header: t('MaxConsuming'), showOverflowTooltip: true, showHeadOverflowTooltip: true },
+  { field: 'Avg duration', header: t('arverConsuming'), showOverflowTooltip: true, showHeadOverflowTooltip: true },
+]);
+
+const measureColumnData = computed(() => [
+  { field: 'rootFuncHash', header: 'Root Func. Hash', showOverflowTooltip: true, showHeadOverflowTooltip: true },
+  { field: 'leafFuncHash', header: 'Leaf Func. Hash', showOverflowTooltip: true, showHeadOverflowTooltip: true },
+  { field: 'occurrences', header: 'Occurrences', showOverflowTooltip: true, showHeadOverflowTooltip: true },
+  { field: 'wallDuration', header: 'Wall duration(ms)', showOverflowTooltip: true, showHeadOverflowTooltip: true },
+  { field: 'avgDuration', header: 'AvG. Wall duration(ms)', showOverflowTooltip: true, showHeadOverflowTooltip: true },
+]);
 
 const selectedTab = ref('cores');
 const selectTab = (tab) => {
@@ -708,38 +719,29 @@ const transformToDeviceEventNameOptions = (source) => {
       }
     }
   }
-
-  .mulDetailTable .devui-table__thead .header-container .title {
-    line-height: 24px;
-    max-width: 100%;
-  }
-
-  .mulDetailTable .devui-table__tbody tr td {
-    line-height: 32px;
-  }
 }
 </style>
 
 <style scoped lang="scss">
 :deep() {
   .mulDetailTable {
-    .devui-table__container::-webkit-scrollbar {
+    .devui-data-grid::-webkit-scrollbar {
       width: 4px;
     }
 
-    .devui-table__empty {
+    .devui-data-grid__empty {
       text-align: center;
     }
 
-    .devui-table__thead tr {
+    .devui-data-grid__head {
       background: var(--devui-swim-split-line);
     }
 
-    .devui-table__thead .header-container .title {
+    .devui-data-grid__head .devui-data-grid__th {
       color: var(--devui-secondary-text);
     }
 
-    .devui-table__tbody tr {
+    .devui-data-grid__body .devui-data-grid__tr {
       background: var(--devui-swim-detail-bg);
     }
   }
