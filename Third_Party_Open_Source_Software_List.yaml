@@ -13,269 +13,409 @@
 # -----------------------------------------------------------------------------------------------------------
 
 "@pypto/data-compress":
+  url: https://www.npmjs.com/package/@pypto/data-compress
   version: v0.0.8
+  license: ISC
   type: run
 
 "@pypto/native-layout":
+  url: https://www.npmjs.com/package/@pypto/native-layout
   version: v0.0.1
+  license: MIT
   type: run
 
 "@antv/g6":
+  url: https://github.com/antvis/g6
   version: v5.1.1
+  license: MIT
   type: run
 
 "@devui-design/icons":
+  url: https://www.npmjs.com/package/@devui-design/icons
   version: v1.4.0
+  license: MIT
   type: run
 
 "@material/material-color-utilities":
+  url: https://github.com/material-foundation/material-color-utilities
   version: v0.3.0
+  license: Apache-2.0
   type: run
 
 "@monaco-editor/loader":
+  url: https://github.com/suren-atoyan/monaco-loader
   version: v1.7.0
+  license: MIT
   type: run
 
 "@types/vscode":
-  version: v1.125.0
+  url: https://github.com/DefinitelyTyped/DefinitelyTyped
+  version: v1.136.0
+  license: MIT
   type: run
 
 "@vue-flow/core":
+  url: https://github.com/bcakmakoglu/vue-flow
   version: v1.48.2
+  license: MIT
   type: run
 
-bignumber.js:
+"bignumber.js":
+  url: https://github.com/MikeMcl/bignumber.js
   version: v9.3.1
+  license: MIT
   type: run
 
-core-js:
+"core-js":
+  url: https://github.com/zloirock/core-js
   version: v3.50.0
+  license: MIT
   type: run
 
-csv-parse:
+"csv-parse":
+  url: https://github.com/adaltas/node-csv
   version: v6.2.1
+  license: MIT
   type: run
 
-dayjs:
-  version: v1.11.21
+"dayjs":
+  url: https://github.com/iamkun/dayjs
+  version: v1.11.23
+  license: MIT
   type: run
 
-decimal.js:
+"decimal.js":
+  url: https://github.com/MikeMcl/decimal.js
   version: v10.6.0
+  license: MIT
   type: run
 
-devui-theme:
+"devui-theme":
+  url: https://github.com/DevCloudFE/vue-devui
   version: v0.1.0
+  license: MIT
   type: run
 
-diff:
+"diff":
+  url: https://github.com/kpdecker/jsdiff
   version: v8.0.4
+  license: BSD-3-Clause
   type: run
 
-elkjs:
+"elkjs":
+  url: https://github.com/kieler/elkjs
   version: v0.8.2
+  license: EPL-2.0
   type: run
 
-i18next:
+"i18next":
+  url: https://github.com/i18next/i18next
   version: v22.5.1
+  license: MIT
   type: run
 
-inversify:
+"inversify":
+  url: https://github.com/inversify/InversifyJS
   version: v6.2.2
+  license: MIT
   type: run
 
-JSONStream:
+"JSONStream":
+  url: https://github.com/dominictarr/JSONStream
   version: v1.3.5
+  license: (MIT OR Apache-2.0)
   type: run
 
-lodash:
+"lodash":
+  url: https://github.com/lodash/lodash
   version: v4.18.1
+  license: MIT
   type: run
 
-lodash-es:
-  version: v4.17.21
+"lodash-es":
+  url: https://github.com/lodash/lodash
+  version: v4.18.1
+  license: MIT
   type: run
 
-monaco-editor:
+"monaco-editor":
+  url: https://github.com/microsoft/monaco-editor
   version: v0.52.2
+  license: MIT
   type: run
 
-reflect-metadata:
+"reflect-metadata":
+  url: https://github.com/rbuckton/reflect-metadata
   version: v0.2.2
+  license: Apache-2.0
   type: run
 
-sprotty:
+"sprotty":
+  url: https://github.com/eclipse-sprotty/sprotty
   version: v1.4.0
+  license: (EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0)
   type: run
 
-sprotty-elk:
+"sprotty-elk":
+  url: https://github.com/eclipse-sprotty/sprotty
   version: v1.4.0
+  license: (EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0)
   type: run
 
-sprotty-protocol:
+"sprotty-protocol":
+  url: https://github.com/eclipse-sprotty/sprotty
   version: v1.4.0
+  license: (EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0)
   type: run
 
-sql.js:
-  version: v1.14.1
+"sql.js":
+  url: https://github.com/sql-js/sql.js
+  version: v1.14.2
+  license: MIT
   type: run
 
-stream-chain:
+"stream-chain":
+  url: https://github.com/uhop/stream-chain
   version: v2.2.5
+  license: BSD-3-Clause
   type: run
 
-stream-json:
+"stream-json":
+  url: https://github.com/uhop/stream-json
   version: v1.9.1
+  license: BSD-3-Clause
   type: run
 
-typescript:
+"typescript":
+  url: https://github.com/microsoft/TypeScript
   version: v5.9.3
+  license: Apache-2.0
   type: run
 
-vue:
+"vue":
+  url: https://github.com/vuejs/core
   version: v3.5.21
+  license: MIT
   type: run
 
-vue-devui:
-  version: v1.6.37-alpha.2
+"vue-devui":
+  url: https://github.com/DevCloudFE/vue-devui
+  version: v1.6.37-alpha.3
+  license: MIT
   type: run
 
-vue-i18n:
+"vue-i18n":
+  url: https://github.com/intlify/vue-i18n
   version: v11.1.10
+  license: MIT
   type: run
 
 "@commitlint/cli":
-  version: v11.0.0
+  url: https://github.com/conventional-changelog/commitlint
+  version: v21.2.2
+  license: MIT
   type: build
 
 "@commitlint/config-conventional":
-  version: v11.0.0
+  url: https://github.com/conventional-changelog/commitlint
+  version: v21.2.2
+  license: MIT
   type: build
 
 "@tsconfig/node20":
-  version: v20.1.9
+  url: https://github.com/tsconfig/bases
+  version: v20.1.10
+  license: MIT
   type: build
 
 "@types/lodash":
+  url: https://github.com/DefinitelyTyped/DefinitelyTyped
   version: v4.17.25
+  license: MIT
   type: build
 
 "@types/mocha":
+  url: https://github.com/DefinitelyTyped/DefinitelyTyped
   version: v10.0.10
+  license: MIT
   type: build
 
 "@types/node":
-  version: v18.19.130
+  url: https://github.com/DefinitelyTyped/DefinitelyTyped
+  version: v22.20.1
+  license: MIT
   type: build
 
 "@types/sql.js":
+  url: https://github.com/DefinitelyTyped/DefinitelyTyped
   version: v1.4.11
+  license: MIT
   type: build
 
 "@types/vscode-webview":
+  url: https://github.com/DefinitelyTyped/DefinitelyTyped
   version: v1.57.5
+  license: MIT
   type: build
 
 "@typescript-eslint/eslint-plugin":
-  version: v7.18.0
+  url: https://github.com/typescript-eslint/typescript-eslint
+  version: v8.69.0
+  license: MIT
   type: build
 
 "@typescript-eslint/parser":
-  version: v7.18.0
+  url: https://github.com/typescript-eslint/typescript-eslint
+  version: v8.69.0
+  license: MIT
   type: build
 
 "@vitejs/plugin-vue":
+  url: https://github.com/vitejs/vite-plugin-vue
   version: v6.0.8
+  license: MIT
   type: build
 
 "@vue/eslint-config-typescript":
-  version: v13.0.0
+  url: https://github.com/vuejs/eslint-config-typescript
+  version: v14.9.0
+  license: MIT
   type: build
 
 "@vue/tsconfig":
+  url: https://github.com/vuejs/tsconfig
   version: v0.5.1
+  license: MIT
   type: build
 
-concurrently:
+"concurrently":
+  url: https://github.com/open-cli-tools/concurrently
   version: v9.2.4
+  license: MIT
   type: build
 
-eslint:
-  version: v8.57.1
+"eslint":
+  url: https://github.com/eslint/eslint
+  version: v9.39.5
+  license: MIT
   type: build
 
-eslint-plugin-vue:
-  version: v9.33.0
+"eslint-plugin-vue":
+  url: https://github.com/vuejs/eslint-plugin-vue
+  version: v10.10.0
+  license: MIT
   type: build
 
-esbuild:
+"esbuild":
+  url: https://github.com/evanw/esbuild
   version: v0.28.2
+  license: MIT
   type: build
 
-fs-extra:
+"fs-extra":
+  url: https://github.com/jprichardson/node-fs-extra
   version: v11.4.0
+  license: MIT
   type: build
 
-glob:
-  version: v7.2.3
+"glob":
+  url: https://github.com/isaacs/node-glob
+  version: v10.5.0
+  license: ISC
   type: build
 
-husky:
-  version: v4.3.8
+"husky":
+  url: https://github.com/typicode/husky
+  version: v9.1.7
+  license: MIT
   type: build
 
-less:
-  version: v4.8.1
+"less":
+  url: https://github.com/less/less.js
+  version: v4.9.1
+  license: Apache-2.0
   type: build
 
-npm-run-all2:
+"npm-run-all2":
+  url: https://github.com/bcomnes/npm-run-all2
   version: v6.2.6
+  license: MIT
   type: build
 
-sass:
-  version: v1.102.0
+"sass":
+  url: https://github.com/sass/dart-sass
+  version: v1.103.1
+  license: MIT
   type: build
 
-unplugin-vue-components:
+"unplugin-vue-components":
+  url: https://github.com/unplugin/unplugin-vue-components
   version: v29.2.0
+  license: MIT
   type: build
 
-vite:
+"vite":
+  url: https://github.com/vitejs/vite
   version: v8.1.5
+  license: MIT
   type: build
 
-vue-eslint-parser:
-  version: v9.4.3
+"vue-eslint-parser":
+  url: https://github.com/vuejs/vue-eslint-parser
+  version: v10.4.1
+  license: MIT
   type: build
 
-vue-tsc:
+"vue-tsc":
+  url: https://github.com/vuejs/language-tools
   version: v2.2.12
+  license: MIT
   type: build
 
 "@playwright/test":
+  url: https://github.com/microsoft/playwright
   version: v1.61.1
+  license: Apache-2.0
   type: test
 
 "@vscode/test-cli":
+  url: https://github.com/Microsoft/vscode-test-cli
   version: v0.0.15
+  license: MIT
   type: test
 
 "@vscode/test-electron":
+  url: https://github.com/Microsoft/vscode-test
   version: v3.0.0
+  license: MIT
   type: test
 
 "@vue/test-utils":
+  url: https://github.com/vuejs/test-utils
   version: v2.4.11
+  license: MIT
   type: test
 
-jsdom:
+"jsdom":
+  url: https://github.com/jsdom/jsdom
   version: v29.1.1
+  license: MIT
   type: test
 
-mocha:
-  version: v7.2.0
+"mocha":
+  url: https://github.com/mochajs/mocha
+  version: v11.8.0
+  license: MIT
   type: test
 
-vitest:
-  version: v4.1.10
+"@vitest/coverage-v8":
+  url: https://github.com/vitest-dev/vitest
+  version: v4.1.11
+  license: MIT
+  type: test
+
+"vitest":
+  url: https://github.com/vitest-dev/vitest
+  version: v4.1.11
+  license: MIT
   type: test

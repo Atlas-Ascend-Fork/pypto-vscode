@@ -73,6 +73,64 @@ The bundled native addon statically links OGDF and COIN-OR. See
 THIRD_PARTY_NOTICES.md and the OGDF license files included under native/.
 
 Copyright Notice and License Texts
+Software: @antv/g6 v5.1.1
+Copyright notice:
+Copyright (c) 2018 Alipay.inc
+
+License: MIT License
+MIT License
+
+Copyright (c) 2018 Alipay.inc
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Copyright Notice and License Texts
+Software: @devui-design/icons v1.4.0
+Copyright notice:
+Copyright (c) 2019 DevUI.
+Copyright (c) 2019 Huawei Technologies Co., Ltd.
+
+License: MIT License
+MIT License
+
+Copyright (c) 2019 DevUI.
+Copyright (c) 2019 Huawei Technologies Co., Ltd.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Copyright Notice and License Texts
 Software: @material/material-color-utilities v0.3.0
 Copyright notice:
 Copyright (c) Google LLC
@@ -298,7 +356,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: @types/vscode v1.125.0
+Software: @types/vscode v1.136.0
 Copyright notice:
 Copyright (c) Microsoft Corporation.
 
@@ -442,7 +500,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: dayjs v1.11.21
+Software: dayjs v1.11.23
 Copyright notice:
 Copyright (c) 2018-present, iamkun
 
@@ -978,7 +1036,7 @@ licenses; we recommend you read them, as their terms may differ from the
 terms above.
 
 Copyright Notice and License Texts
-Software: lodash-es v4.17.21
+Software: lodash-es v4.18.1
 Copyright notice:
 Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
 Copyright and related rights for sample code are waived via CC0. Sample
@@ -1975,7 +2033,7 @@ version(s), and exceptions or additional permissions here}."
   You may add additional accurate notices of copyright ownership.
 
 Copyright Notice and License Texts
-Software: sql.js v1.14.1
+Software: sql.js v1.14.2
 Copyright notice:
 Copyright (c) 2017 sql.js authors (see AUTHORS)
 Copyright 2017 Ryusei Yamaguchi
@@ -2174,7 +2232,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 Copyright Notice and License Texts
-Software: vue-devui v1.6.37-alpha.2
+Software: vue-devui v1.6.37-alpha.3
 Copyright notice:
 Copyright (c) 2019 - present DevUI.
 Copyright (c) 2019 - present Huawei Technologies Co., Ltd.
@@ -2231,7 +2289,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Copyright Notice and License Texts
-Software: @commitlint/cli v11.0.0
+Software: @commitlint/cli v21.2.2
 Copyright notice:
 Copyright (c) 2016 - present Mario Nebl
 
@@ -2259,7 +2317,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: @commitlint/config-conventional v11.0.0
+Software: @commitlint/config-conventional v21.2.2
 Copyright notice:
 Copyright (c) 2016 - present Mario Nebl
 
@@ -2287,7 +2345,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: @tsconfig/node20 v20.1.9
+Software: @tsconfig/node20 v20.1.10
 Copyright notice:
 Copyright (c) Microsoft Corporation.
 
@@ -2371,7 +2429,7 @@ MIT License
     SOFTWARE
 
 Copyright Notice and License Texts
-Software: @types/node v18.19.130 (backend), 20.19.43 (frontend)
+Software: @types/node v22.20.1 (backend), 20.19.43 (frontend)
 Copyright notice:
 Copyright (c) Microsoft Corporation.
 
@@ -2455,7 +2513,7 @@ MIT License
     SOFTWARE
 
 Copyright Notice and License Texts
-Software: @typescript-eslint/eslint-plugin v7.18.0
+Software: @typescript-eslint/eslint-plugin v8.69.0
 Copyright notice:
 Copyright (c) 2019 typescript-eslint and other contributors
 
@@ -2483,7 +2541,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: @typescript-eslint/parser v7.18.0
+Software: @typescript-eslint/parser v8.69.0
 Copyright notice:
 Copyright JS Foundation and other contributors, https://js.foundation
 
@@ -2540,7 +2598,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: @vue/eslint-config-typescript v13.0.0
+Software: @vue/eslint-config-typescript v14.9.0
 Copyright notice:
 Copyright (c) 2018-present Evan You
 
@@ -2624,7 +2682,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: eslint v8.57.1
+Software: eslint v9.39.5
 Copyright notice:
 Copyright OpenJS Foundation and other contributors, <www.openjsf.org>
 
@@ -2650,7 +2708,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 Copyright Notice and License Texts
-Software: eslint-plugin-vue v9.33.0
+Software: eslint-plugin-vue v10.10.0
 Copyright notice:
 Copyright (c) 2017 Toru Nagashima
 
@@ -2728,7 +2786,7 @@ OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHE
  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Copyright Notice and License Texts
-Software: glob v7.2.3
+Software: glob v10.5.0
 Copyright notice:
 Copyright (c) Isaac Z. Schlueter and Contributors
 
@@ -2756,7 +2814,7 @@ under a Creative Commons Attribution-ShareAlike 4.0 International License
 https://creativecommons.org/licenses/by-sa/4.0/
 
 Copyright Notice and License Texts
-Software: husky v4.3.8
+Software: husky v9.1.7
 Copyright notice:
 Copyright (c) 2017 - present
 
@@ -2784,7 +2842,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: less v4.8.1
+Software: less v4.9.1
 Copyright notice:
 Copyright (c) 2009-present Alexis Sellier <self@cloudhead.net>
 
@@ -2995,7 +3053,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Copyright Notice and License Texts
-Software: sass v1.102.0
+Software: sass v1.103.1
 Copyright notice:
 Copyright (c) 2016, Google Inc.
 Copyright (c) 2012, the Dart project authors
@@ -7007,7 +7065,7 @@ Repository: https://github.com/websockets/ws
 > CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Copyright Notice and License Texts
-Software: vue-eslint-parser v9.4.3
+Software: vue-eslint-parser v10.4.1
 Copyright notice:
 Copyright (c) 2016 Toru Nagashima
 
@@ -7385,7 +7443,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
 Copyright Notice and License Texts
-Software: mocha v7.2.0
+Software: mocha v11.8.0
 Copyright notice:
 Copyright (c) 2011-2020 OpenJS Foundation and contributors, https://openjsf.org
 
@@ -7414,7 +7472,35 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Copyright Notice and License Texts
-Software: vitest v4.1.10
+Software: @vitest/coverage-v8 v4.1.11
+Copyright notice:
+Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
+
+License: MIT License
+MIT License
+
+Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Copyright Notice and License Texts
+Software: vitest v4.1.11
 Copyright notice:
 Copyright (c) 2021-Present VoidZero Inc. and Vitest contributors
 
@@ -8230,4 +8316,3 @@ Repository: git+https://github.com/websockets/ws.git
 > COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 > IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 > CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
