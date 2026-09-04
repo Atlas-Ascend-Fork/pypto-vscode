@@ -93,6 +93,8 @@ export const comGraphStore: DataStore = reactive({
     runningNodeId: '',
     svgExportMode: false,
     isLeaf: false,
+    isCached: false,
+    nodeCount: 0,
   },
 
   setData(key: string, value: any) {

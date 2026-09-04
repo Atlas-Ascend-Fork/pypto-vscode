@@ -308,9 +308,9 @@ export default {
         readJsonWarning: 'Warning：The current number of layout nodes has exceeded 50,000,which may result in excessively long rendering times and could potentially cause the application to lag or crash.',
         currentNodeCounter: 'The number of nodes to be rendered is ',
         readJsonWaitingTip: 'Please wait patiently, estimated time is ',
-        NodesMoreThan5k: '2-5 minutes',
-        NodesMoreThan1w: '5-8 minutes',
-        NodesMoreThan2w: '8-12 minutes',
+        NodesMoreThan5k: '1-2 minutes',
+        NodesMoreThan1w: '2-4 minutes',
+        NodesMoreThan2w: '4-6 minutes',
         rendering: 'Layout rendering...',
         list: ' List',
         expand: 'Expand ',
@@ -456,7 +456,7 @@ export default {
         startExperience: 'Start Experience',
         showGuideOnStartup: 'Show quick start page on startup',
         copyCode: 'Copy Code',
-        copiedSuccessfully:'Cpied Successfully',   
+        copiedSuccessfully:'Cpied Successfully',
       },
       bootStep: {
         // 按钮文案

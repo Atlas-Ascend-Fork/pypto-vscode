@@ -647,6 +647,7 @@ export abstract class BaseGraphMsgHandler {
         fileName: basename(server.comGraphData.fsPath || server.comGraphData.comPath),
         version: server.comGraphData.version,
         isLeaf: server.isLeaf || false,
+        nodeCount
       });
     } else if (cmd == 'returnDiffCom') {
       server.setRef('DiffComData', { step: 'convertData', diffInfo: json });

@@ -30,7 +30,7 @@
               <div class="lock-information" v-if="switchLockInformationFlag">
                 <div class="lock-information-item">{{ lockText }}，{{ t('comGraph.pressEscExit') }}</div>
               </div>
-          
+
               <ShowTip></ShowTip>
               <ComGraphMinimap :offset-right="minimapOffsetRight"></ComGraphMinimap>
               <ComGraphReport v-model="showComGraphReport" @onLocate="onLocate" @locateSubgraph="onLocateSubgraph"
@@ -46,7 +46,7 @@
             </div>
           </div>
         </d-splitter-pane>
-        <d-splitter-pane 
+        <d-splitter-pane
           :size="'50%'"
           :minSize="minSize"
           :collapsible="true"
@@ -217,7 +217,7 @@ const handleMemTraceFileChange = (data: { existTraceFile: boolean; isComFile: bo
   if (comGraphInit.value) {
     return;
   }
-  
+
   comGraphInit.value = true;
   existTraceFile.value = data.existTraceFile;
   isComFile.value = data.isComFile;
@@ -428,6 +428,7 @@ watch(
       loadingText.value = t(LoadingStatusMap[val]);
     }
   },
+  { immediate: true },
 );
 
 watch([() => props.jsonContent, isDarkTheme], ([val]) => {
@@ -646,7 +647,7 @@ async function onDocumentKeyDown(e: KeyboardEvent) {
       (window as any).ascEventBus.emit('message_notice', (window as any).ascLang === 'en' ? 'Please select the node first' : '请先选中节点');
       return;
     }
-    const disabledFlag = comGraphStore.data.inFixedComGraphFlow || 
+    const disabledFlag = comGraphStore.data.inFixedComGraphFlow ||
                        (comGraphStore.data?.pathNodesSet && (comGraphStore.data.pathNodesSet.size > 0));
     (window as any).ascEventBus.emit('jump2SiblingNodeByHotKey', {nodeId: selectedNodeId, eventKey: e.key});
     return;

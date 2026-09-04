@@ -112,6 +112,7 @@ function setupComWatchers(server: any) {
 
   watch(server.ComData, (newValue) => {
     comGraphStore.setData('version', newValue.version || '2.0');
+    comGraphStore.setData('nodeCount', newValue.nodeCount ?? 0);
     shouldUpdateComGraphHashList.value = true;
     jsonContent.value = newValue.data;
     loadingStep.value = newValue.step;
@@ -346,7 +347,7 @@ const searchNodeListener = (args) => {
 const searchNodeGlobalListener = (args) => {
   jsonContent.value = undefined;
   searchMode.value = 0;
-  
+
   if(args.nodeMagic === -1) {
     openMode.value = args.openMode;
     nodeMagic.value = undefined

@@ -309,9 +309,9 @@ export default {
       readJsonWarning: '警告：当前布局节点数已超过5万个，这会导致渲染时间过长，甚至造成应用卡顿或崩溃',
       currentNodeCounter: '当前布局节点数为 ',
       readJsonWaitingTip: '请耐心等待，预计需要 ',
-      NodesMoreThan5k: '2-5 分钟',
-      NodesMoreThan1w: '5-8 分钟',
-      NodesMoreThan2w: '8-12 分钟',
+      NodesMoreThan5k: '1-2 分钟',
+      NodesMoreThan1w: '2-4 分钟',
+      NodesMoreThan2w: '4-6 分钟',
       rendering: '布局渲染中...',
       list: '列表',
       expand: '展开',
@@ -456,7 +456,7 @@ export default {
         startExperience: '开始体验',
         showGuideOnStartup: '启动时显示快速开始页',
         copyCode: '复制代码',
-        copiedSuccessfully:'复制成功',        
+        copiedSuccessfully:'复制成功',
       },
       bootStep: {
         // 按钮文案
