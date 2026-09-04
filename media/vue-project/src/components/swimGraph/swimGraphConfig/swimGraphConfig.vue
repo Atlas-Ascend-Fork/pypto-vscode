@@ -316,23 +316,23 @@ function savePerfRendingMode(colorRenderMode) {
 };
 
 const updateKernelEvents = (mode, hashOrderOption) => {
-    const {startTime, endTime} = timelineState;
     const updateEventColors = (event) => {
         if (event.originalThreadName) {
-          return;
+            return;
         }
-        if (!event.isCounter && event.endTime >= startTime && event.startTime <= endTime) {
-            const color = getEventColorByMode(event, mode, 'kernel', hashOrderOption);
-            event.color = color;
-            if (event.drawData) {
-                const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode, hashOrderOption) ;
-                event.drawData.rectColor = fillColor;
-                event.drawData.strokeColor = strokeColor;
-                event.drawData.fontColor = fontColor;
-            }
+        if (event.isCounter) {
+            return;
+        }
+        const color = getEventColorByMode(event, mode, 'kernel', hashOrderOption);
+        event.color = color;
+        if (event.drawData) {
+            const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode, hashOrderOption);
+            event.drawData.rectColor = fillColor;
+            event.drawData.strokeColor = strokeColor;
+            event.drawData.fontColor = fontColor;
         }
     };
-    
+
     const updateSubEventColors = (parentEvent) => {
         const subEvents = swimDataManager.getSubEvents(parentEvent.id);
         for (const subEvent of subEvents) {
@@ -343,16 +343,16 @@ const updateKernelEvents = (mode, hashOrderOption) => {
             }
         }
     };
-    
+
     pinnedThreadsList.value.filter(pinThread => pinThread.process.type === 'kernel')
-    .forEach((pinThread) => {
-        pinThread.thread.eventIds.forEach((eventId) => {
-            const event = swimDataManager.getEventById(eventId);
-            if (event) {
-                updateEventColors(event);
-            }
+        .forEach((pinThread) => {
+            pinThread.thread.eventIds.forEach((eventId) => {
+                const event = swimDataManager.getEventById(eventId);
+                if (event) {
+                    updateEventColors(event);
+                }
+            });
         });
-    });
     for (const process of swimDataManager.getAllProcesses().values()) {
         if (process.type === 'aicpu' || !process.isRendered) {
             continue;
@@ -366,7 +366,7 @@ const updateKernelEvents = (mode, hashOrderOption) => {
             });
         });
     }
-    
+
     if (swimDataManager.hasMixConfig()) {
         for (const config of swimDataManager.mixConfig) {
             const parentEvent = swimDataManager.getEventById(config.parentEventId);

@@ -1787,7 +1787,9 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
   }
   ++selectEventToken;
   mixRelatedPaths.clear();
-  highlightedPaths.clear();
+  if (!isPathLockStatus.value) {
+    highlightedPaths.clear();
+  }
   globalConnectionCanvas?.value?.clearCanvas();
   selectedEvent.value = event;
   canvasclickedEvent.value = event;
@@ -1799,7 +1801,9 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
     const isAicpuEvent = process.type === 'aicpu' || event.originalThreadName;
     
     if (isAicpuEvent) {
-      highlightedPaths.clear();
+      if (!isPathLockStatus.value) {
+        highlightedPaths.clear();
+      }
       highlightAicpu(process, processKey, false);
     } else if (isMixMode?.value && swimDataManager.hasMixConfig()) {
       if (event?.parentEventId) {
@@ -1824,6 +1828,10 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
   }
   
   updateOtherProcesses(processKey);
+  if (isPathLockStatus.value && event) {
+    renderDependencyLines();
+    childContextMap.threadEvent.updatePathLockedHighlightOnTransform();
+  }
 };
 
 const highlightAicpu = (process, processKey, isResize) => {

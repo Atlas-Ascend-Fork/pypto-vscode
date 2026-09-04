@@ -831,7 +831,7 @@ const drawMacroEventNode = (event, coords) => {
     eventWidth: event.renderInfo.width,
   });
   
-  const isSelected = event.id === selectedEvent.value.id;
+  const isSelected = event.id === selectedEvent.value?.id || (isPathLockStatus.value && event.id === pathLockedEvent.value?.id);
   const eventColor = (isDarkTheme.value ? event.color?.dark?.base : event.color?.light?.base) || '#90b8f9';
   drawData.rectColor = isSelected ? (isDarkTheme.value ? event.color?.dark?.light : event.color?.light?.light) || '#90b8f9' : eventColor;
   const fontColor = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;

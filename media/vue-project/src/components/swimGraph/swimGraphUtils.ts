@@ -588,6 +588,20 @@ const collectFilteredMergedCoreEvents = (thread, threadName, mergedCoreEvents, s
   }
 };
 
+const isLifecycleMarkerEvent = (event) => {
+  if (!event?.name) { return true; }
+  return event.name.startsWith('EXIT_') || event.name.startsWith('BEGIN_');
+};
+
+const getFallbackRanges = (schedRanges, execRanges, clickedEvent) => {
+  if (schedRanges.length > 0) { return schedRanges; }
+  if (execRanges.length > 0) { return execRanges; }
+  if (clickedEvent && !isLifecycleMarkerEvent(clickedEvent)) {
+    return [{ startTime: clickedEvent.startTime, endTime: clickedEvent.endTime }];
+  }
+  return [];
+};
+
 const findFallbackKernelEvents = (eventIds, clickedEvent, schedEvents) => {
   if (!eventIds || eventIds.length === 0) {
     return [];
@@ -603,16 +617,7 @@ const findFallbackKernelEvents = (eventIds, clickedEvent, schedEvents) => {
     .map(id => swimDataManager.getEventById(id))
     .filter(e => e && e.name && e.name.includes('DEV_TASK_ALL_CALLOP_TASK_EXEC'))
     .map(e => ({ startTime: e.startTime, endTime: e.endTime }));
-  let ranges;
-  if (schedRanges.length > 0) {
-    ranges = schedRanges;
-  } else if (execRanges.length > 0) {
-    ranges = execRanges;
-  } else if (clickedEvent) {
-    ranges = [{ startTime: clickedEvent.startTime, endTime: clickedEvent.endTime }];
-  } else {
-    ranges = [];
-  }
+  const ranges = getFallbackRanges(schedRanges, execRanges, clickedEvent);
   if (ranges.length === 0) {
     return [];
   }
