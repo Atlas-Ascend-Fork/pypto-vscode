@@ -180,6 +180,7 @@ const {
   xToFixedTime,
   processThreadEventSearch,
   processAICPUThreadEventSearch,
+  processAicpuThreadCoreEventSearch,
   processThreadEventSearchWithOriginalThreadName,
   calculateAndAddAICPUusage,
   calculateAndAddCoreWaitTime,
@@ -1802,11 +1803,40 @@ const checkInSelection = () => {
     });
   }
   const timeRange = Math.abs(end - start);
+
+  const aicThreadEvents = [];
+  const aivThreadEvents = [];
+
+  process.threads.forEach((thread,threadKey) => {
+    const { threadName, eventIds } = thread;
+    const isAicThread = threadName.startsWith('AIC_');
+    const isAivThread = threadName.startsWith('AIV_');
+    const isAicOrAivThread = threadName.includes('-aic') || threadName.includes('-aiv');
+
+    if (!isAicThread && !isAivThread && !isAicOrAivThread) {
+      return;
+    }
+
+    const { renderInfo } = swimDataManager.getEventById(eventIds[0]);
+    const { y } = renderInfo;
+    if (y < selectMinY || (y + layout.eventHeight) > selectMaxY) {
+      return;
+    }
+
+    const threadMatchedEvents = processAicpuThreadCoreEventSearch(thread, start, end);
+    if (threadMatchedEvents.length > 0) {
+      if (isAicThread || (isAicOrAivThread && threadName.includes('-aic'))) {
+        aicThreadEvents.push(threadMatchedEvents);
+      } else if (isAivThread || (isAicOrAivThread && threadName.includes('-aiv'))) {
+        aivThreadEvents.push(threadMatchedEvents);
+      }
+    }
+  });
   // 最终统计
   measureDetailGet(selectionMatchingAICEvents, selectionMatchingAIVEvents, timeRange, selectionAICCount, selectionAIVCount);
   calculateAndAddAICPUusage(selectionMatchingAICPUEvents, timeRange, selectionAICPUCount);
-  calculateAndAddCoreWaitTime(selectionCoreWaitEvents, start, end);
-  calculateAndAddCoreExecutTime(selectionMatchingAICEvents, selectionMatchingAIVEvents, start, end);
+  calculateAndAddCoreWaitTime(aicThreadEvents.concat(aivThreadEvents), selectionCoreWaitEvents, start, end);
+  calculateAndAddCoreExecutTime(aicThreadEvents.concat(aivThreadEvents), start, end);
 };
 function onHoverEvent(hoveredEvent) {
   const canvasRef = document.querySelector(`[data-hover-process-key="${props.processKey}"]`);

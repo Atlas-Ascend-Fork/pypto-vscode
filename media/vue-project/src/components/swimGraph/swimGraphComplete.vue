@@ -3127,7 +3127,7 @@ const processThreadEventSearchWithOriginalThreadName = (thread, startTime, endTi
   return matchedEvents;
 };
 
-const processAicpuThreadEventSearchWithOriginalThreadName = (thread, startTime, endTime) => {
+const processAicpuThreadCoreEventSearch = (thread, startTime, endTime) => {
   const matchedEvents = [];
   for (const eventId of thread.eventIds) {
     const event = swimDataManager.getEventById(eventId);
@@ -3138,13 +3138,54 @@ const processAicpuThreadEventSearchWithOriginalThreadName = (thread, startTime, 
   return matchedEvents;
 };
 
-const calculateAndAddCoreWaitTime = (coreWaitEvents, startTime, endTime) => {
+const isKernelEvent = (event) => {
+  return !(event.originalThreadName !== undefined && event.originalThreadName !== null);
+};
+
+const calculateThreadHeadTime = (events)=> {
+  let headTime = 0;
+  const hasKernelEvent = events.some(event => isKernelEvent(event));
+  if (!hasKernelEvent) {
+    return 0;
+  }
+  let firstKernelIndex = -1;
+  for (let i = 0; i < events.length; i++) {
+    if (isKernelEvent(events[i])) {
+      firstKernelIndex = i;
+      break;
+    }
+  }
+  for (let i = 0; i < firstKernelIndex; i++) {
+    headTime += events[i].duration || (events[i].endTime - events[i].startTime);
+  }
+  return headTime;
+};
+
+const calculateThreadTailTime = (events) => {
+  let tailTime = 0;
+  const hasKernelEvent = events.some(event => isKernelEvent(event));
+  if (!hasKernelEvent) {
+    return 0;
+  }
+  let lastKernelIndex = -1;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (isKernelEvent(events[i])) {
+      lastKernelIndex = i;
+      break;
+    }
+  }
+  for (let i = lastKernelIndex + 1; i < events.length; i++) {
+    tailTime += events[i].duration || (events[i].endTime - events[i].startTime);
+  }
+  return tailTime;
+};
+
+const calculateAndAddCoreWaitTime = (aicpuThreadEvents, coreWaitEvents, startTime, endTime) => {
   let coreWaitTime = 0;
 
-  for (const event of coreWaitEvents) {
-    if (event.startTime >= startTime && event.endTime <= endTime) {
-      coreWaitTime += (event.endTime - event.startTime);
-    }
+  for (const threadEvents of aicpuThreadEvents) {
+    const sortedEvents = [...threadEvents].sort((a, b) => a.startTime - b.startTime);
+    coreWaitTime += calculateThreadHeadTime(sortedEvents);
   }
 
   if (measureDetailsData.value.length > 0) {
@@ -3202,19 +3243,12 @@ const calculateDeviceDataMap = (coreWaitEvents, startTime, endTime) => {
   }
 };
 
-const calculateAndAddCoreExecutTime = (matchingAICEvents, matchingAIVEvents, startTime, endTime) => {
+const calculateAndAddCoreExecutTime = (aicpuThreadEvents, startTime, endTime) => {
   let coreExecutTime = 0;
 
-  for (const event of matchingAICEvents) {
-    if (event.startTime >= startTime && event.endTime <= endTime) {
-      coreExecutTime += (event.endTime - event.startTime);
-    }
-  }
-
-  for (const event of matchingAIVEvents) {
-    if (event.startTime >= startTime && event.endTime <= endTime) {
-      coreExecutTime += (event.endTime - event.startTime);
-    }
+  for (const threadEvents of aicpuThreadEvents) {
+    const sortedEvents = [...threadEvents].sort((a, b) => a.startTime - b.startTime);
+    coreExecutTime += calculateThreadTailTime(sortedEvents);
   }
 
   if (measureDetailsData.value.length > 0) {
@@ -3223,7 +3257,7 @@ const calculateAndAddCoreExecutTime = (matchingAICEvents, matchingAIVEvents, sta
 };
 
 const collectThreadMeasureEvents = (thread, startTime, endTime) => {
-  const result = { aicEvents: [], aivEvents: [], aicpuEvents: [], coreWaitEvents: [], aicCount: 0, aivCount: 0, aicpuCount: 0 };
+  const result = { aicEvents: [], aivEvents: [], aicpuEvents: [], aicpuThreadEvents: [], coreWaitEvents: [], aicCount: 0, aivCount: 0, aicpuCount: 0 };
   if (thread.threadName.startsWith('AIC_')) {
     result.coreWaitEvents = processThreadEventSearchWithOriginalThreadName(thread, startTime, endTime);
     const matched = processThreadEventSearch(thread, startTime, endTime);
@@ -3231,6 +3265,7 @@ const collectThreadMeasureEvents = (thread, startTime, endTime) => {
       result.aicCount = 1;
     }
     result.aicEvents = matched;
+    result.aicpuThreadEvents = processAicpuThreadCoreEventSearch(thread, startTime, endTime);
   } else if (thread.threadName.startsWith('AIV_')) {
     result.coreWaitEvents = processThreadEventSearchWithOriginalThreadName(thread, startTime, endTime);
     const matched = processThreadEventSearch(thread, startTime, endTime);
@@ -3238,6 +3273,7 @@ const collectThreadMeasureEvents = (thread, startTime, endTime) => {
       result.aivCount = 1;
     }
     result.aivEvents = matched;
+    result.aicpuThreadEvents = processAicpuThreadCoreEventSearch(thread, startTime, endTime);
   } else if (thread.threadName.startsWith('AICPU-SCHED-')) {
     const matched = processAICPUThreadEventSearch(thread, startTime, endTime);
     if (matched.length) {
@@ -3245,7 +3281,8 @@ const collectThreadMeasureEvents = (thread, startTime, endTime) => {
     }
     result.aicpuEvents = matched;
   } else if(thread.threadName.includes('AIC-') || thread.threadName.includes('AIV-')) {
-    result.coreWaitEvents = processAicpuThreadEventSearchWithOriginalThreadName(thread, startTime, endTime);
+    result.coreWaitEvents = processAicpuThreadCoreEventSearch(thread, startTime, endTime);
+    result.aicpuThreadEvents = processAicpuThreadCoreEventSearch(thread, startTime, endTime);
   } else {}
   return result;
 };
@@ -3270,6 +3307,7 @@ const measureDetailSearch = () => {
   const matchingAICEvents = [];
   const matchingAIVEvents = [];
   const matchingAICPUEvents = [];
+  const allAicpuThreadEvents = [];
   const coreWaitEvents = [];
 
   let AICCount = 0;
@@ -3297,6 +3335,9 @@ const measureDetailSearch = () => {
       matchingAIVEvents.push(...result.aivEvents);
       matchingAICPUEvents.push(...result.aicpuEvents);
       coreWaitEvents.push(...result.coreWaitEvents);
+      if (result.aicpuThreadEvents.length > 0) {
+        allAicpuThreadEvents.push(result.aicpuThreadEvents);
+      }
     }
   }
 
@@ -3318,11 +3359,14 @@ const measureDetailSearch = () => {
     matchingAIVEvents.push(...result.aivEvents);
     matchingAICPUEvents.push(...result.aicpuEvents);
     coreWaitEvents.push(...result.coreWaitEvents);
+    if (result.aicpuThreadEvents.length > 0) {
+      allAicpuThreadEvents.push(result.aicpuThreadEvents);
+    }
   }
   measureDetailGet(matchingAICEvents, matchingAIVEvents, timeRange, AICCount, AIVCount);
   calculateAndAddAICPUusage(matchingAICPUEvents, timeRange, AICPUCount);
-  calculateAndAddCoreWaitTime(coreWaitEvents, startTime, endTime);
-  calculateAndAddCoreExecutTime(matchingAICEvents, matchingAIVEvents, startTime, endTime);
+  calculateAndAddCoreWaitTime(allAicpuThreadEvents, coreWaitEvents, startTime, endTime);
+  calculateAndAddCoreExecutTime(allAicpuThreadEvents, startTime, endTime);
 };
 
 const intelligentSearch = () => {
@@ -3731,6 +3775,7 @@ provide('swimGraphMethods', {
   measureDetailGet,
   processThreadEventSearch,
   processAICPUThreadEventSearch,
+  processAicpuThreadCoreEventSearch,
   processThreadEventSearchWithOriginalThreadName,
   calculateAndAddAICPUusage,
   calculateAndAddCoreWaitTime,

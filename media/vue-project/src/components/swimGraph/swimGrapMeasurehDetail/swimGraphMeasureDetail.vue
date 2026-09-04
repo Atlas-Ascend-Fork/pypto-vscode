@@ -47,8 +47,8 @@
                   <div class="measure-detail-data-downarea-time">
                     <div class="measure-detail-data-item">
                       <div class="data-title-row">
-                        <d-tooltip :content="$t('coreHeadToTail')">
-                          <div class='data-title'>{{ $t('coreHeadToTail') }}</div>
+                        <d-tooltip :content="$t('coreHeadToTail', {coreWaitTimeUint})">
+                          <div class='data-title'>{{ $t('coreHeadToTail', {coreWaitTimeUint}) }}</div>
                         </d-tooltip>
                         <d-tooltip :content="$t('coreHeadToTailTip')">
                           <d-icon name="helping" size="16px"></d-icon>
@@ -58,8 +58,8 @@
                     </div>
                     <div class="measure-detail-data-item">
                       <div class="data-title-row">
-                        <d-tooltip :content="$t('coreExecutionTime')">
-                          <div class='data-title'>{{ $t('coreExecutionTime') }}</div>
+                        <d-tooltip :content="$t('coreExecutionTime', {coreExecutTimeUint})">
+                          <div class='data-title'>{{ $t('coreExecutionTime', {coreExecutTimeUint}) }}</div>
                         </d-tooltip>
                         <d-tooltip :content="$t('coreExecutionTimeTip')">
                           <d-icon name="helping" size="16px"></d-icon>
@@ -215,6 +215,7 @@
 <script setup>
 import { ref, inject, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { formatTimeUnit, formatTimeValue } from '../swimGraphPerformance/utils';
 const { t } = useI18n();
 
 const formatNumber = (value) => {
@@ -261,6 +262,8 @@ const coreWaitTimeRate = ref('0');
 const coreExecutTimeRate = ref('0');
 const coreWaitTimeRateValue = ref('0');
 const coreExecutTimeRateValue = ref('0');
+const coreWaitTimeUint = ref('μs');
+const coreExecutTimeUint = ref('μs');
 
 const cubeCycleRateOriginal = ref(0);
 const vectorCycleRateOriginal = ref(0);
@@ -295,6 +298,7 @@ const measureColumnData = computed(() => [
   { field: 'wallDuration', header: 'Wall duration(ms)', showOverflowTooltip: true, showHeadOverflowTooltip: true },
   { field: 'avgDuration', header: 'AvG. Wall duration(ms)', showOverflowTooltip: true, showHeadOverflowTooltip: true },
 ]);
+const showOverflowTooltip = false;
 
 const selectedTab = ref('cores');
 const selectTab = (tab) => {
@@ -519,8 +523,10 @@ const initDatas = () => {
 
   cubeCycle.value = processCycleValue(data.cubecycle);
   vectorCycle.value = processCycleValue(data.vectorcycle);
-  coreWaitTime.value = processCycleValue(data.coreWaitTime);
-  coreExecutTime.value = processCycleValue(data.coreExecutTime);
+  coreWaitTime.value = processCycleValue(formatTimeValue(data.coreWaitTime));
+  coreWaitTimeUint.value = formatTimeUnit(data.coreWaitTime);
+  coreExecutTime.value = processCycleValue(formatTimeValue(data.coreExecutTime));
+  coreExecutTimeUint.value = formatTimeUnit(data.coreExecutTime);
 
   const cubeCycleNum = cubeCycle.value === '--' ? NaN : parseFloat(cubeCycle.value);
   const vectorCycleNum = vectorCycle.value === '--' ? NaN : parseFloat(vectorCycle.value);

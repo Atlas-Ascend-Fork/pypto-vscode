@@ -752,7 +752,7 @@ const extractEventIndex = (eventName) => {
   if (!eventName) {
     return -1;
   }
-  const match = eventName.match(/(?<index>\d+)\)$/);
+  const match = eventName.match(/_(?<index>\d+)\(/);
   return match ? parseInt(match.groups.index, 10) : -1;
 };
 
@@ -771,64 +771,101 @@ const isBeginOrInitEvent = (eventName) => {
   return eventName.startsWith('BEGIN') || eventName.startsWith('INIT');
 };
 
-const collectBeforeKernelEvents = (events, startIndex, currentRound) => {
-  let beforeKernelTime = 0;
-  let endIndex = startIndex;
-
-  while (endIndex < events.length) {
-    const event = events[endIndex];
-    const eventName = event.name || '';
-    const eventRound = extractEventIndex(eventName);
-    if (isKernelEvent(event) || (eventRound !== -1 && eventRound !== currentRound)) {
+const collectBeginInitEventsTime = (events) => {
+  let headTime = 0;
+  const hasKernelEvent = events.some(event => isKernelEvent(event));
+  if (!hasKernelEvent) {
+    return { headTime, hasKernelEvent };
+  }
+  for (const event of events) {
+    if (isKernelEvent(event)) {
       break;
     }
-    beforeKernelTime += event.duration || 0;
-    endIndex++;
-  }
-
-  return { beforeKernelTime, endIndex };
-};
-
-const hasKernelBetweenRounds = (events, afterBeforeKernelIndex) => {
-  if (afterBeforeKernelIndex >= events.length) {
-    return false;
-  }
-  return isKernelEvent(events[afterBeforeKernelIndex]);
-};
-
-const skipKernelEvents = (events, startIndex) => {
-  let index = startIndex;
-  while (index < events.length && isKernelEvent(events[index])) {
-    index++;
-  }
-  return index;
-};
-
-const collectAfterKernelEvents = (events, startIndex, currentRound) => {
-  let afterKernelTime = 0;
-  let endIndex = startIndex;
-
-  while (endIndex < events.length) {
-    const event = events[endIndex];
     const eventName = event.name || '';
-    const eventRound = extractEventIndex(eventName);
-    if (isKernelEvent(event) || (eventRound !== -1 && eventRound !== currentRound)) {
+    if (isBeginOrInitEvent(eventName)) {
+      headTime += event.duration || 0;
+    }
+  }
+  return { headTime, hasKernelEvent };
+};
+
+const findFirstKernelIndex = (events, startIndex, currentRound) => {
+  for (let i = startIndex; i < events.length; i++) {
+    const eventRound = extractEventIndex(events[i].name || '');
+    if (isKernelEvent(events[i])) {
+      return i;
+    }
+    if (eventRound !== -1 && eventRound !== currentRound) {
       break;
     }
-    afterKernelTime += event.duration || 0;
-    endIndex++;
   }
+  return -1;
+};
 
-  return { afterKernelTime, endIndex };
+const findLastKernelIndex = (events, firstKernelIndex, currentRound) => {
+  let lastKernelIndex = firstKernelIndex;
+  for (let i = firstKernelIndex + 1; i < events.length; i++) {
+    const eventRound = extractEventIndex(events[i].name || '');
+    if (isKernelEvent(events[i])) {
+      lastKernelIndex = i;
+    }
+    if (eventRound !== -1 && eventRound !== currentRound) {
+      break;
+    }
+  }
+  return lastKernelIndex;
+};
+
+const collectHeadTimeBeforeKernel = (events, startIndex, firstKernelIndex, currentRound) => {
+  let headTime = 0;
+  for (let i = startIndex; i < firstKernelIndex; i++) {
+    const eventRound = extractEventIndex(events[i].name || '');
+    if (eventRound === -1 || eventRound === currentRound) {
+      headTime += events[i].duration || 0;
+    }
+  }
+  return headTime;
+};
+
+const collectTailTimeAfterKernel = (events, lastKernelIndex, currentRound) => {
+  let tailTime = 0;
+  for (let i = lastKernelIndex + 1; i < events.length; i++) {
+    const eventRound = extractEventIndex(events[i].name || '');
+    if (isKernelEvent(events[i])) {
+      break;
+    }
+    if (eventRound !== -1 && eventRound !== currentRound) {
+      break;
+    }
+    tailTime += events[i].duration || 0;
+  }
+  return tailTime;
+};
+
+const skipToNextRound = (events, currentIndex, currentRound) => {
+  let i = currentIndex;
+  while (i < events.length) {
+    if (isKernelEvent(events[i])) {
+      i++;
+      continue;
+    }
+    const eventRound = extractEventIndex(events[i].name || '');
+    if (eventRound !== -1 && eventRound !== currentRound) {
+      break;
+    }
+    i++;
+  }
+  return i;
 };
 
 const processAicAivThread = (events) => {
   let threadHeadTime = 0;
   let threadTailTime = 0;
+
+  const { headTime, hasKernelEvent } = collectBeginInitEventsTime(events);
+  threadHeadTime += headTime;
+
   let i = 0;
-
-  const hasKernelEvent = events.some(event => isKernelEvent(event));
-
   while (i < events.length) {
     if (isKernelEvent(events[i])) {
       i++;
@@ -837,7 +874,6 @@ const processAicAivThread = (events) => {
     const eventName = events[i].name || '';
 
     if (hasKernelEvent && isBeginOrInitEvent(eventName)) {
-      threadHeadTime += events[i].duration || 0;
       i++;
       continue;
     }
@@ -848,20 +884,20 @@ const processAicAivThread = (events) => {
       continue;
     }
 
-    const { beforeKernelTime, endIndex: beforeKernelEndIndex } = collectBeforeKernelEvents(events, i, currentRound);
+    const firstKernelIndex = findFirstKernelIndex(events, i, currentRound);
 
-    if (!hasKernelBetweenRounds(events, beforeKernelEndIndex)) {
-      i = beforeKernelEndIndex;
+    if (firstKernelIndex === -1) {
+      i = skipToNextRound(events, i, currentRound);
       continue;
     }
 
-    i = skipKernelEvents(events, beforeKernelEndIndex);
+    threadHeadTime += collectHeadTimeBeforeKernel(events, i, firstKernelIndex, currentRound);
 
-    const { afterKernelTime, endIndex: afterKernelEndIndex } = collectAfterKernelEvents(events, i, currentRound);
-  
-    threadHeadTime += beforeKernelTime;
-    threadTailTime += afterKernelTime;
-    i = afterKernelEndIndex;
+    const lastKernelIndex = findLastKernelIndex(events, firstKernelIndex, currentRound);
+
+    threadTailTime += collectTailTimeAfterKernel(events, lastKernelIndex, currentRound);
+
+    i = skipToNextRound(events, lastKernelIndex + 1, currentRound);
   }
 
   return { beforeHeadTime: threadHeadTime, afterHeadTime: threadTailTime };
