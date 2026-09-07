@@ -46,6 +46,10 @@
 |AICore利用率|计算公式：AICore Time / (任务面板时间 * AICore泳道个数)|
 |Cube Cycles|Cube计算单元占用的时钟周期数|
 |Vector Cycles|Vector计算单元占用的时钟周期数|
+|AICPU 总耗时（仅端到端泳道图）|AICPU_CTRL、AICPU_SCHED泳道中所有节点持续时间之和|
+|AICPU 执行利用率（仅端到端泳道图）|所有kernel任务持续时间之和 / (时间轴总时长 * 这些任务所占泳道数)|
+|头开销（仅端到端泳道图）|AIC(V)-{n}-SCHED{m}泳道中，按轮次看，每轮次中，最早开始的kernel任务前面的aicpu任务之和|
+|尾开销（仅端到端泳道图）|AIC(V)-{n}-SCHED{m}泳道中，按轮次看，每轮次中，最晚结束的kernel任务后面的aicpu任务之和|
 
 ### 耗时统计标签页
 
