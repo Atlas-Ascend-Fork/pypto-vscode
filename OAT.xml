@@ -16,6 +16,10 @@
                 <filteritem type="filepath" name="media/images/logo.png" desc="filter logo png"/>
                 <filteritem type="filepath" name="media/.*.scss" desc="filter style file"/>
                 <filteritem type="filepath" name="src/boot-mock-data/rundata_20251224101343/Pass_37_CodegenPreproc/status" desc="filter sample lock file"/>
+                <filteritem type="filepath" name="LICENSE" desc="filter LICENSE file"/>
+                <filteritem type="filepath" name=".vscodeignore" desc="filter build package ignore config"/>
+                <filteritem type="filepath" name="package-lock.yaml" desc="filter automatically generated lock files."/>
+                <filteritem type="filepath" name="media/vue-project/src/package-lock.yaml" desc="filter automatically generated lock files."/>
             </filefilter>
         </filefilterlist>
         <licensematcherlist>
