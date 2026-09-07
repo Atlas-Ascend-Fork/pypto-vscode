@@ -543,6 +543,7 @@ export class AscppDagBuilder {
 
         if (!this.incastUniqueSingle.has(tensorMagic)) {
             this.incastUniqueSingle.add(tensorMagic);
+            this.outcastUnique.add(tensorMagic);
         } else {
             return;
         }
