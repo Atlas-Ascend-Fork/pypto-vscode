@@ -25,7 +25,7 @@ vi.mock('fs', async (importOriginal) => {
 });
 
 import * as fs from 'fs';
-import { findFileHere, parseErrorLogs, collectOpMagic, extractErrorBackTrace } from '../../../src/handler/error-log-parser';
+import { findFileHere, parseErrorLogs, collectOpMagic, extractErrorBackTrace, getErrorMessage } from '../../../src/handler/error-log-parser';
 
 describe('findFileHere', () => {
   beforeEach(() => {
@@ -157,5 +157,53 @@ describe('extractErrorBackTrace', () => {
     vi.mocked(fs.createReadStream).mockReturnValue(stream as any);
     const result = await extractErrorBackTrace('/test/file.log');
     expect(result).toEqual([]);
+  });
+});
+
+describe('getErrorMessage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('derives log name from PATH pattern and extracts stacks', async () => {
+    // jsonFile: After_01_TensorGraph_kernel_PATH1_main.json → targetLog: TensorGraphkernel_PATH1_main.log
+    vi.mocked(fs.readdirSync).mockReturnValue([
+      { name: 'TensorGraphkernel_PATH1_main.log', isFile: () => true, isDirectory: () => false },
+    ] as any);
+    vi.mocked(fs.createReadStream).mockReturnValue(
+      Readable.from(['[ERROR]: boom [FuncMagic:7][OpMagic:8][Backtrace]\n']) as any,
+    );
+
+    const stacks = await getErrorMessage({ fsPath: '/logs/After_01_TensorGraph_kernel_PATH1_main.json' } as any);
+
+    expect(fs.readdirSync).toHaveBeenCalledWith('/logs', expect.anything());
+    expect(stacks).toHaveLength(1);
+    expect(stacks[0]).toMatchObject({ FuncMagic: 7, OpMagic: 8, error: 'boom' });
+  });
+
+  it('falls back to underscore splitting when no PATH pattern', async () => {
+    // jsonFile: before_01_run42_debug.json → key: run42_debug.log → targetLog: rundebug.log
+    vi.mocked(fs.readdirSync).mockReturnValue([
+      { name: 'rundebug.log', isFile: () => true, isDirectory: () => false },
+    ] as any);
+    vi.mocked(fs.createReadStream).mockReturnValue(
+      Readable.from(['[ERROR]: bad opmagic: 11\n']) as any,
+    );
+
+    const stacks = await getErrorMessage({ fsPath: '/logs/before_01_run42_debug.json' } as any);
+
+    expect(stacks).toHaveLength(1);
+    expect(stacks[0].OpMagic).toBe(11);
+  });
+
+  it('returns empty stacks when no matching log file exists', async () => {
+    vi.mocked(fs.readdirSync).mockReturnValue([
+      { name: 'unrelated.log', isFile: () => true, isDirectory: () => false },
+    ] as any);
+
+    const stacks = await getErrorMessage({ fsPath: '/logs/After_01_TensorGraph_kernel_PATH1_main.json' } as any);
+
+    expect(stacks).toEqual([]);
+    expect(fs.createReadStream).not.toHaveBeenCalled();
   });
 });

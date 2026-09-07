@@ -81,6 +81,64 @@ describe('view-server-context', () => {
       // Should send extension ready message twice (once for each init)
       expect(mockWebview.postMessage).toHaveBeenCalledTimes(2);
     });
+
+    it('should dispatch API calls and post the response', async () => {
+      @viewRefs(['testRef'])
+      class ApiServer extends ViewServer<any, any> {
+        @viewApi()
+        testApi = vi.fn(async (a: number, b: number) => a + b);
+      }
+
+      const ctx = makeViewServerContext(mockWebviewPanel, 'testView');
+      const server = new ApiServer(ctx);
+      ctx.init.call(server);
+
+      const dispatch = (message: any) =>
+        Promise.allSettled((mockWebview as any)._callbacks.map((cb: any) => cb(message)));
+
+      await dispatch({ channel: '__connector__', data: 'viewServerApi' });
+      await dispatch({ channel: 'viewServerApi', data: { api: 'testApi', requestId: 'r1', params: [1, 2] } });
+
+      expect(server.testApi).toHaveBeenCalledWith(1, 2);
+      expect(mockWebview.postMessage).toHaveBeenCalledWith({
+        channel: 'viewServerApi',
+        data: { requestId: 'r1', response: 3 },
+      });
+    });
+
+    it('should stream ReadableStream responses chunk by chunk', async () => {
+      @viewRefs([])
+      class StreamServer extends ViewServer<any, any> {
+        @viewApi()
+        streamApi = () =>
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue('chunk1');
+              controller.close();
+            },
+          });
+      }
+
+      const ctx = makeViewServerContext(mockWebviewPanel, 'testView');
+      const server = new StreamServer(ctx);
+      ctx.init.call(server);
+
+      const dispatch = (message: any) =>
+        Promise.allSettled((mockWebview as any)._callbacks.map((cb: any) => cb(message)));
+
+      await dispatch({ channel: '__connector__', data: 'viewServerApi' });
+      await dispatch({ channel: 'viewServerApi', data: { api: 'streamApi', requestId: 'r3', params: [] } });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const streamResponses = vi
+        .mocked(mockWebview.postMessage)
+        .mock.calls.map((args: any[]) => args[0])
+        .filter((msg) => msg?.channel === 'viewServerApi');
+      expect(streamResponses).toEqual([
+        { channel: 'viewServerApi', data: { requestId: 'r3', streamDone: false, streamResponse: 'chunk1' } },
+        { channel: 'viewServerApi', data: { requestId: 'r3', streamDone: true, streamResponse: undefined } },
+      ]);
+    });
   });
 
   describe('context.setRef', () => {

@@ -27,7 +27,7 @@ vi.mock(import('../../../src/core/view/view-server'), () => {
 });
 
 import { workspace, window } from 'vscode';
-import { GmMemoryVisualServer, readJsonText } from '../../../../src/view/servers/gm-memory-visual-server';
+import { GmMemoryVisualServer, readJsonText, onDidGmMemoryVisualReady } from '../../../../src/view/servers/gm-memory-visual-server';
 
 describe('readJsonText', () => {
   beforeEach(() => {
@@ -60,6 +60,17 @@ describe('readJsonText', () => {
 });
 
 describe('GmMemoryVisualServer', () => {
+  function createServer(query: unknown = { _path: '/test/data.json' }) {
+    const ctx = {
+      viewType: 'gmMemoryVisual',
+      fileUri: { query },
+      init: vi.fn(),
+      setRef: vi.fn(),
+      closeWebview: vi.fn(),
+    };
+    return new GmMemoryVisualServer(ctx as any);
+  }
+
   it('safeParse returns parsed object for valid JSON', () => {
     const ctx = { viewType: 'gmMemoryVisual', fileUri: { query: '{}' }, init: vi.fn(), setRef: vi.fn(), closeWebview: vi.fn() };
     const server = new GmMemoryVisualServer(ctx as any);
@@ -70,5 +81,80 @@ describe('GmMemoryVisualServer', () => {
     const ctx = { viewType: 'gmMemoryVisual', fileUri: { query: '{}' }, init: vi.fn(), setRef: vi.fn(), closeWebview: vi.fn() };
     const server = new GmMemoryVisualServer(ctx as any);
     expect(server.safeParse('bad')).toEqual({});
+  });
+
+  it('parses string query in constructor', () => {
+    const server = createServer(JSON.stringify({ _path: '/test/from-string.json' }));
+    expect(server.query).toEqual({ _path: '/test/from-string.json' });
+  });
+
+  it('created triggers data load and publishes data then null', async () => {
+    vi.clearAllMocks();
+    vi.mocked(workspace.fs.readFile).mockResolvedValue(new TextEncoder().encode('{"tensors":[]}'));
+    const server = createServer();
+
+    server.created({} as any);
+    await vi.waitFor(() => expect(server.getRef('GmMemoryVisualData')).toBeNull());
+  });
+
+  it('getGmMemoryVisualData sets raw data when benchmark env is absent', async () => {
+    vi.clearAllMocks();
+    vi.mocked(workspace.fs.readFile).mockResolvedValue(new TextEncoder().encode('{"tensors":[]}'));
+
+    const server = createServer();
+    await server.getGmMemoryVisualData();
+
+    expect(server.getRef('GmMemoryVisualData')).toBeNull();
+  });
+
+  it('getGmMemoryVisualData wraps data with performance flag when benchmark env is set', async () => {
+    vi.clearAllMocks();
+    vi.stubEnv('GM_MEMORY_BENCHMARK_PATH', '1');
+    try {
+      vi.mocked(workspace.fs.readFile).mockResolvedValue(new TextEncoder().encode('{"tensors":[]}'));
+
+      const server = createServer();
+      const setRefSpy = vi.fn();
+      (server as any).setRef = setRefSpy;
+
+      await server.getGmMemoryVisualData();
+
+      expect(setRefSpy).toHaveBeenNthCalledWith(1, 'GmMemoryVisualData', { data: '{"tensors":[]}', performance: true });
+      expect(setRefSpy).toHaveBeenNthCalledWith(2, 'GmMemoryVisualData', null);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('reportGmMemoryVisualReady fires event with timings and payload', async () => {
+    vi.clearAllMocks();
+    vi.mocked(workspace.fs.readFile).mockResolvedValue(new TextEncoder().encode('{}'));
+
+    const readyListener = vi.fn();
+    const disposable = onDidGmMemoryVisualReady(readyListener);
+    try {
+      const server = createServer();
+      await server.getGmMemoryVisualData();
+
+      await server.reportGmMemoryVisualReady({
+        tensorCount: 5,
+        regionCount: 3,
+        hasChart: true,
+        performance: { fingerprint: {}, marks: {}, stages: {} },
+      });
+
+      expect(readyListener).toHaveBeenCalledTimes(1);
+      const event = readyListener.mock.calls[0][0];
+      expect(event).toMatchObject({
+        fsPath: '/test/data.json',
+        tensorCount: 5,
+        regionCount: 3,
+        hasChart: true,
+      });
+      expect(event.timings).toMatchObject({ decode: expect.any(Number), fileRead: expect.any(Number), publicationToReady: expect.any(Number), total: expect.any(Number) });
+      expect(event.webviewPerformance).toEqual({ fingerprint: {}, marks: {}, stages: {} });
+    } finally {
+      disposable.dispose();
+    }
   });
 });

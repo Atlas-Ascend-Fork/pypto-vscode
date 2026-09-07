@@ -185,5 +185,60 @@ describe('schema-config/configdata', () => {
       service.dispose();
       expect(service.getConfigData().status).toBe('idle');
     });
+
+    it('scans workspace folders via BFS, skips ignore dirs and collects config files', async () => {
+      vi.resetModules();
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(vscode.workspace).workspaceFolders = [
+        { uri: vscode.Uri.file('/ws'), name: 'ws' },
+      ] as any;
+      const listings: Record<string, [string, vscode.FileType][]> = {
+        '/ws': [
+          ['sub', vscode.FileType.Directory],
+          ['node_modules', vscode.FileType.Directory],
+          ['tile_fwk_config.json', vscode.FileType.File],
+          ['readme.txt', vscode.FileType.File],
+        ],
+        '/ws/sub': [['tile_fwk_config.json', vscode.FileType.File]],
+        // node_modules 被跳过，不应被读取；若被读取会命中 ENOENT 分支
+      };
+      vi.mocked(vscode.workspace.fs.readDirectory).mockImplementation(async (uri: any) => {
+        const listing = listings[uri.fsPath];
+        if (!listing) {
+          throw new Error('ENOENT');
+        }
+        return listing as any;
+      });
+      vi.mocked(vscode.workspace.fs.stat).mockImplementation(async (uri: any) => {
+        if (uri.fsPath.endsWith('.json')) {
+          return { type: vscode.FileType.File, mtime: 1700000000000, size: 128 } as any;
+        }
+        return { type: vscode.FileType.Directory } as any;
+      });
+
+      const { ConfigDataService } = await import('../../../../src/services/schema-config/configdata');
+      const service = new ConfigDataService();
+      const updateCallback = vi.fn();
+      service.onDidUpdateConfigData(updateCallback);
+      await service.scanDirectory();
+
+      const data = service.getConfigData();
+      expect(data.status).toBe('completed');
+      expect(data.files).toHaveLength(2);
+      expect(data.files.map((f: any) => f.workspaceName)).toEqual(['ws', 'ws']);
+      expect(data.files[0]).toMatchObject({
+        fileName: 'tile_fwk_config.json',
+        path: '/ws/tile_fwk_config.json',
+        size: 128,
+      });
+
+      const scannedPaths = vi.mocked(vscode.workspace.fs.readDirectory).mock.calls.map(([uri]: [any]) => uri.fsPath);
+      expect(scannedPaths).not.toContain('/ws/node_modules');
+      expect(updateCallback).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'completed', files: expect.any(Array) }),
+      );
+      warnSpy.mockRestore();
+      service.dispose();
+    });
   });
 });

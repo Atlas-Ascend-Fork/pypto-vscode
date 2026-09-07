@@ -25,6 +25,7 @@ const mockCacheStore = vi.hoisted(() => ({
     })),
   })),
   set: vi.fn().mockResolvedValue(undefined),
+  find: vi.fn().mockResolvedValue(null),
 }));
 
 const mockGetMemoryTraceEventStore = vi.hoisted(() =>
@@ -72,6 +73,9 @@ vi.mock('stream-json/streamers/StreamValues', () => ({
 }));
 
 import { MemoryTraceHandler } from '../../../src/handler/memoryTraceHandler';
+import { createReadStream } from 'fs';
+import { parser } from 'stream-json';
+import { streamValues } from 'stream-json/streamers/StreamValues';
 
 describe('MemoryTraceHandler', () => {
   beforeEach(() => {
@@ -239,6 +243,113 @@ describe('MemoryTraceHandler', () => {
           timelineData: expect.any(String),
         })
       );
+    });
+
+    it('should process SPILL, INIT_DDR_BUFFER, BUFFER_REARRANGE and ALLOC_FAIL events', async () => {
+      const GM_BUFFER_SIZE = 32 * 1024 * 1024;
+      const data = {
+        timeline: [
+          { eventType: 'ALLOC_EXEC', clock: 100, memId: 1, memType: 'UB', size: 512, addrStart: 0 },
+          { eventType: 'SPILL', clock: 101, memId: 1, spillDdrMemId: 100 },
+          { eventType: 'INIT_DDR_BUFFER', clock: 102, memId: 2 },
+          { eventType: 'BUFFER_REARRANGE', clock: 103, changes: [{ memId: 2, newStart: 999 }] },
+          { eventType: 'ALLOC_FAIL', clock: 104, memType: 'UB' },
+        ],
+      };
+
+      await MemoryTraceHandler.saveToCache('/test/file.json', data);
+
+      const saved = mockEventStore.batchSet.mock.calls[0][0];
+      expect(saved).toHaveLength(5);
+
+      const spillEvent = saved.find((e: any) => e.eventType === 'SPILL');
+      expect(spillEvent.action.targetBufferList).toEqual([
+        { memId: 1, memType: 'UB', addrStart: 0, size: 512, status: 0 },
+        { memId: 100, memType: 'MEM_GM', addrStart: 0, size: GM_BUFFER_SIZE, status: 2 },
+      ]);
+
+      const initDdrEvent = saved.find((e: any) => e.eventType === 'INIT_DDR_BUFFER');
+      expect(initDdrEvent.action.targetBufferList).toEqual([
+        { memId: 2, memType: 'MEM_GM', addrStart: GM_BUFFER_SIZE, size: GM_BUFFER_SIZE, status: 2 },
+      ]);
+
+      const rearrangeEvent = saved.find((e: any) => e.eventType === 'BUFFER_REARRANGE');
+      expect(rearrangeEvent.action.targetBufferList).toEqual([{ memId: 2, memType: 'MEM_GM', addrStart: 999, size: GM_BUFFER_SIZE, status: 2 }]);
+
+      const allocFailEvent = saved.find((e: any) => e.eventType === 'ALLOC_FAIL');
+      expect(allocFailEvent.action.errorMemType).toEqual(['UB']);
+    });
+  });
+
+  describe('parse large files via stream', () => {
+    it('reads data with stream when file size exceeds 200MB', async () => {
+      const fsPromises = await import('fs/promises');
+      vi.mocked(fsPromises.stat).mockResolvedValueOnce({ size: 300 * 1024 * 1024, mtimeMs: 1234567890 } as any);
+
+      const timelineData = { timeline: [{ eventType: 'ALLOC_EXEC', clock: 100, memId: 1, memType: 'UB', size: 64, addrStart: 0 }] };
+      const valuesStreamer = {
+        on: vi.fn(),
+        [Symbol.asyncIterator]: async function* () {
+          yield { value: timelineData };
+        },
+      };
+      const jsonParser = { on: vi.fn(), pipe: vi.fn() };
+      vi.mocked(parser).mockImplementation(() => jsonParser as any);
+      vi.mocked(streamValues).mockImplementation(() => valuesStreamer as any);
+      vi.mocked(createReadStream).mockImplementation(() => ({ on: vi.fn(), pipe: vi.fn(() => jsonParser) } as any));
+
+      await MemoryTraceHandler.parse('/test/big.json');
+
+      expect(createReadStream).toHaveBeenCalledWith('/test/big.json');
+      expect(mockEventStore.batchSet).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMetadata', () => {
+    it('returns null when no cache record exists', async () => {
+      await expect(MemoryTraceHandler.getMetadata('/test/file.json')).resolves.toBeNull();
+    });
+
+    it('returns cached metadata', async () => {
+      mockGetMemoryTraceCacheStore.mockReturnValueOnce({
+        query: vi.fn(() => ({
+          filter: vi.fn(() => ({
+            exec: vi.fn().mockResolvedValue([{ totalCycles: 42, chipArch: 'Ascend910B' }]),
+          })),
+        })),
+        set: vi.fn(),
+        find: vi.fn(),
+      } as any);
+
+      const result = await MemoryTraceHandler.getMetadata('/test/file.json');
+
+      expect(result).toEqual({ totalCycles: 42, scheduleResult: '', chipArch: 'Ascend910B' });
+    });
+  });
+
+  describe('getTimelineEvents', () => {
+    it('returns empty array when cache misses', async () => {
+      await expect(MemoryTraceHandler.getTimelineEvents('/test/file.json')).resolves.toEqual([]);
+    });
+
+    it('parses pre-aggregated clock events from cache', async () => {
+      mockGetMemoryTraceCacheStore.mockReturnValueOnce({
+        query: vi.fn(),
+        set: vi.fn(),
+        find: vi.fn().mockResolvedValue({
+          timelineData: JSON.stringify([
+            [100, [{ id: 0, eventType: 'ALLOC_EXEC' }]],
+            [200, [{ id: 1, eventType: 'OP_LAUNCH' }]],
+          ]),
+        }),
+      } as any);
+
+      const result = await MemoryTraceHandler.getTimelineEvents('/test/file.json');
+
+      expect(result).toEqual([
+        { clock: 100, events: [{ id: 0, eventType: 'ALLOC_EXEC' }] },
+        { clock: 200, events: [{ id: 1, eventType: 'OP_LAUNCH' }] },
+      ]);
     });
   });
 });

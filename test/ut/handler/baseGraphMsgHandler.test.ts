@@ -1285,4 +1285,272 @@ describe('BaseGraphMsgHandler', () => {
       expect(server.setRef).toHaveBeenCalled();
     });
   });
+
+  describe('getSubgraph editorView routing', () => {
+    it('should open non-ROOT subgraph via editorView with deepened parentInfo', async () => {
+      const mockOpen = vi.fn();
+      vi.doMock('../../../src/view', () => ({
+        useView: () => ({ editorView: { open: mockOpen } }),
+      }));
+
+      const server: any = {
+        comGraphData: { fsPath: '/test/func_123.json', calleehash: '789' },
+        entryHash: '123',
+      };
+      const subInfo = {
+        calleehash: '789',
+        subFuncmagicname: 'subFunc',
+        curPath: '/test',
+        calleeOpMagic: '42',
+        calleeOpSubgraphId: '1',
+      };
+
+      try {
+        await TestableHandler.getSubgraph(server, subInfo, {});
+        expect(mockOpen).toHaveBeenCalledWith(
+          'computeGraph',
+          expect.anything(),
+          expect.objectContaining({ title: 'subFunc' }),
+        );
+      } finally {
+        vi.doUnmock('../../../src/view');
+      }
+    });
+
+    it('should go back one level when calleeOpMagic is absent', async () => {
+      const mockOpen = vi.fn();
+      vi.doMock('../../../src/view', () => ({
+        useView: () => ({ editorView: { open: mockOpen } }),
+      }));
+
+      const server: any = {
+        comGraphData: { fsPath: '/test/func_123.json', calleehash: '789' },
+        entryHash: '123',
+      };
+      const subInfo = { calleehash: '789', subFuncmagicname: 'subFunc', curPath: '/test' };
+      const query = { parentInfo: { level: 2, calleeOpMagic: '42', calleeOpSubgraphId: '1' } };
+
+      try {
+        await TestableHandler.getSubgraph(server, subInfo, query);
+        expect(mockOpen).toHaveBeenCalled();
+        const parentInfo = mockBuildSubgraphQuery.mock.calls.at(-1)![7];
+        expect(parentInfo.level).toBe(1);
+        expect(parentInfo.calleeOpMagic).toBeUndefined();
+      } finally {
+        vi.doUnmock('../../../src/view');
+      }
+    });
+  });
+
+  describe('render in db mode', () => {
+    it('should fetch func data and calleeMap from DB and honor multiple-graph firstExecFuncHash', async () => {
+      const mockGd: any = {
+        fsPath: '/test.json',
+        funcHash: '123',
+        firstExecFuncHash: '456',
+        isUsedDB: true,
+        dataMap: {},
+        callHashArrMap: {},
+        outputDirPath: '/output',
+        pathName: 'test',
+        comPath: '/com',
+        version: '1.0',
+      };
+      TestableHandler.mockGd = mockGd;
+      mockRetryUntil.mockImplementation((fn: () => any) => fn());
+      const funcDataFind = vi.fn().mockResolvedValue({ data: JSON.stringify({ operations: [], rawtensors: [], tensors: [] }) });
+      mockGetComGraphFuncDataStore.mockReturnValue({
+        find: funcDataFind,
+        set: vi.fn(),
+      } as any);
+      mockGetComGraphFileHashMapStore.mockReturnValue({
+        find: vi.fn().mockResolvedValue({ data: JSON.stringify({ '456': { func_magicname: 'func2' } }) }),
+        set: vi.fn(),
+      } as any);
+      mockGetFailMagicList.mockResolvedValue({});
+      mockApplyFailMagicResults.mockReturnValue(true);
+
+      const server: any = {
+        comGraphData: mockGd,
+        setRef: vi.fn(),
+        query: {},
+        isLeaf: false,
+        title: 'multiple graph',
+      };
+
+      await (TestableHandler as any).render(server);
+
+      expect(mockGd.funcHash).toBe('456');
+      expect(funcDataFind).toHaveBeenCalledWith({ filePath: '/test.json', funcHash: '456' });
+      const calleeMapCalls = server.setRef.mock.calls.filter(([key]: any[]) => key === 'CalleeMap');
+      expect(calleeMapCalls).toHaveLength(1);
+      expect(calleeMapCalls[0][1].data).toEqual({ '456': { func_magicname: 'func2' } });
+    });
+
+    it('should report error when calleeMap is missing in db mode', async () => {
+      const mockGd: any = {
+        fsPath: '/test-miss.json',
+        funcHash: '123',
+        isUsedDB: true,
+        dataMap: {},
+        callHashArrMap: {},
+        outputDirPath: '/output',
+        pathName: 'test',
+        comPath: '/com',
+        version: '1.0',
+      };
+      TestableHandler.mockGd = mockGd;
+      graphFileHashMapData['/test-miss.json'] = {};
+      mockRetryUntil.mockImplementation((fn: () => any) => fn());
+      mockGetComGraphFuncDataStore.mockReturnValue({
+        find: vi.fn().mockResolvedValue({ data: JSON.stringify({ operations: [], rawtensors: [], tensors: [] }) }),
+        set: vi.fn(),
+      } as any);
+      mockGetComGraphFileHashMapStore.mockReturnValue({
+        find: vi.fn().mockResolvedValue(null),
+        set: vi.fn(),
+      } as any);
+      mockGetFailMagicList.mockResolvedValue({});
+      mockApplyFailMagicResults.mockReturnValue(true);
+
+      const server: any = {
+        comGraphData: mockGd,
+        setRef: vi.fn(),
+        query: {},
+        isLeaf: false,
+      };
+
+      await (TestableHandler as any).render(server);
+
+      const errorCalls = server.setRef.mock.calls.filter(([key]: any[]) => key === 'ErrorMessage');
+      expect(errorCalls).toHaveLength(1);
+    });
+
+    it('should search subgraph files for ROOT graphs', async () => {
+      const { readdirSync, readFileSync } = await import('fs');
+      vi.mocked(readdirSync).mockReturnValue(['func_789.json']);
+      vi.mocked(readFileSync).mockReturnValue(
+        JSON.stringify({ functions: [{ functype: 'PATH', func_magicname: 'sub', graphtype: '1' }] }),
+      );
+
+      const mockGd: any = {
+        fsPath: '/test/func_123_ROOT.json',
+        funcHash: '123',
+        isUsedDB: false,
+        dataMap: { '123': JSON.stringify({ operations: [{ calleehash: '789' }], rawtensors: [], tensors: [] }) },
+        callHashArrMap: {},
+        outputDirPath: '/output',
+        pathName: 'test',
+        comPath: '/com',
+        version: '1.0',
+      };
+      TestableHandler.mockGd = mockGd;
+      graphFileHashMapData['/test/func_123_ROOT.json'] = {};
+      mockGetFailMagicList.mockResolvedValue({});
+      mockApplyFailMagicResults.mockReturnValue(true);
+
+      const server: any = {
+        comGraphData: mockGd,
+        setRef: vi.fn(),
+        query: {},
+        isLeaf: false,
+      };
+
+      await (TestableHandler as any).render(server);
+
+      expect(graphFileHashMapData['/test/func_123_ROOT.json']['789']).toEqual({
+        functype: 'PATH',
+        func_magicname: 'sub',
+        graphtype: '1',
+      });
+    });
+  });
+
+  describe('searchAllFunc with populated data', () => {
+    it('should collect hits across functions in memory mode', async () => {
+      const Extractor = await import('../../../src/utils/graphExtractor');
+      vi.mocked(Extractor.searchFunc).mockReturnValueOnce([{ name: 'hit' }] as any);
+
+      TestableHandler.mockGd = {
+        fsPath: '/hashmap.json',
+        funcHash: '123',
+        isUsedDB: false,
+        dataMap: { '123': JSON.stringify({}), '456': JSON.stringify({}) },
+      };
+      graphFileHashMapData['/hashmap.json'] = { '123': { func_magicname: 'f1' }, '456': { func_magicname: 'f2' } };
+      const server = { setRef: vi.fn() };
+
+      await TestableHandler.searchAllFunc(server, { keyword: 'test' });
+
+      expect(server.setRef).toHaveBeenCalledWith('GlobalSearchResult', { data: { '123': [{ name: 'hit' }] } });
+    });
+
+    it('should break after first function for Function category search', async () => {
+      TestableHandler.mockGd = {
+        fsPath: '/func-cat.json',
+        funcHash: '123',
+        isUsedDB: false,
+        dataMap: { '123': JSON.stringify({}), '456': JSON.stringify({}) },
+      };
+      graphFileHashMapData['/func-cat.json'] = { '123': { func_magicname: 'f1' }, '456': { func_magicname: 'f2' } };
+      const server = { setRef: vi.fn() };
+
+      await TestableHandler.searchAllFunc(server, { keyword: 'test', category: 'Function' });
+
+      expect(server.setRef).toHaveBeenCalledWith('GlobalSearchResult', { data: {} });
+    });
+
+    it('should fetch func data from DB in db mode', async () => {
+      mockRetryUntil.mockImplementation((fn: () => any) => fn());
+      const funcDataFind = vi.fn().mockResolvedValue({ data: JSON.stringify({}) });
+      mockGetComGraphFuncDataStore.mockReturnValue({
+        find: funcDataFind,
+        set: vi.fn(),
+      } as any);
+
+      TestableHandler.mockGd = {
+        fsPath: '/db-hash.json',
+        funcHash: '123',
+        isUsedDB: true,
+        dataMap: {},
+      };
+      graphFileHashMapData['/db-hash.json'] = { '123': { func_magicname: 'f1' } };
+      const server = { setRef: vi.fn() };
+
+      await TestableHandler.searchAllFunc(server, { keyword: 'x', category: 'Function' });
+
+      expect(funcDataFind).toHaveBeenCalledWith({ filePath: '/db-hash.json', funcHash: '123' });
+      expect(server.setRef).toHaveBeenCalledWith('GlobalSearchResult', { data: {} });
+    });
+  });
+
+  describe('innerGetSubgraph in db mode', () => {
+    it('should retry fetching func data from DB until found', async () => {
+      mockRetryUntil.mockImplementation((fn: () => any) => fn());
+      let callCount = 0;
+      mockGetComGraphFuncDataStore.mockReturnValue({
+        find: vi.fn().mockImplementation(async () => {
+          callCount++;
+          if (callCount < 3) {
+            return null;
+          }
+          return { data: JSON.stringify({ operations: [] }) };
+        }),
+        set: vi.fn(),
+      } as any);
+
+      TestableHandler.mockGd = {
+        fsPath: '/test.json',
+        funcHash: '123',
+        isUsedDB: true,
+        dataMap: {},
+      };
+      const server = { setRef: vi.fn() };
+
+      await TestableHandler.innerGetSubgraph(server, { calleehash: '123' });
+
+      expect(callCount).toBe(3);
+      expect(server.setRef).toHaveBeenCalledWith('JsonContent', { data: { operations: [] } });
+    });
+  });
 });

@@ -35,6 +35,7 @@ export const window = {
     visible: true,
   })),
   registerWebviewPanelSerializer: vi.fn(),
+  registerWebviewViewProvider: vi.fn(() => disposable),
   onDidChangeActiveColorTheme: vi.fn(() => disposable),
   activeTextEditor: undefined as { document: { uri: { fsPath: string } } } | undefined,
   showTextDocument: vi.fn(),
@@ -83,11 +84,29 @@ export const Uri = {
     return uri;
   },
   joinPath: (base: { fsPath: string }, ...segments: string[]) => {
-    const joined = [base.fsPath, ...segments].join('/');
+    const baseStr = String(base.fsPath ?? '');
+    const allSegments = [
+      ...baseStr.split(/[\\/]/),
+      ...segments.flatMap((s) => String(s).split(/[\\/]/)),
+    ];
+    const parts: string[] = [];
+    for (const seg of allSegments) {
+      if (seg === '' || seg === '.') {
+        continue;
+      }
+      if (seg === '..') {
+        parts.pop();
+        continue;
+      }
+      parts.push(seg);
+    }
+    const joined = parts.join('/');
+    const isDrivePath = /^[A-Za-z]:/.test(joined);
+    const finalPath = isDrivePath || joined.startsWith('/') ? joined : `/${joined}`;
     return {
-      fsPath: joined,
-      path: joined,
-      toString: () => `file://${joined}`,
+      fsPath: finalPath,
+      path: finalPath,
+      toString: () => `file://${finalPath}`,
     };
   },
 };
@@ -116,6 +135,7 @@ export const workspace = {
   openTextDocument: vi.fn(),
   applyEdit: vi.fn(),
   onDidChangeWorkspaceFolders: vi.fn(() => disposable),
+  onDidChangeConfiguration: vi.fn(() => disposable),
   onDidCreateFiles: vi.fn(() => disposable),
   onDidDeleteFiles: vi.fn(() => disposable),
   onDidRenameFiles: vi.fn(() => disposable),
@@ -150,6 +170,9 @@ export const ConfigurationTarget = { Global: 1, Workspace: 2, WorkspaceFolder: 3
 export const FileType = { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 };
 export const ProgressLocation = { SourceControl: 1, Window: 10, Notification: 15 };
 export const env = { language: 'en' };
+export const languages = {
+  registerCodeLensProvider: vi.fn(() => disposable),
+};
 export const WebviewPanel = vi.fn();
 export const ColorThemeKind = { Light: 1, Dark: 2, HighContrast: 3 };
 export const EndOfLine = { LF: 1, CRLF: 2 };
@@ -276,6 +299,7 @@ export default {
   workspace,
   RelativePattern,
   ExtensionContext,
+  languages,
   Position,
   Range,
   CodeLens,

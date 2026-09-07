@@ -208,17 +208,11 @@ export class RunConfigLanguageFeaturesService extends BasicService {
 
   // 删除globalStorage下的旧Schema转换文件，避免文件堆积
   private async deleteTransformedSchemaFiles(): Promise<void> {
-    if (this._isDisposed) {
-      return;
-    }
     try {
       const schemaDirUri = vscode.Uri.joinPath(this._context.globalStorageUri, TRANSFORMED_SCHEMA_DIR);
       if (await this.isFileExists(schemaDirUri)) {
         const entries = await vscode.workspace.fs.readDirectory(schemaDirUri);
         for (const [entryName, entryType] of entries) {
-          if (this._isDisposed) {
-            break;
-          }
           if (entryType === vscode.FileType.File) {
             // 仅删除插件生成的Schema转换文件
             if (entryName.startsWith(`${SOURCE_SCHEMA_FILE.replace('.json', '')}-`) && entryName.endsWith('.json')) {
@@ -717,17 +711,18 @@ private transformSchema(rawSchema: any, lang: string): any {
 
   // 销毁服务 - 清理资源，防止内存泄漏
   public override dispose(): void {
-    this._isDisposed = true;
-    if (this._scanDebounceTimer) {
-      clearTimeout(this._scanDebounceTimer);
-    }
-
+    // 清理需在置位销毁标记前发起（isFileExists等逻辑依赖该标记）
     this.deleteTransformedSchemaFiles().catch((err) => {
       const isCanceled = err.message?.includes('Canceled') || err.code === 'Canceled';
       if (!isCanceled) {
         console.warn('插件销毁时删除文件失败：', err);
       }
     });
+    this._isDisposed = true;
+    if (this._scanDebounceTimer) {
+      clearTimeout(this._scanDebounceTimer);
+    }
+
     super.dispose();
   }
 }

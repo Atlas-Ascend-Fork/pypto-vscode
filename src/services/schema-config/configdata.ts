@@ -77,17 +77,12 @@ export class ConfigDataService extends BasicService {
     this._scanStatus = 'scanning';
     this.emitConfigDataUpdate();
 
-    try {
-      for (const workspaceFolder of workspaceFolders) {
-        await this.processWorkspaceFolder(workspaceFolder);
-      }
-      // 扫描完成
-      this._scanStatus = 'completed';
-      this.emitConfigDataUpdate(); // 通知前端"完成"+完整列表
-    } catch (error) {
-      this._scanStatus = 'failed';
-      this.emitConfigDataUpdate(); // 通知前端"失败"
+    for (const workspaceFolder of workspaceFolders) {
+      await this.processWorkspaceFolder(workspaceFolder);
     }
+    // 扫描完成
+    this._scanStatus = 'completed';
+    this.emitConfigDataUpdate(); // 通知前端"完成"+完整列表
   }
 
   /**

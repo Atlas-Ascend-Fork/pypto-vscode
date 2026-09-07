@@ -38,6 +38,7 @@ vi.mock('../../../../src/services/run-data/utils/scan-output', () => ({
   getOutputDirectory: (...args: any[]) => mockGetOutputDirectory(...args),
 }));
 
+let lastResolverCallback: ((item: any) => Promise<any>) | undefined;
 vi.mock('../../../../src/services/run-data/utils/async-resolving-list', () => ({
   AsyncListResolver: class MockAsyncListResolver {},
   AsyncListResolverImpl: class MockAsyncListResolverImpl {
@@ -45,7 +46,9 @@ vi.mock('../../../../src/services/run-data/utils/async-resolving-list', () => ({
     stop = vi.fn().mockResolvedValue([]);
     isResolving = vi.fn().mockReturnValue(false);
     waitFor = vi.fn().mockResolvedValue(undefined);
-    constructor(..._args: any[]) {}
+    constructor(callback: any) {
+      lastResolverCallback = callback;
+    }
   },
 }));
 
@@ -61,15 +64,25 @@ vi.mock('../../../../src/services/control-flow/store', () => ({
   getControlFlowStore: () => mockGetControlFlowStore(),
 }));
 
-const mockSQLiteCache = {
-  getInstance: vi.fn().mockReturnValue({
-    accuracyToolCompListGetByComputePath: vi.fn().mockResolvedValue([]),
-  }),
-};
+const mockAccuracyGet = vi.fn().mockResolvedValue([]);
 vi.mock('../../../../src/core/sqliteCache', () => ({
-  SQLiteCache: mockSQLiteCache,
+  SQLiteCache: {
+    getInstance: () => ({ accuracyToolCompListGetByComputePath: mockAccuracyGet }),
+  },
   AccuracyToolCompList: {},
 }));
+
+function makeQueryBuilder(execResults: any[] = [[]]) {
+  const queue = [...execResults];
+  return {
+    filter: vi.fn().mockReturnThis(),
+    sort: vi.fn().mockReturnThis(),
+    slice: vi.fn().mockReturnThis(),
+    exec: vi.fn().mockImplementation(() => Promise.resolve(queue.length > 1 ? queue.shift() : queue[0])),
+    count: vi.fn().mockResolvedValue(0),
+    delete: vi.fn().mockResolvedValue(undefined),
+  };
+}
 
 describe('run-data/index', () => {
   let RunDataService: any;
@@ -77,24 +90,20 @@ describe('run-data/index', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    lastResolverCallback = undefined;
+    mockAccuracyGet.mockResolvedValue([]);
 
-    const mockQueryBuilder = {
-      filter: vi.fn().mockReturnThis(),
-      sort: vi.fn().mockReturnThis(),
-      slice: vi.fn().mockReturnThis(),
-      exec: vi.fn().mockResolvedValue([]),
-      count: vi.fn().mockResolvedValue(0),
-      delete: vi.fn().mockResolvedValue(undefined),
-    };
-    mockStoreInstance.query.mockReturnValue(mockQueryBuilder);
+    mockStoreInstance.query.mockReturnValue(makeQueryBuilder());
     mockStoreInstance.find.mockResolvedValue(undefined);
     mockStoreInstance.onClear.mockImplementation(() => {});
+    mockReadRunDataList.mockResolvedValue([]);
 
     const mod = await import('../../../../src/services/run-data');
     RunDataService = mod.RunDataService;
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -141,20 +150,20 @@ describe('run-data/index', () => {
         expect(mockDeleteFile).toHaveBeenCalled();
         service.dispose();
       });
+
+      it('should also delete compute graph directory files', async () => {
+        const service = new RunDataService();
+        const outputList = [{ title: 'test', directoryPath: '/test/run1', computeGraphDirPath: '/test/graph' }];
+        await service.deleteData(outputList);
+        expect(mockDeleteFile).toHaveBeenCalledTimes(2);
+        service.dispose();
+      });
     });
 
     describe('getOutputRecord', () => {
       it('should return record from store when found', async () => {
         const mockRecord = { title: 'run1', directoryPath: '/test/run1', hasOpeCheck: false, hasTaskCheck: false };
-        const mockQueryBuilder = {
-          filter: vi.fn().mockReturnThis(),
-          exec: vi.fn().mockResolvedValue([mockRecord]),
-          sort: vi.fn().mockReturnThis(),
-          slice: vi.fn().mockReturnThis(),
-          count: vi.fn().mockResolvedValue(0),
-          delete: vi.fn(),
-        };
-        mockStoreInstance.query.mockReturnValue(mockQueryBuilder);
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[mockRecord]]));
 
         const service = new RunDataService();
         const result = await service.getOutputRecord('/test/run1');
@@ -163,15 +172,7 @@ describe('run-data/index', () => {
       });
 
       it('should return record from file when not in store', async () => {
-        const mockQueryBuilder = {
-          filter: vi.fn().mockReturnThis(),
-          exec: vi.fn().mockResolvedValue([]),
-          sort: vi.fn().mockReturnThis(),
-          slice: vi.fn().mockReturnThis(),
-          count: vi.fn().mockResolvedValue(0),
-          delete: vi.fn(),
-        };
-        mockStoreInstance.query.mockReturnValue(mockQueryBuilder);
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[]]));
         mockReadRunData.mockResolvedValue({ title: 'run1', hasOpeCheck: false, hasTaskCheck: false });
 
         const service = new RunDataService();
@@ -181,15 +182,7 @@ describe('run-data/index', () => {
       });
 
       it('should return undefined when not found anywhere', async () => {
-        const mockQueryBuilder = {
-          filter: vi.fn().mockReturnThis(),
-          exec: vi.fn().mockResolvedValue([]),
-          sort: vi.fn().mockReturnThis(),
-          slice: vi.fn().mockReturnThis(),
-          count: vi.fn().mockResolvedValue(0),
-          delete: vi.fn(),
-        };
-        mockStoreInstance.query.mockReturnValue(mockQueryBuilder);
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[]]));
         mockReadRunData.mockResolvedValue(null);
 
         const service = new RunDataService();
@@ -197,23 +190,155 @@ describe('run-data/index', () => {
         expect(result).toBeUndefined();
         service.dispose();
       });
+
+      it('should attach opeCheckDirPath when ope check list is non-empty', async () => {
+        const mockRecord = { title: 'run1', directoryPath: '/test/run1', hasOpeCheck: true, hasTaskCheck: false, flowVerifyPath: '/test/verify' };
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[mockRecord]]));
+        mockAccuracyGet.mockResolvedValue([{ cmp: 'cmp1' }]);
+
+        const service = new RunDataService();
+        const result = await service.getOutputRecord('/test/run1');
+
+        expect(mockAccuracyGet).toHaveBeenCalledWith('/test/verify_opcheck');
+        expect(result.opeCheckDirPath).toEqual([{ cmp: 'cmp1' }]);
+        service.dispose();
+      });
+
+      it('should attach taskCheckDirPath when task check list is non-empty', async () => {
+        const mockRecord = { title: 'run1', directoryPath: '/test/run1', hasOpeCheck: false, hasTaskCheck: true, flowVerifyPath: '/test/verify' };
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[mockRecord]]));
+        mockAccuracyGet.mockResolvedValue([{ task: 'task1' }]);
+
+        const service = new RunDataService();
+        const result = await service.getOutputRecord('/test/run1');
+
+        expect(mockAccuracyGet).toHaveBeenCalledWith('/test/verify_taskcheck');
+        expect(result.taskCheckDirPath).toEqual([{ task: 'task1' }]);
+        service.dispose();
+      });
+
+      it('should fall back to findVerifySubDir when flowVerifyPath missing', async () => {
+        const mockRecord = { title: 'run1', directoryPath: '/test/run1', hasOpeCheck: true, hasTaskCheck: false, computeGraphDirPath: '/test/graph' };
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[mockRecord]]));
+        mockFindVerifyDir.mockReturnValue('/test/graph');
+        mockFindVerifySubDir.mockResolvedValue('/test/graph/verify');
+        mockAccuracyGet.mockResolvedValue([]);
+
+        const service = new RunDataService();
+        const result = await service.getOutputRecord('/test/run1');
+
+        expect(mockFindVerifyDir).toHaveBeenCalledWith('/test/graph', 2);
+        expect(mockFindVerifySubDir).toHaveBeenCalledWith('/test/graph');
+        expect(mockAccuracyGet).toHaveBeenCalledWith('/test/graph/verify_opcheck');
+        expect(result.opeCheckDirPath).toBeUndefined();
+        service.dispose();
+      });
+    });
+
+    describe('refreshOutputRecord', () => {
+      it('re-reads record from file and updates cache', async () => {
+        mockReadRunData.mockResolvedValue({ title: 'run1', directoryPath: '/test/run1', hasOpeCheck: false, hasTaskCheck: false });
+
+        const service = new RunDataService();
+        const result = await service.refreshOutputRecord('/test/run1');
+
+        expect(mockReadRunData).toHaveBeenCalled();
+        expect(mockStoreInstance.set).toHaveBeenCalledWith({ noDirectoryTree: false, title: 'run1', directoryPath: '/test/run1', hasOpeCheck: false, hasTaskCheck: false });
+        expect(result).toBeDefined();
+        service.dispose();
+      });
+
+      it('deletes cached record when rundata file is invalid', async () => {
+        mockReadRunData.mockResolvedValue(null);
+        const builder = makeQueryBuilder([[]]);
+        mockStoreInstance.query.mockReturnValue(builder);
+
+        const service = new RunDataService();
+        const result = await service.refreshOutputRecord('/test/run1');
+
+        expect(result).toBeUndefined();
+        expect(builder.filter).toHaveBeenCalledWith({ directoryPath: '/test/run1' });
+        expect(builder.delete).toHaveBeenCalled();
+        service.dispose();
+      });
     });
 
     describe('getOutputDetail', () => {
       it('should return undefined when record not found', async () => {
-        const mockQueryBuilder = {
-          filter: vi.fn().mockReturnThis(),
-          exec: vi.fn().mockResolvedValue([]),
-          sort: vi.fn().mockReturnThis(),
-          slice: vi.fn().mockReturnThis(),
-          count: vi.fn().mockResolvedValue(0),
-          delete: vi.fn(),
-        };
-        mockStoreInstance.query.mockReturnValue(mockQueryBuilder);
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[]]));
         mockReadRunData.mockResolvedValue(null);
 
         const service = new RunDataService();
         const result = await service.getOutputDetail('/test/run1');
+        expect(result).toBeUndefined();
+        service.dispose();
+      });
+
+      it('renames cached directory tree children with i18n names', async () => {
+        const mockRecord = {
+          title: 'run1',
+          directoryPath: '/test/run1',
+          hasOpeCheck: false,
+          hasTaskCheck: false,
+          directoryTree: {
+            children: [
+              { type: 'file', fileType: 'controlFlow', name: 'old' },
+              { type: 'file', fileType: 'swimlaneGraph', name: 'old' },
+              { type: 'dir', directoryType: 'compute', name: 'old', children: [] },
+            ],
+          },
+        };
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[mockRecord]]));
+
+        const service = new RunDataService();
+        const result = await service.getOutputDetail('/test/run1');
+
+        expect(result).toBeDefined();
+        expect(result.directoryTree.children[0].name).toBe('PyPTOToolkit.workspace.controlFlowName');
+        expect(result.directoryTree.children[1].name).toBe('PyPTOToolkit.workspace.swimlaneGraphName');
+        expect(result.directoryTree.children[2].name).toBe('PyPTOToolkit.workspace.computeGraphName');
+        expect(mockGetOutputDirectory).not.toHaveBeenCalled();
+        service.dispose();
+      });
+
+      it('scans output directory and caches detail when not loaded', async () => {
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[]]));
+        mockReadRunData.mockResolvedValue({ title: 'run1', directoryPath: '/test/run1', hasOpeCheck: false, hasTaskCheck: false });
+        const tree = { type: 'dir', children: [] };
+        mockGetOutputDirectory.mockResolvedValue(tree);
+        mockStoreInstance.find.mockResolvedValue(true);
+
+        const service = new RunDataService();
+        const result = await service.getOutputDetail('/test/run1');
+
+        expect(mockGetOutputDirectory).toHaveBeenCalled();
+        expect(mockStoreInstance.set).toHaveBeenCalledWith(expect.objectContaining({ noDirectoryTree: false, directoryTree: tree }));
+        expect(result).toMatchObject({ noDirectoryTree: false, directoryTree: tree });
+        service.dispose();
+      });
+
+      it('does not write cache when record is not in store', async () => {
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[]]));
+        mockReadRunData.mockResolvedValue({ title: 'run1', directoryPath: '/test/run1', hasOpeCheck: false, hasTaskCheck: false });
+        mockGetOutputDirectory.mockResolvedValue({ type: 'dir', children: [] });
+        mockStoreInstance.find.mockResolvedValue(false);
+
+        const service = new RunDataService();
+        const result = await service.getOutputDetail('/test/run1');
+
+        expect(mockStoreInstance.set).not.toHaveBeenCalled();
+        expect(result).toBeDefined();
+        service.dispose();
+      });
+
+      it('returns undefined when output scan yields nothing', async () => {
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[]]));
+        mockReadRunData.mockResolvedValue({ title: 'run1', directoryPath: '/test/run1', hasOpeCheck: false, hasTaskCheck: false });
+        mockGetOutputDirectory.mockResolvedValue(null);
+
+        const service = new RunDataService();
+        const result = await service.getOutputDetail('/test/run1');
+
         expect(result).toBeUndefined();
         service.dispose();
       });
@@ -226,6 +351,75 @@ describe('run-data/index', () => {
         expect(mockReadRunDataList).toHaveBeenCalled();
         service.dispose();
       });
+
+      it('processes new directory when executeTime is newer than latest', async () => {
+        mockReadRunDataList.mockResolvedValue([{ dirname: 'run1', executeTime: '2024-07-01' }]);
+        mockStoreInstance.query.mockReturnValue(makeQueryBuilder([[]]));
+        mockReadRunData.mockResolvedValue({ title: 'run1', hasOpeCheck: false, hasTaskCheck: false });
+
+        const service = new RunDataService();
+        await vi.waitFor(() => expect(lastResolverCallback).toBeDefined());
+
+        const result = await lastResolverCallback!({ dirname: 'run1', executeTime: '2024-07-01' });
+
+        expect(result).toEqual({ data: null });
+        expect(mockReadRunData).toHaveBeenCalled();
+        expect(mockStoreInstance.set).toHaveBeenCalledWith({ noDirectoryTree: false, title: 'run1', hasOpeCheck: false, hasTaskCheck: false });
+        service.dispose();
+      });
+
+      it('delays rescan of old directories via 5s timer', async () => {
+        vi.useFakeTimers();
+        mockReadRunDataList.mockResolvedValue([{ dirname: 'old1', executeTime: '2024-01-01' }]);
+        const builder = makeQueryBuilder([[{ executeTime: '2024-06-01' }], []]);
+        mockStoreInstance.query.mockReturnValue(builder);
+        mockReadRunData.mockResolvedValue({ title: 'old1', hasOpeCheck: false, hasTaskCheck: false });
+
+        const service = new RunDataService();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(lastResolverCallback).toBeDefined();
+
+        const result = await lastResolverCallback!({ dirname: 'old1', executeTime: '2024-01-01' });
+
+        expect(result).toEqual({ skip: true });
+        expect(mockReadRunData).not.toHaveBeenCalled();
+
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(mockReadRunData).toHaveBeenCalled();
+        expect(mockStoreInstance.set).toHaveBeenCalled();
+        service.dispose();
+      });
+
+      it('updates or deletes existing records when delayed rescan runs', async () => {
+        vi.useFakeTimers();
+        mockReadRunDataList.mockResolvedValue([
+          { dirname: 'd1', executeTime: '2024-01-01' },
+          { dirname: 'd2', executeTime: '2024-01-01' },
+        ]);
+        const builder = makeQueryBuilder([
+          [{ executeTime: '2024-06-01' }],
+          [{ title: 'stored1', directoryPath: '/d1' }],
+          [{ title: 'stored2', directoryPath: '/d2' }],
+        ]);
+        mockStoreInstance.query.mockReturnValue(builder);
+        mockReadRunData.mockResolvedValueOnce({ title: 'fresh1', hasOpeCheck: false, hasTaskCheck: false }).mockResolvedValueOnce(null);
+
+        const service = new RunDataService();
+        await vi.advanceTimersByTimeAsync(0);
+
+        await lastResolverCallback!({ dirname: 'd1', executeTime: '2024-01-01' });
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(mockStoreInstance.set).toHaveBeenCalledWith({
+          title: 'fresh1',
+          directoryPath: '/d1',
+          hasOpeCheck: false,
+          hasTaskCheck: false,
+        });
+        expect(builder.delete).toHaveBeenCalled();
+        service.dispose();
+      });
     });
 
     describe('waitForScanning', () => {
@@ -233,6 +427,16 @@ describe('run-data/index', () => {
         const service = new RunDataService();
         service.listResolver = undefined;
         await service.waitForScanning();
+        service.dispose();
+      });
+
+      it('waits via listResolver when available', async () => {
+        const service = new RunDataService();
+        await vi.waitFor(() => expect(service.listResolver).toBeDefined());
+
+        await service.waitForScanning(5);
+
+        expect(service.listResolver.waitFor).toHaveBeenCalledWith(5);
         service.dispose();
       });
     });

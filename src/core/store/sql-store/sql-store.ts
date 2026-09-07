@@ -242,7 +242,7 @@ export class SqlStore<
   private _execDelete = async (conditions: string): Promise<number> => {
     const items = await this._execQuery(conditions);
     for (const item of items) {
-      this.delete(item);
+      await this.delete(item);
     }
     return items.length ?? 0;
   };

@@ -260,12 +260,7 @@ export class PyptoJitCodeLensProvider implements vscode.CodeLensProvider {
     /**
      * 获取指定行的起始位置（在文档中的全局位置）
      */
-    private getLineStartPosition(text: string, lineNumber: number, lines?: string[]): number {
-        // 如果没有传入lines，则创建一个（向后兼容）
-        if (!lines) {
-            lines = text.split('\n');
-        }
-        
+    private getLineStartPosition(text: string, lineNumber: number, lines: string[]): number {
         // 使用reduce来计算位置，更高效
         return lines.slice(0, lineNumber).reduce((pos, line) => pos + line.length + 1, 0);
     }

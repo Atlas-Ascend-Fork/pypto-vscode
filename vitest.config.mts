@@ -12,6 +12,12 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  oxc: {
+    decorator: {
+      legacy: true,
+      emitDecoratorMetadata: true,
+    },
+  },
   test: {
     environment: 'node',
     include: ['test/ut/**/*.test.ts'],

@@ -7,7 +7,7 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { mockEditorView } = vi.hoisted(() => ({
   mockEditorView: {
@@ -42,9 +42,23 @@ vi.mock('fs', async (importOriginal) => {
   return { ...actual, existsSync: vi.fn().mockReturnValue(true) };
 });
 
+const { mockPlatform, mockExec } = vi.hoisted(() => ({
+  mockPlatform: vi.fn(),
+  mockExec: vi.fn(),
+}));
+
+vi.mock('os', () => ({
+  platform: () => mockPlatform(),
+  default: { platform: () => mockPlatform() },
+}));
+
+vi.mock('child_process', () => ({
+  exec: (...args: unknown[]) => mockExec(...args),
+}));
+
 import { RegisterCommand, getBasenameWithoutExt } from '../../../src/command/registerCommand';
 
-import { commands, window, Uri } from 'vscode';
+import { commands, window, workspace, Uri } from 'vscode';
 
 import { readFirstNLines } from '../../../src/utils/file-system';
 import { useView } from '../../../src/view';
@@ -680,5 +694,107 @@ describe('RegisterCommand.registerOpenSwimGraph', () => {
     expect(SwimGraphMsgHandler.consumeEventToLocate).toHaveBeenCalledTimes(1);
     expect(locateNode).toHaveBeenCalledWith(7, 8);
     mockEditorView.open.mockReset();
+  });
+});
+
+describe('PyPTO.ExecuteRemoteCommand handler', () => {
+  let savedEnv: NodeJS.ProcessEnv;
+
+  function getRemoteHandler() {
+    const callArgs = vi.mocked(commands.registerCommand).mock.calls.find(([id]) => id === 'PyPTO.ExecuteRemoteCommand');
+    return callArgs![1] as () => Promise<void>;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    savedEnv = { ...process.env };
+    mockPlatform.mockReturnValue('linux');
+    mockExec.mockImplementation((...args: unknown[]) => {
+      const cb = args[args.length - 1] as (error: Error | null, stdout?: string, stderr?: string) => void;
+      if (typeof cb === 'function') {
+        cb(null, '', '');
+      }
+    });
+    (workspace as { workspaceFolders?: unknown }).workspaceFolders = [{ uri: { fsPath: '/test/ws' } }];
+    process.env.PYPTO_HOME = '/home/tester';
+  });
+
+  afterEach(() => {
+    process.env = savedEnv;
+    (workspace as { workspaceFolders?: unknown }).workspaceFolders = undefined;
+  });
+
+  it('rejects on non-linux platform without probing environment', async () => {
+    mockPlatform.mockReturnValue('win32');
+    createRegisterCommand();
+
+    await getRemoteHandler()();
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith('pypto.remoteTool.linuxOnly');
+    expect(mockExec).not.toHaveBeenCalled();
+  });
+
+  it('rejects when remote_tool.sh is unavailable', async () => {
+    mockExec.mockImplementation((cmd: string, _opts: unknown, cb: (error: Error | null) => void) => {
+      if (cmd.startsWith('remote_tool.sh -h')) {
+        cb(new Error('not found'));
+      }
+    });
+    createRegisterCommand();
+
+    await getRemoteHandler()();
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith('pypto.remoteTool.notTargetEnv');
+  });
+
+  it('rejects when workspace folder is missing', async () => {
+    (workspace as { workspaceFolders?: unknown }).workspaceFolders = undefined;
+    createRegisterCommand();
+
+    await getRemoteHandler()();
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith('pypto.remoteTool.envVarMissing');
+  });
+
+  it('rejects when user home env vars are missing', async () => {
+    delete process.env.PYPTO_HOME;
+    delete process.env.HOME;
+    delete process.env.USERPROFILE;
+    createRegisterCommand();
+
+    await getRemoteHandler()();
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith('pypto.remoteTool.envVarMissing');
+  });
+
+  it('executes sync command and reports success', async () => {
+    mockExec.mockImplementation((_cmd: string, _opts: unknown, cb: (error: null, stdout: string, stderr: string) => void) => {
+      cb(null, 'done ', ' ');
+    });
+    createRegisterCommand();
+
+    await getRemoteHandler()();
+
+    expect(mockExec).toHaveBeenCalledWith(
+      expect.stringContaining("remote_tool.sh exec --command 'mkdir -p /test/ws /home/tester/.pypto'"),
+      expect.objectContaining({ timeout: 300000 }),
+      expect.any(Function),
+    );
+    expect(window.showInformationMessage).toHaveBeenCalledWith('pypto.remoteTool.execSuccess');
+  });
+
+  it('reports failure with exit code when exec errors', async () => {
+    mockExec.mockImplementation((cmd: string, _opts: unknown, cb: (error: unknown, stdout: string, stderr: string) => void) => {
+      if (cmd.startsWith('remote_tool.sh -h')) {
+        cb(null, '', '');
+      } else {
+        cb({ code: 3 }, '', 'ssh failure ');
+      }
+    });
+    createRegisterCommand();
+
+    await getRemoteHandler()();
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith('pypto.remoteTool.execFailed');
   });
 });

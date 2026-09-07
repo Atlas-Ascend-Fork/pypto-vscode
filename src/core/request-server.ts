@@ -88,7 +88,6 @@ class ExtensionApiServer {
         this.resSuccess(webview, requestMessage, resData);
       } catch (e) {
         this.resServerError(webview, requestMessage, e as Error);
-        throw e;
       }
     });
   }

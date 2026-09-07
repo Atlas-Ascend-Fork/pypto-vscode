@@ -136,3 +136,32 @@ describe('PyptoJitCodeLensProvider.refresh', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('PyptoJitCodeLensProvider string escape handling', () => {
+  let provider: PyptoJitCodeLensProvider;
+
+  beforeEach(() => {
+    provider = new PyptoJitCodeLensProvider();
+  });
+
+  it('ignores decorator in string with escaped quote', () => {
+    const text = "x = 'it\'s @pypto.jit'\n@pypto.jit\ndef foo(): pass";
+    const doc = createMockDocument(text);
+    const result = provider.provideCodeLenses(doc as any) as any[];
+    expect(result).toHaveLength(4);
+  });
+
+  it('skips escaped triple-quote start outside strings', () => {
+    const text = 'x = \\"""@pypto.jit\n@pypto.jit\ndef foo(): pass';
+    const doc = createMockDocument(text);
+    const result = provider.provideCodeLenses(doc as any) as any[];
+    expect(result).toHaveLength(4);
+  });
+
+  it('skips escaped triple-quote inside docstrings', () => {
+    const text = '"""abc\\"""def @pypto.jit"""\n@pypto.jit\ndef foo(): pass';
+    const doc = createMockDocument(text);
+    const result = provider.provideCodeLenses(doc as any) as any[];
+    expect(result).toHaveLength(4);
+  });
+});

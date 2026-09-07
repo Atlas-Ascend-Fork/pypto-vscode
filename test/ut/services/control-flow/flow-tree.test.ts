@@ -293,6 +293,115 @@ describe('control-flow/flow-tree', () => {
         expect(result[1].nodeType).toBe('LOOP');
       });
 
+      it('should handle mixed operations with leaf-first and graphtype 2', () => {
+        const pathInside: FunctionNode = {
+          hash: 'path_inside_hash',
+          funcmagic: 400,
+          rawname: 'path_inside',
+          functype: FunctionType.PATH,
+          operations: [{ opmagic: 9 }],
+          programs: [],
+        } as FunctionNode;
+
+        const dynamicCallee: FunctionNode = {
+          hash: 'dyn_hash',
+          funcmagic: 300,
+          rawname: 'dyn_func',
+          functype: FunctionType.DYNAMIC,
+          operations: [{ opmagic: 9, calleehash: 'path_inside_hash' }],
+        } as FunctionNode;
+
+        const pathFunction: FunctionNode = {
+          hash: 'path_hash',
+          funcmagic: 200,
+          rawname: 'path_function',
+          functype: FunctionType.PATH,
+          graphtype: 2,
+          operations: [
+            { opmagic: 1 },
+            { opmagic: 2, calleehash: 'dyn_hash' },
+          ],
+          programs: [],
+        } as FunctionNode;
+
+        const entryFunction: FunctionNode = {
+          hash: 'entry_hash',
+          funcmagic: 100,
+          rawname: 'entry_function',
+          functype: FunctionType.DYNAMIC,
+          operations: [
+            { opmagic: 1, calleehash: 'path_hash' },
+          ],
+        } as FunctionNode;
+
+        program = {
+          version: '1.0',
+          entryhash: 'entry_hash',
+          functions: [entryFunction, pathFunction, dynamicCallee, pathInside],
+        } as ProgramOutput;
+
+        const analyzer = new FlowTreeAnalyzer(program, passes);
+        const result = analyzer.getControlFlow();
+
+        expect(result).toHaveLength(2);
+        expect(result[0].nodeType).toBe('PATH');
+        expect(result[1].nodeType).toBe('LOOP');
+      });
+
+      it('should treat mixed operations as dynamic when first operation is dynamic', () => {
+        const pathInside: FunctionNode = {
+          hash: 'path_inside_hash',
+          funcmagic: 400,
+          rawname: 'path_inside',
+          functype: FunctionType.PATH,
+          operations: [{ opmagic: 9 }],
+          programs: [],
+        } as FunctionNode;
+
+        const dynamicCallee: FunctionNode = {
+          hash: 'dyn_hash',
+          funcmagic: 300,
+          rawname: 'dyn_func',
+          functype: FunctionType.DYNAMIC,
+          operations: [{ opmagic: 9, calleehash: 'path_inside_hash' }],
+        } as FunctionNode;
+
+        const pathFunction: FunctionNode = {
+          hash: 'path_hash',
+          funcmagic: 200,
+          rawname: 'path_function',
+          functype: FunctionType.PATH,
+          operations: [
+            { opmagic: 1, calleehash: 'dyn_hash' },
+            { opmagic: 2, calleehash: 'path_inside_hash' },
+          ],
+          programs: [],
+        } as FunctionNode;
+
+        const entryFunction: FunctionNode = {
+          hash: 'entry_hash',
+          funcmagic: 100,
+          rawname: 'entry_function',
+          functype: FunctionType.DYNAMIC,
+          operations: [
+            { opmagic: 1, calleehash: 'path_hash' },
+          ],
+        } as FunctionNode;
+
+        program = {
+          version: '1.0',
+          entryhash: 'entry_hash',
+          functions: [entryFunction, pathFunction, dynamicCallee, pathInside],
+        } as ProgramOutput;
+
+        const analyzer = new FlowTreeAnalyzer(program, passes);
+        const result = analyzer.getControlFlow();
+
+        expect(result).toHaveLength(2);
+        expect(result[0].nodeType).toBe('LOOP');
+        expect(result[1].nodeType).toBe('PATH');
+      });
+
       it('should handle multiple operations in entry function', () => {
         const path1: FunctionNode = {
           hash: 'path1_hash',

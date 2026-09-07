@@ -1,31 +1,77 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Technologies Co., Ltd.
+ * This program is free software: you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You should not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../src/services/control-flow', () => ({
+const disposedNames: string[] = [];
+
+vi.mock('../../../src/services/extension-config', () => ({
+  ExtensionConfig: class {
+    name = 'extension';
+    dispose() {
+      disposedNames.push('extension');
+    }
+  },
+}));
+
+vi.mock('../../../src/services/run-data', () => ({
+  RunDataService: class {
+    name = 'runData';
+    dispose() {
+      disposedNames.push('runData');
+    }
+  },
+}));
+
+vi.mock('../../../src/services/schema-config/configdata', () => ({
+  ConfigDataService: class {
+    name = 'configData';
+    dispose() {
+      disposedNames.push('configData');
+    }
+  },
+}));
+
+vi.mock('../../../src/services/schema-config/run-config-language-features', () => ({
+  RunConfigLanguageFeaturesService: class {
+    dispose() {
+      disposedNames.push('language-features');
+    }
+  },
+}));
+
+vi.mock('../../../src/services/control-flow', () => ({
   getControlFlow: vi.fn(),
   getSnippetCodeText: vi.fn(),
   openControlFlowTargetFile: vi.fn(),
   readProgramPath: vi.fn(),
 }));
 
-vi.mock('../../../../src/services/tmp-view-opener', () => ({
-  openComputeGraph: vi.fn(),
+vi.mock('../../../src/services/tmp-view-opener', () => ({
   openControlFlow: vi.fn(),
+  openComputeGraph: vi.fn(),
+  openSwimlaneGraph: vi.fn(),
   openOpCheck: vi.fn(),
   openTaskCheck: vi.fn(),
   openPtoConfig: vi.fn(),
   openPyPTOWelcome: vi.fn(),
-  openSwimlaneGraph: vi.fn(),
   openThreeColumnGraph: vi.fn(),
 }));
 
-vi.mock('../../../../src/services/run-data/api', () => ({
+vi.mock('../../../src/services/run-data/api', () => ({
   getRunDataList: vi.fn(),
   getOutputDetail: vi.fn(),
   getRunDataBySwimlaneGraphPath: vi.fn(),
   deleteRunData: vi.fn(),
 }));
 
-vi.mock('../../../../src/services/welcome', () => ({
+vi.mock('../../../src/services/welcome', () => ({
   getInitPythonProject: vi.fn(),
   getPluginVersion: vi.fn(),
   getProgramPath: vi.fn(),
@@ -40,100 +86,41 @@ vi.mock('../../../../src/services/welcome', () => ({
   reductionTreeColumnStep: vi.fn(),
 }));
 
-vi.mock('../../../../src/services/welcome/steps-config', () => ({
+vi.mock('../../../src/services/welcome/steps-config', () => ({
   updateWelcomeState: vi.fn(),
   getWelcomeState: vi.fn(),
   getIsCompleteBoot: vi.fn(),
 }));
 
-vi.mock('../../../../src/services/extension-config', () => ({
-  ExtensionConfig: class MockExtensionConfig {
-    name = 'extension';
-    constructor(..._args: any[]) {}
-    dispose() {}
-  },
-}));
-
-vi.mock('../../../../src/services/run-data', () => ({
-  RunDataService: class MockRunDataService {
-    name = 'runData';
-    constructor(..._args: any[]) {}
-    dispose() {}
-  },
-}));
-
-vi.mock('../../../../src/services/schema-config/configdata', () => ({
-  ConfigDataService: class MockConfigDataService {
-    name = 'configData';
-    constructor(..._args: any[]) {}
-    dispose() {}
-  },
-}));
-
-vi.mock('../../../../src/services/schema-config/run-config-language-features', () => ({
-  RunConfigLanguageFeaturesService: class MockRunConfigLanguageFeaturesService {
-    name = 'language-features';
-    constructor(..._args: any[]) {}
-    dispose() {}
-  },
-}));
-
-import { serviceApis, startAllServices, closeAllServices, useService } from '../../../../src/services';
+import { startAllServices, closeAllServices, useService, serviceApis } from '../../../src/services';
 
 describe('services/index', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    disposedNames.length = 0;
   });
 
-  describe('serviceApis', () => {
-    it('should have welcome API group', () => {
-      expect(serviceApis.welcome).toBeDefined();
-      expect(serviceApis.welcome.getInitPythonProject).toBeDefined();
-      expect(serviceApis.welcome.isLinuxEnvironment).toBeDefined();
-      expect(serviceApis.welcome.getPluginVersion).toBeDefined();
-      expect(serviceApis.welcome.getPythonFileCode).toBeDefined();
-    });
-
-    it('should have controlFlow API group', () => {
-      expect(serviceApis.controlFlow).toBeDefined();
-      expect(serviceApis.controlFlow.getControlFlow).toBeDefined();
-      expect(serviceApis.controlFlow.getSnippetCodeText).toBeDefined();
-      expect(serviceApis.controlFlow.openControlFlowTargetFile).toBeDefined();
-      expect(serviceApis.controlFlow.readProgramPath).toBeDefined();
-    });
-
-    it('should have workspace API group', () => {
-      expect(serviceApis.workspace).toBeDefined();
-      expect(serviceApis.workspace.getRunDataList).toBeDefined();
-      expect(serviceApis.workspace.getOutputDetail).toBeDefined();
-      expect(serviceApis.workspace.getRunDataBySwimlaneGraphPath).toBeDefined();
-      expect(serviceApis.workspace.deleteRunData).toBeDefined();
-    });
-
-    it('should have tmpViewOpener API group', () => {
-      expect(serviceApis.tmpViewOpener).toBeDefined();
-      expect(serviceApis.tmpViewOpener.openControlFlow).toBeDefined();
-      expect(serviceApis.tmpViewOpener.openComputeGraph).toBeDefined();
-      expect(serviceApis.tmpViewOpener.openSwimlaneGraph).toBeDefined();
-      expect(serviceApis.tmpViewOpener.openPyPTOWelcome).toBeDefined();
-    });
+  it('exposes service api groups', () => {
+    expect(Object.keys(serviceApis)).toEqual(
+      expect.arrayContaining(['welcome', 'controlFlow', 'workspace', 'tmpViewOpener']),
+    );
   });
 
-  describe('startAllServices', () => {
-    it('should be a function', () => {
-      expect(typeof startAllServices).toBe('function');
-    });
+  it('startAllServices creates singleton services', () => {
+    startAllServices({} as any);
+
+    expect(useService('extension').name).toBe('extension');
+    expect(useService('runData').name).toBe('runData');
+    expect(useService('configData').name).toBe('configData');
+    expect(useService('extension')).toBe(useService('extension'));
   });
 
-  describe('closeAllServices', () => {
-    it('should be a function', () => {
-      expect(typeof closeAllServices).toBe('function');
-    });
-  });
+  it('closeAllServices disposes all services', () => {
+    startAllServices({} as any);
 
-  describe('useService', () => {
-    it('should be a function', () => {
-      expect(typeof useService).toBe('function');
-    });
+    closeAllServices();
+
+    expect(disposedNames).toEqual(
+      expect.arrayContaining(['extension', 'runData', 'configData', 'language-features']),
+    );
   });
 });

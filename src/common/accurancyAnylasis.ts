@@ -41,7 +41,7 @@ function ascendDir(dirPath: string, levels: number): string {
 }
 
 function resolveAccurancyDir(flowVerifyPath?: string, computeGraphDirPath?: string, ascendLevels: number = 2): string | undefined {
-  let result: string | undefined;  
+  let result: string | undefined;
   if (flowVerifyPath && (flowVerifyPath !== '')) {
       result = vscode.Uri.file(flowVerifyPath).fsPath;
   } else if (computeGraphDirPath) {
@@ -54,24 +54,6 @@ function resolveAccurancyDir(flowVerifyPath?: string, computeGraphDirPath?: stri
     }
   }
   return result;
-}
-
-function findCsvRecursive(dir: string): string {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const subPath = path.join(dir, entry.name);
-        const csvCandidate = path.join(subPath, 'verify_graph_result_brief.csv');
-        if (fs.existsSync(csvCandidate)) {
-          return csvCandidate;
-        }
-        const deeper = findCsvRecursive(subPath);
-        if (deeper) {
-          return deeper;
-        }
-      }
-    }
-    return '';
 }
 
 export async function getResDataSum(filePath: string | undefined, flowVerifyPath?: string, computeGraphDirPath?: string) {

@@ -228,6 +228,24 @@ describe('getComGraphOpMagic', () => {
     const result = await getComGraphOpMagic('');
     expect(result).toEqual({ wrongOpMagicList: [], failRes: 0, updateFlag: false });
   });
+
+  it('collects aOp/bOp magics from the error list', async () => {
+    mockAccuracyToolCmpGetCountByFilePath.mockResolvedValueOnce(3);
+    mockGetCmpErrorListByFilePath.mockResolvedValueOnce({
+      total: 2,
+      list: [
+        { aOpMagic: '111', bOpMagic: '222' },
+        { aOpMagic: '333' },
+      ],
+    });
+    mockAccuracyToolCompListGetByFilePath.mockResolvedValueOnce(undefined);
+
+    const result = await getComGraphOpMagic('/test/file.csv');
+
+    expect(result.wrongOpMagicList).toEqual([111, 222, 333]);
+    expect(result.failRes).toBe(3);
+    expect(result.updateFlag).toBe(false);
+  });
 });
 
 describe('updateCompListFirstReq', () => {
@@ -408,6 +426,21 @@ describe('getCmpDiffList', () => {
     expect(result.diffList[0].bOp).toBeUndefined();
     expect(result.diffList[0].compareRes).toBe('FAIL');
   });
+
+  it('re-reads csv and counts failures when readFlag is true', async () => {
+    const { readCsv } = await import('../../../src/common/csvReader');
+    mockAccuracyToolCmpGetCountByFilePath
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1);
+    mockAccuracyToolCmpGetByFilePath.mockResolvedValueOnce([]);
+    mockAccuracyToolCompListGetByFilePath.mockResolvedValueOnce(undefined);
+
+    const result = await getCmpDiffList('/test/file.csv', true);
+
+    expect(readCsv).toHaveBeenCalledWith('/test/file.csv', 2);
+    expect(result.failRes).toBe(2);
+    expect(result.total).toBe(1);
+  });
 });
 
 describe('getPrecisionExceptList', () => {
@@ -496,6 +529,26 @@ describe('openCmpDiffComGraph', () => {
     await openCmpDiffComGraph('/test/graph.json', 'hash123', 'Pass_01', 'funcMagic', undefined, undefined, undefined, '/compute/dir');
     expect(commands.executeCommand).toHaveBeenCalled();
   });
+
+  it('falls back to findComputationDir when computeGraphDirPath is missing', async () => {
+    vi.mocked(fs.readdirSync)
+      .mockReturnValueOnce([{ name: 'computation_graph', isDirectory: () => true }] as any)
+      .mockReturnValueOnce([{ name: 'PVC2_OOO_123', isDirectory: () => true }] as any)
+      .mockReturnValueOnce([{ name: 'Pass_01_dir', isDirectory: () => true }] as any)
+      .mockReturnValueOnce([{ name: 'graph_funcMagic_hash123.json', isFile: () => true }] as any);
+
+    await openCmpDiffComGraph('/test/output/graph.json', 'hash123', 'Pass_01', 'funcMagic');
+
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      'PyPTO.Open.OpenComGraphByFunchash',
+      expect.anything(),
+      'hash123',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
 });
 
 describe('openTaskCmpDiffComGraph', () => {
@@ -531,6 +584,19 @@ describe('openTaskCmpDiffComGraph', () => {
       .mockReturnValueOnce([{ name: 'graph_hash123.json', isFile: () => true }] as any);
     await openTaskCmpDiffComGraph('/test/graph.json', 'hash123', 'Pass_01', undefined, undefined, undefined, '/compute/dir');
     expect(commands.executeCommand).toHaveBeenCalled();
+  });
+
+  it('prefers After file when multiple json files found', async () => {
+    vi.mocked(fs.readdirSync)
+      .mockReturnValueOnce([{ name: 'Pass_01_dir', isDirectory: () => true }] as any)
+      .mockReturnValueOnce([
+        { name: 'Before_hash123.json', isFile: () => true },
+        { name: 'After_hash123.json', isFile: () => true },
+      ] as any);
+    await openTaskCmpDiffComGraph('/test/graph.json', 'hash123', 'Pass_01', undefined, undefined, undefined, '/compute/dir');
+
+    const call = vi.mocked(commands.executeCommand).mock.calls[0];
+    expect(call[1].fsPath).toContain('After_hash123.json');
   });
 });
 
@@ -582,6 +648,24 @@ describe('getTaskCmpList', () => {
     expect(result.failRes).toBe(5);
     expect(result.excepRes).toBe(2);
   });
+
+  it('re-reads csv and updates first request when readFlag is true', async () => {
+    const { readCsv } = await import('../../../src/common/csvReader');
+    mockAccuracyToolTaskCmpGetCountByFileName
+      .mockResolvedValueOnce(7)
+      .mockResolvedValueOnce(10)
+      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(5);
+    mockAccuracyToolTaskCmpGetByFileName.mockResolvedValueOnce([]);
+    mockAccuracyToolCompListGetByFilePath.mockResolvedValueOnce({ filePath: '/test/file.csv' });
+
+    const result = await getTaskCmpList('/test/file.csv', true);
+
+    expect(readCsv).toHaveBeenCalledWith('/test/file.csv', 4);
+    expect(mockAccuracyToolCompListUpdateFirstReq).toHaveBeenCalledWith('/test/file.csv', '5');
+    expect(result.updateFlag).toBe(true);
+  });
 });
 
 describe('getComGraphDataDetail', () => {
@@ -593,6 +677,44 @@ describe('getComGraphDataDetail', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
     const result = await getComGraphDataDetail('/test/graph.json', 'Pass_01', 'funcMagic', 'loopInfo', 'rawMagic');
     expect(result).toBeUndefined();
+  });
+
+  it('parses, dedups and sorts the extracted log details', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    const { SmartLogExtractor } = await import('../../../src/common/csvReader');
+    vi.mocked(SmartLogExtractor).mockImplementationOnce(function (this: any) {
+      return {
+        extract: vi.fn().mockResolvedValue([
+          '[VERIFY:FAIL] Pass_01, funcMagic, loopInfo, rawMagic',
+          'GROUP, OFFSET, [tensors, list]',
+          'row1, 200, [1, 2]',
+          'row2, 100, [3, 4]',
+          'row3, 200, [9, 9]',
+        ]),
+      };
+    } as any);
+    mockGetErrorDetailsByFunc.mockResolvedValueOnce([{ summary: 'fail' }]);
+
+    const result = await getComGraphDataDetail('/test/graph.json', 'Pass_01', 'funcMagic', 'loopInfo', 'rawMagic', undefined, undefined, '/verify/path');
+
+    expect(result).toBeDefined();
+    expect(result!.failDetailList).toHaveLength(2);
+    expect(result!.failDetailList.map((row: any) => row.OFFSET)).toEqual(['100', '200']);
+    expect(result!.failDetailList[0]).toMatchObject({ GROUP: 'row2', OFFSET: '100' });
+    expect(result!.failSummary).toEqual({ summary: 'fail' });
+  });
+
+  it('returns empty detail list when extracted log is too short', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    const { SmartLogExtractor } = await import('../../../src/common/csvReader');
+    vi.mocked(SmartLogExtractor).mockImplementationOnce(function (this: any) {
+      return { extract: vi.fn().mockResolvedValue(['only one line']) };
+    } as any);
+    mockGetErrorDetailsByFunc.mockResolvedValueOnce([]);
+
+    const result = await getComGraphDataDetail('/test/graph.json', 'Pass_01', 'funcMagic', 'loopInfo', 'rawMagic', undefined, undefined, '/verify/path');
+
+    expect(result!.failDetailList).toEqual([]);
   });
 });
 
@@ -619,5 +741,23 @@ describe('getFailMagicList', () => {
     const result = await getFailMagicList('/test/Pass_01/graph_TENSOR_funcMagic_LEAF_hash.json', 'hash123', undefined, undefined, undefined, undefined, '/compute/dir');
     expect(result).toHaveProperty('accuType', 'brief');
     expect(result).toHaveProperty('wrongRawMagicList');
+  });
+
+  it('returns op fail magic list derived from the cmp csv', async () => {
+    mockGetCmpErrorListByFilePath.mockResolvedValueOnce({
+      total: 1,
+      list: [{ aOpMagic: '111', bOpMagic: '222' }],
+    });
+    mockAccuracyToolCompListGetByFilePath.mockResolvedValueOnce(undefined);
+
+    const result = await getFailMagicList(
+      '/test/graph_a_b_funcMagic_LEAF_hash.json',
+      undefined,
+      undefined,
+      'op_A',
+      '/output/xx~Pass_01~Pass_02~12345.csv',
+    );
+
+    expect(result).toMatchObject({ accuType: 'op', failMagicList: [111, 222] });
   });
 });

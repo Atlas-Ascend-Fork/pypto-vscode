@@ -9,8 +9,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as vscode from 'vscode';
-import { getConfigsForRevise, updateConfigsFile } from '../../../../src/services/schema-config/index';
+import { getConfigsForRevise, updateConfigsFile, getCustomFileList, delCustomFile, getConfigsTemplate } from '../../../../src/services/schema-config/index';
 import * as configdata from '../../../../src/services/schema-config/configdata';
+import * as schemadata from '../../../../src/services/schema-config/schemadata';
 
 // Mock configdata 模块
 vi.mock('../../../../src/services/schema-config/configdata', () => ({
@@ -29,6 +30,85 @@ vi.mock('../../../../src/services/schema-config/schemadata', () => ({
 describe('schema-config/index', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('getCustomFileList', () => {
+    it('lists json files under the custom configurations directory', async () => {
+      const files = [{ name: 'a.json' }, { name: 'b.json' }];
+      vi.mocked(configdata.getJsonFileList).mockResolvedValue(files as any);
+
+      const result = await getCustomFileList();
+
+      expect(configdata.getJsonFileList).toHaveBeenCalledTimes(1);
+      const requestedUri = vi.mocked(configdata.getJsonFileList).mock.calls[0][0] as { fsPath: string };
+      expect(requestedUri.fsPath).toContain('config');
+      expect(requestedUri.fsPath).toContain('customConfigurations');
+      expect(result).toBe(files);
+    });
+  });
+
+  describe('delCustomFile', () => {
+    it('deletes the file at the given path', async () => {
+      vi.mocked(configdata.delFile).mockResolvedValue(undefined);
+
+      await delCustomFile('/home/user/.pypto/config/customConfigurations/a.json');
+
+      expect(configdata.delFile).toHaveBeenCalledTimes(1);
+      const deletedUri = vi.mocked(configdata.delFile).mock.calls[0][0] as { fsPath: string };
+      expect(deletedUri.fsPath).toBe('/home/user/.pypto/config/customConfigurations/a.json');
+    });
+  });
+
+  describe('getConfigsTemplate', () => {
+    it('returns null when schema data is missing', async () => {
+      vi.mocked(schemadata.readSchemaData).mockResolvedValue(null);
+
+      await expect(getConfigsTemplate()).resolves.toBeNull();
+    });
+
+    it('builds ordered groups with translated labels and filters empty groups', async () => {
+      vi.mocked(schemadata.readSchemaData).mockResolvedValue({ properties: {} } as any);
+      vi.mocked(schemadata.formatSchemaToAttributeGroups).mockReturnValue({
+        pass: [{ key: 'pass.mode', type: 'string', label: { zh: '模式', en: 'Mode' } }],
+        debug: [{ key: 'debug.verbose', type: 'boolean', label: { zh: '详细', en: 'Verbose' } }],
+        simulation: [],
+        runtime: [],
+        others: [{ key: 'misc', type: 'string', label: { zh: '其他', en: 'Other' } }],
+      } as any);
+
+      const result = await getConfigsTemplate();
+
+      expect(result).toEqual([
+        {
+          key: 'pass',
+          label: 'PyPTOToolkit.runConfig.group.pass',
+          attributes: [{ key: 'pass.mode', type: 'string', label: { zh: '模式', en: 'Mode' } }],
+        },
+        {
+          key: 'debug',
+          label: 'PyPTOToolkit.runConfig.group.debug',
+          attributes: [{ key: 'debug.verbose', type: 'boolean', label: { zh: '详细', en: 'Verbose' } }],
+        },
+        {
+          key: 'others',
+          label: 'PyPTOToolkit.runConfig.group.others',
+          attributes: [{ key: 'misc', type: 'string', label: { zh: '其他', en: 'Other' } }],
+        },
+      ]);
+    });
+
+    it('returns empty array when all groups are empty', async () => {
+      vi.mocked(schemadata.readSchemaData).mockResolvedValue({ properties: {} } as any);
+      vi.mocked(schemadata.formatSchemaToAttributeGroups).mockReturnValue({
+        pass: [],
+        debug: [],
+        simulation: [],
+        runtime: [],
+        others: [],
+      } as any);
+
+      await expect(getConfigsTemplate()).resolves.toEqual([]);
+    });
   });
 
   describe('getConfigsForRevise', () => {

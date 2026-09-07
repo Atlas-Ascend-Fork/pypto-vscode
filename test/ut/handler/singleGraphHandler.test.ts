@@ -7,7 +7,7 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const mockSingleGraphData = vi.hoisted(() => {
   const MockSingleGraphData = vi.fn(function(this: any, fsPath: string, funcHash?: string) {
@@ -314,6 +314,105 @@ describe('SingleGraphHandler', () => {
       await SingleGraphHandler.returnFuncTree(mockServer);
 
       expect(mockGenerateFucTree).toHaveBeenCalledWith('first-exec-hash', mockServer.comGraphData);
+    });
+  });
+
+  describe('postInitMessages', () => {
+    let gd: any;
+    let mockFind: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      gd = {
+        fsPath: '/test/graph.json',
+        funcHash: 'func-hash',
+        firstExecFuncHash: 'first-exec',
+        curPath: undefined,
+        calleeOpMagic: undefined,
+        calleeOpSubgraphId: undefined,
+        isUsedDB: false,
+      };
+      mockServer.comGraphData = gd;
+      mockFind = vi.fn().mockResolvedValue(null);
+      mockGetComGraphFileCalleeOpAttrStore.mockImplementation(() => ({ find: mockFind }) as any);
+    });
+
+    afterEach(() => {
+      mockGetComGraphFileCalleeOpAttrStore.mockImplementation(() => ({
+        find: vi.fn().mockResolvedValue(null),
+      }));
+    });
+
+    it('skips callee branch when isDiff is true', async () => {
+      gd.calleeOpMagic = 7;
+      gd.calleeOpSubgraphId = 1;
+
+      await (SingleGraphHandler as any).postInitMessages(mockServer, gd, {}, true);
+
+      expect(mockFind).not.toHaveBeenCalled();
+      expect(mockServer.setRef).toHaveBeenCalledWith('FuncTree', {
+        entry: 'first-exec',
+        fsPath: '/test/graph.json',
+        curPath: ['first-exec'],
+      });
+    });
+
+    it('skips callee branch when calleeOpMagic is missing', async () => {
+      await (SingleGraphHandler as any).postInitMessages(mockServer, gd, {}, false);
+
+      expect(mockFind).not.toHaveBeenCalled();
+      const calls = mockServer.setRef.mock.calls.filter(([key]: any[]) => key === 'CalleeOpAttrMap');
+      expect(calls).toHaveLength(0);
+    });
+
+    it('queries store and sets CalleeOpAttrMap with deduped ioperands when data found', async () => {
+      gd.calleeOpMagic = 7;
+      gd.calleeOpSubgraphId = 2;
+      gd.isUsedDB = true;
+      mockFind.mockResolvedValue({ op_attr: 'attr-json', ioperands: '["t1","t2","t1"]' });
+
+      await (SingleGraphHandler as any).postInitMessages(mockServer, gd, {}, false);
+
+      expect(mockFind).toHaveBeenCalledWith({ calleehash: 'func-hash', opMagic: '7', opSubgraphid: '2' });
+      expect(mockServer.setRef).toHaveBeenCalledWith('CalleeOpAttrMap', {
+        data: { calleeOpAttr: 'attr-json', opAttrIncastTensors: ['t1', 't2'] },
+      });
+    });
+
+    it('does not set CalleeOpAttrMap when store find misses', async () => {
+      gd.calleeOpMagic = 7;
+      gd.calleeOpSubgraphId = 2;
+      gd.isUsedDB = true;
+      mockFind.mockResolvedValue(null);
+
+      await (SingleGraphHandler as any).postInitMessages(mockServer, gd, {}, false);
+
+      const calls = mockServer.setRef.mock.calls.filter(([key]: any[]) => key === 'CalleeOpAttrMap');
+      expect(calls).toHaveLength(0);
+    });
+
+    it('does not query store in memory mode', async () => {
+      gd.calleeOpMagic = 7;
+      gd.calleeOpSubgraphId = 2;
+      gd.isUsedDB = false;
+
+      await (SingleGraphHandler as any).postInitMessages(mockServer, gd, {}, false);
+
+      expect(mockFind).not.toHaveBeenCalled();
+      const calls = mockServer.setRef.mock.calls.filter(([key]: any[]) => key === 'CalleeOpAttrMap');
+      expect(calls).toHaveLength(0);
+    });
+
+    it('falls back to funcHash as entry when firstExecFuncHash is empty', async () => {
+      gd.firstExecFuncHash = '';
+
+      await (SingleGraphHandler as any).postInitMessages(mockServer, gd, {}, false);
+
+      expect(mockServer.setRef).toHaveBeenCalledWith('FuncTree', {
+        entry: 'func-hash',
+        fsPath: '/test/graph.json',
+        curPath: ['func-hash'],
+      });
+      expect(mockGenerateFucTree).toHaveBeenCalled();
     });
   });
 });

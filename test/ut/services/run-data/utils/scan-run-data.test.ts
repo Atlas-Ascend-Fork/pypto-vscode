@@ -1,185 +1,415 @@
 /**
  * Copyright (c) 2025-2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * This program is free software: you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// We need to test private functions, so we'll import the module and test through public API
-// or we can test the regex pattern directly
-const RUN_DATA_DIRNAME_REG_EXP = /^rundata_(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/;
+const mockIsFileUriExists = vi.fn();
+const mockIsFilePathExists = vi.fn();
+const mockGetCmpFileList = vi.fn();
+const mockAccuracyGet = vi.fn();
+const mockAccuracySet = vi.fn();
 
-function resolveExecuteTime(directoryName: string): { titleFormat: string; datetimeFormat: string } {
-  const matches = RUN_DATA_DIRNAME_REG_EXP.exec(directoryName);
-  if (!matches) {
-    return { titleFormat: '', datetimeFormat: '' };
-  }
-  const [_, year, month, day, hour, minute, second] = matches;
-  return {
-    titleFormat: `${year}${month}${day}_${hour}${minute}${second}`,
-    datetimeFormat: `${year}-${month}-${day} ${hour}:${minute}:${second}`,
-  };
-}
+vi.mock('../../../../../src/utils/file-system', () => ({
+  isFileUriExists: (...args: unknown[]) => mockIsFileUriExists(...args),
+  isFilePathExists: (...args: unknown[]) => mockIsFilePathExists(...args),
+}));
 
-function findVerifyDir(path: string, level: number): string {
-  if (!path || typeof path !== 'string') return '';
-  const cleanPath = path.replace(/\/+$/, '');
-  const parts = cleanPath.split('/').filter(Boolean);
-  if (parts.length <= level) return '';
-  const result = parts.slice(0, -level).join('/');
-  return cleanPath.startsWith('/') ? '/' + result : result;
+vi.mock('../../../../../src/services/welcome', () => ({
+  getMockDataPath: vi.fn().mockResolvedValue('/root/mocks/graph/pass1'),
+  getProgramPath: vi.fn().mockResolvedValue('/root/mocks/program.json'),
+  getSwimPath: vi.fn().mockResolvedValue('/root/mocks/swim.json'),
+}));
+
+vi.mock('../../../../../src/common/csvReader', () => ({
+  getCmpFileList: (...args: unknown[]) => mockGetCmpFileList(...args),
+}));
+
+vi.mock('../../../../../src/core/sqliteCache', () => ({
+  SQLiteCache: {
+    getInstance: () => ({
+      accuracyToolCompListGetByComputePath: mockAccuracyGet,
+      accuracyToolCompListSet: mockAccuracySet,
+    }),
+  },
+  AccuracyToolCompList: {},
+}));
+
+import { workspace, Uri, FileType } from 'vscode';
+import {
+  readRunDataList,
+  readRunData,
+  findVerifyDir,
+  findVerifySubDir,
+} from '../../../../../src/services/run-data/utils/scan-run-data';
+
+const readDirectory = vi.mocked(workspace.fs.readDirectory);
+const readFile = vi.mocked(workspace.fs.readFile);
+
+let dirListing: Record<string, [string, number][]>;
+let fileContent: Record<string, string>;
+
+function setupFs(directories: Record<string, [string, number][]> = {}, files: Record<string, string> = {}) {
+  dirListing = directories;
+  fileContent = files;
+  readDirectory.mockImplementation(async (uri: { fsPath: string }) => {
+    const listing = dirListing[uri.fsPath];
+    if (!listing) {
+      throw new Error('ENOENT');
+    }
+    return listing as [string, import('vscode').FileType][];
+  });
+  readFile.mockImplementation(async (uri: { fsPath: string }) => {
+    const content = fileContent[uri.fsPath];
+    if (content === undefined) {
+      throw new Error('ENOENT');
+    }
+    return Buffer.from(content);
+  });
 }
 
 describe('run-data/utils/scan-run-data', () => {
-  describe('resolveExecuteTime', () => {
-    it('should parse valid directory name', () => {
-      const result = resolveExecuteTime('rundata_20250115143025');
-      
-      expect(result.titleFormat).toBe('20250115_143025');
-      expect(result.datetimeFormat).toBe('2025-01-15 14:30:25');
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsFileUriExists.mockResolvedValue(true);
+    mockIsFilePathExists.mockResolvedValue(true);
+    mockAccuracyGet.mockResolvedValue([]);
+    mockAccuracySet.mockResolvedValue(undefined);
+    setupFs();
+  });
+
+  describe('readRunDataList', () => {
+    it('returns empty when parent directory does not exist', async () => {
+      mockIsFileUriExists.mockResolvedValue(false);
+
+      const result = await readRunDataList(Uri.file('/root/.pypto/run'));
+
+      expect(result).toEqual([]);
+      expect(readDirectory).not.toHaveBeenCalled();
     });
 
-    it('should extract title from directory name', () => {
-      const result = resolveExecuteTime('rundata_20260821093045');
-      
-      expect(result.titleFormat).toBe('20260821_093045');
+    it('filters out files and invalid directory names', async () => {
+      setupFs({
+        '/run': [
+          ['rundata_20240102030405', FileType.Directory],
+          ['afile.json', FileType.File],
+          ['invalid_name', FileType.Directory],
+          ['rundata_bad', FileType.Directory],
+        ],
+      });
+
+      const result = await readRunDataList(Uri.file('/run'));
+
+      expect(result).toEqual([{ dirname: 'rundata_20240102030405', executeTime: '2024-01-02 03:04:05' }]);
     });
 
-    it('should format datetime correctly', () => {
-      const result = resolveExecuteTime('rundata_20261231235959');
-      
-      expect(result.datetimeFormat).toBe('2026-12-31 23:59:59');
+    it('returns directories in reverse order (newest first)', async () => {
+      setupFs({
+        '/run': [
+          ['rundata_20240101010101', FileType.Directory],
+          ['rundata_20240202020202', FileType.Directory],
+          ['rundata_20240303030303', FileType.Directory],
+        ],
+      });
+
+      const result = await readRunDataList(Uri.file('/run'));
+
+      expect(result.map((item) => item.dirname)).toEqual([
+        'rundata_20240303030303',
+        'rundata_20240202020202',
+        'rundata_20240101010101',
+      ]);
     });
 
-    it('should handle invalid directory name format', () => {
-      const result = resolveExecuteTime('invalid_dir_name');
-      
-      expect(result.titleFormat).toBe('');
-      expect(result.datetimeFormat).toBe('');
+    it('limits result to 5000 entries', async () => {
+      const entries: [string, number][] = Array.from({ length: 5001 }, (_, i) => [
+        `rundata_20240102${String(i).padStart(6, '0')}`,
+        FileType.Directory,
+      ]);
+      setupFs({ '/run': entries });
+
+      const result = await readRunDataList(Uri.file('/run'));
+
+      expect(result).toHaveLength(5000);
+    });
+  });
+
+  describe('readRunData', () => {
+    const runUri = Uri.file('/root/rundata_20240102030405');
+
+    it('returns undefined when directory cannot be read', async () => {
+      const result = await readRunData(Uri.file('/root/missing'));
+
+      expect(result).toBeUndefined();
     });
 
-    it('should handle missing timestamp', () => {
-      const result = resolveExecuteTime('rundata_');
-      
-      expect(result.titleFormat).toBe('');
-      expect(result.datetimeFormat).toBe('');
+    it('returns undefined when rundata.json is missing', async () => {
+      setupFs({ '/root/rundata_20240102030405': [['other.txt', FileType.File]] });
+
+      const result = await readRunData(runUri);
+
+      expect(result).toBeUndefined();
     });
 
-    it('should handle partial timestamp', () => {
-      const result = resolveExecuteTime('rundata_20250115');
-      
-      expect(result.titleFormat).toBe('');
-      expect(result.datetimeFormat).toBe('');
+    it('returns undefined when runtype is missing', async () => {
+      setupFs(
+        { '/root/rundata_20240102030405': [['rundata.json', FileType.File]] },
+        { '/root/rundata_20240102030405/rundata.json': JSON.stringify({ pto_src_file: '/src/main.py' }) },
+      );
+
+      const result = await readRunData(runUri);
+
+      expect(result).toBeUndefined();
     });
 
-    it('should handle directory name with extra suffix', () => {
-      const result = resolveExecuteTime('rundata_20250115143025_extra');
-      
-      expect(result.titleFormat).toBe('20250115_143025');
-      expect(result.datetimeFormat).toBe('2025-01-15 14:30:25');
+    it('returns undefined when directory name does not encode execute time', async () => {
+      setupFs(
+        { '/root/not_a_rundata': [['rundata.json', FileType.File]] },
+        { '/root/not_a_rundata/rundata.json': JSON.stringify({ runtype: 'pass', pto_src_file: '/src/main.py' }) },
+      );
+
+      const result = await readRunData(Uri.file('/root/not_a_rundata'));
+
+      expect(result).toBeUndefined();
     });
 
-    it('should handle empty string', () => {
-      const result = resolveExecuteTime('');
-      
-      expect(result.titleFormat).toBe('');
-      expect(result.datetimeFormat).toBe('');
+    it('returns undefined when no display item is configured', async () => {
+      setupFs(
+        { '/root/rundata_20240102030405': [['rundata.json', FileType.File]] },
+        { '/root/rundata_20240102030405/rundata.json': JSON.stringify({ runtype: 'pass' }) },
+      );
+
+      const result = await readRunData(runUri);
+
+      expect(result).toBeUndefined();
+    });
+
+    it('builds record from rundata.json with existing files', async () => {
+      setupFs(
+        { '/root/rundata_20240102030405': [['rundata.json', FileType.File]] },
+        {
+          '/root/rundata_20240102030405/rundata.json': JSON.stringify({
+            runtype: 'pass',
+            pto_src_file: '/src/main.py',
+            program_file: '/src/program.json',
+            flow_verify_path: '/root/verify1',
+          }),
+        },
+      );
+
+      const result = await readRunData(runUri);
+
+      expect(result).toMatchObject({
+        title: 'pass_20240102_030405',
+        executeTime: '2024-01-02 03:04:05',
+        directoryPath: '/root/rundata_20240102030405',
+        sourceFilePath: '/src/main.py',
+        controlFlowFilePath: '/src/program.json',
+        flowVerifyPath: '/root/verify1',
+      });
+    });
+
+    it('nulls out file paths that do not exist', async () => {
+      mockIsFilePathExists.mockResolvedValue(false);
+      setupFs(
+        { '/root/rundata_20240102030405': [['rundata.json', FileType.File]] },
+        {
+          '/root/rundata_20240102030405/rundata.json': JSON.stringify({
+            runtype: 'pass',
+            pto_src_file: '/src/main.py',
+            swim_graph_path: '/src/swim.json',
+          }),
+        },
+      );
+
+      const result = await readRunData(runUri);
+
+      expect(result?.sourceFilePath).toBeNull();
+      expect(result?.swimlaneGraphFilePath).toBeNull();
+    });
+
+    it('augments boot steps rundata with mock sample paths', async () => {
+      setupFs(
+        {
+          '/root/rundata_20240102030405': [['rundata_boot_steps.json', FileType.File]],
+          '/root/mocks': [['other', FileType.Directory]],
+        },
+        {
+          '/root/rundata_20240102030405/rundata_boot_steps.json': JSON.stringify({
+            runtype: 'boot',
+            compute_graph_path: '/original/graph',
+          }),
+        },
+      );
+
+      const result = await readRunData(runUri);
+
+      expect(result?.computeGraphDirPath).toBe('/root/mocks/graph/pass1');
+      expect(result?.controlFlowFilePath).toBe('/root/mocks/program.json');
+      expect(result?.swimlaneGraphFilePath).toBe('/root/mocks/swim.json');
+    });
+  });
+
+  describe('ope/task check discovery', () => {
+    it('reports no checks when neither verify path nor compute graph dir exists', async () => {
+      setupFs(
+        { '/root/rundata_20240102030405': [['rundata.json', FileType.File]] },
+        {
+          '/root/rundata_20240102030405/rundata.json': JSON.stringify({
+            runtype: 'pass',
+            pto_src_file: '/src/main.py',
+          }),
+        },
+      );
+
+      const result = await readRunData(Uri.file('/root/rundata_20240102030405'));
+
+      expect(result?.hasOpeCheck).toBe(false);
+      expect(result?.opeCheckDirPath).toBeNull();
+      expect(result?.hasTaskCheck).toBe(false);
+      expect(result?.taskCheckDirPath).toBeNull();
+    });
+
+    it('merges cached and new opcheck cmp files', async () => {
+      setupFs(
+        {
+          '/root/rundata_20240102030405': [['rundata.json', FileType.File]],
+          '/root/verify1': [['verify_graph_result_cmp_a.csv', FileType.File]],
+        },
+        {
+          '/root/rundata_20240102030405/rundata.json': JSON.stringify({
+            runtype: 'pass',
+            flow_verify_path: '/root/verify1',
+          }),
+        },
+      );
+      mockAccuracyGet.mockResolvedValue([{ file_path: 'cached.csv' }]);
+      mockGetCmpFileList.mockResolvedValue(['cached.csv', 'new1.csv']);
+
+      const result = await readRunData(Uri.file('/root/rundata_20240102030405'));
+
+      expect(mockAccuracyGet).toHaveBeenCalledWith('/root/verify1_opcheck');
+      expect(mockGetCmpFileList).toHaveBeenCalledWith('/root/verify1', 'opcheck');
+      expect(mockAccuracySet).toHaveBeenCalledWith('/root/verify1_opcheck', [
+        { file_path: 'new1.csv', first_req: '-1', compute_path: '/root/verify1_opcheck' },
+      ]);
+      expect(result?.hasOpeCheck).toBe(true);
+      expect(result?.opeCheckDirPath).toEqual([{ file_path: 'cached.csv' }, { file_path: 'new1.csv', first_req: '-1', compute_path: '/root/verify1_opcheck' }]);
+    });
+
+    it('keeps cached opcheck list when no cmp file present', async () => {
+      setupFs(
+        {
+          '/root/rundata_20240102030405': [['rundata.json', FileType.File]],
+          '/root/verify1': [['other.csv', FileType.File]],
+        },
+        {
+          '/root/rundata_20240102030405/rundata.json': JSON.stringify({
+            runtype: 'pass',
+            flow_verify_path: '/root/verify1',
+          }),
+        },
+      );
+      mockAccuracyGet.mockResolvedValue([{ file_path: 'cached.csv' }]);
+
+      const result = await readRunData(Uri.file('/root/rundata_20240102030405'));
+
+      expect(result?.hasOpeCheck).toBe(true);
+      expect(result?.opeCheckDirPath).toEqual([{ file_path: 'cached.csv' }]);
+      expect(mockGetCmpFileList).not.toHaveBeenCalled();
+    });
+
+    it('falls back to cached list when verify dir cannot be read', async () => {
+      setupFs(
+        { '/root/rundata_20240102030405': [['rundata.json', FileType.File]] },
+        {
+          '/root/rundata_20240102030405/rundata.json': JSON.stringify({
+            runtype: 'pass',
+            flow_verify_path: '/root/gone',
+          }),
+        },
+      );
+      mockAccuracyGet.mockResolvedValue([{ file_path: 'cached.csv' }]);
+
+      const result = await readRunData(Uri.file('/root/rundata_20240102030405'));
+
+      expect(result?.hasOpeCheck).toBe(true);
+      expect(result?.opeCheckDirPath).toEqual([{ file_path: 'cached.csv' }]);
+    });
+
+    it('resolves verify dir from compute graph path when flow verify missing', async () => {
+      setupFs(
+        {
+          '/root/rundata_20240102030405': [['rundata.json', FileType.File]],
+          '/root/run1': [['verify', FileType.Directory]],
+          '/root/run1/verify': [['verify_task_result_cmp_t.csv', FileType.File]],
+        },
+        {
+          '/root/rundata_20240102030405/rundata.json': JSON.stringify({
+            runtype: 'pass',
+            compute_graph_path: '/root/run1/graph/pass1',
+          }),
+        },
+      );
+      mockGetCmpFileList.mockResolvedValue(['task1.csv']);
+
+      const result = await readRunData(Uri.file('/root/rundata_20240102030405'));
+
+      expect(mockAccuracyGet).toHaveBeenCalledWith('/root/run1/verify_taskcheck');
+      expect(mockGetCmpFileList).toHaveBeenCalledWith('/root/run1/verify', 'taskcheck');
+      expect(mockAccuracySet).toHaveBeenCalledWith('/root/run1/verify_taskcheck', [
+        { file_path: 'task1.csv', first_req: '-1', compute_path: '/root/run1/verify_taskcheck' },
+      ]);
+      expect(result?.hasTaskCheck).toBe(true);
+      expect(result?.taskCheckDirPath).toHaveLength(1);
+      expect(result?.hasOpeCheck).toBe(false);
     });
   });
 
   describe('findVerifyDir', () => {
-    it('should navigate up N levels from path', () => {
-      const result = findVerifyDir('/path/to/deep/directory', 2);
-      
-      expect(result).toBe('/path/to');
+    it('returns empty string for empty or non-string path', () => {
+      expect(findVerifyDir('', 2)).toBe('');
+      expect(findVerifyDir(undefined as unknown as string, 2)).toBe('');
     });
 
-    it('should return empty string if path is too short', () => {
-      const result = findVerifyDir('/path', 2);
-      
-      expect(result).toBe('');
+    it('strips trailing slashes before splitting', () => {
+      expect(findVerifyDir('/a/b/c/d/', 2)).toBe('/a/b');
     });
 
-    it('should handle level 0 (return root for absolute paths)', () => {
-      const result = findVerifyDir('/path/to/directory', 0);
-      
-      // When level is 0, slice(0, -0) returns empty array, so result is '/'
-      expect(result).toBe('/');
+    it('returns empty when path depth does not exceed level', () => {
+      expect(findVerifyDir('a/b/c', 5)).toBe('');
     });
 
-    it('should handle Windows paths', () => {
-      const result = findVerifyDir('C:/path/to/directory', 1);
-      
-      expect(result).toBe('C:/path/to');
+    it('returns relative path without leading slash when input is relative', () => {
+      expect(findVerifyDir('a/b/c', 1)).toBe('a/b');
+    });
+  });
+
+  describe('findVerifySubDir', () => {
+    it('returns first verify-prefixed subdirectory', async () => {
+      setupFs({
+        '/parent': [
+          ['other', FileType.Directory],
+          ['verify_v2', FileType.Directory],
+          ['verify_file.json', FileType.File],
+        ],
+      });
+
+      const result = await findVerifySubDir('/parent');
+
+      expect(result).toBe('/parent/verify_v2');
     });
 
-    it('should handle Unix paths', () => {
-      const result = findVerifyDir('/home/user/project/output', 2);
-      
-      expect(result).toBe('/home/user');
-    });
+    it('returns empty string when no verify subdirectory exists', async () => {
+      setupFs({ '/parent': [['other', FileType.Directory]] });
 
-    it('should handle trailing slashes', () => {
-      const result = findVerifyDir('/path/to/directory/', 1);
-      
-      expect(result).toBe('/path/to');
-    });
+      const result = await findVerifySubDir('/parent');
 
-    it('should handle multiple trailing slashes', () => {
-      const result = findVerifyDir('/path/to/directory///', 1);
-      
-      expect(result).toBe('/path/to');
-    });
-
-    it('should handle empty path', () => {
-      const result = findVerifyDir('', 1);
-      
-      expect(result).toBe('');
-    });
-
-    it('should handle null path', () => {
-      const result = findVerifyDir(null as any, 1);
-      
-      expect(result).toBe('');
-    });
-
-    it('should handle undefined path', () => {
-      const result = findVerifyDir(undefined as any, 1);
-      
-      expect(result).toBe('');
-    });
-
-    it('should handle non-string path', () => {
-      const result = findVerifyDir(123 as any, 1);
-      
-      expect(result).toBe('');
-    });
-
-    it('should handle path with only root', () => {
-      const result = findVerifyDir('/', 1);
-      
-      expect(result).toBe('');
-    });
-
-    it('should handle relative paths', () => {
-      const result = findVerifyDir('path/to/directory', 1);
-      
-      expect(result).toBe('path/to');
-    });
-
-    it('should handle level equal to path depth', () => {
-      const result = findVerifyDir('/path/to', 2);
-      
-      expect(result).toBe('');
-    });
-
-    it('should handle level greater than path depth', () => {
-      const result = findVerifyDir('/path', 5);
-      
       expect(result).toBe('');
     });
   });
