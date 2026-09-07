@@ -12,6 +12,7 @@
   "PyPTOToolkit.connectionLevel.description": "configuration the max connection level on the swimlane(-1: disabled)",
   "PyPTOToolkit.showPerformancePanel.description": "Whether to display the performance statistics panel by default when opening the swimlane graph.",
   "PyPTOToolkit.showIsMixMode.description": "Whether to set to mix mode by default when opening the swimlane graph.",
+  "PyPTOToolkit.enableNativeLayout.description": "Use the native OGDF layout engine first for the compute graph (enabled by default). If it fails, fall back to the ELK layout automatically. Uncheck to use the ELK layout. Changing this setting clears the existing layout cache.",
   "pypto.selectComGraph": "Select the corresponding Compute Graph JSON file",
   "pypto.noFileSelect": "No file select.",
   "pypto.emptyNodeList": "Node linked but undefined",

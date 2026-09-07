@@ -47,8 +47,8 @@ export type ReturnErrorFn = (
 /**
  * 布局主入口。
  * 根据配置选择原生 OGDF 布局或 elk 布局。
- * 1. 若 enableNativeLayout 开启，优先尝试 native 布局
- * 2. native 失败或未开启，回退到 elk 布局（含缓存）
+ * 1. enableNativeLayout 默认开启，优先尝试 native 布局
+ * 2. native 失败或用户取消勾选，回退到 elk 布局（含缓存）
  */
 export async function layout(
   gd: any,
@@ -56,7 +56,7 @@ export async function layout(
   getComGraphData: GetComGraphDataFn,
   globalCallInOutTensorMap: Map<any, any>,
 ): Promise<void> {
-  const enableNativeLayout = workspace.getConfiguration('PyPTOToolkitOpen').get<boolean>('enableNativeLayout', false);
+  const enableNativeLayout = workspace.getConfiguration('PyPTOToolkitOpen').get<boolean>('enableNativeLayout', true);
 
   if (enableNativeLayout) {
     const nativeStart = performance.now();

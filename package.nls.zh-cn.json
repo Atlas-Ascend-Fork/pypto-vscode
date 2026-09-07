@@ -12,6 +12,7 @@
   "PyPTOToolkit.connectionLevel.description": "配置泳道图最大显示层级(-1: 表示不使能)",
   "PyPTOToolkit.showPerformancePanel.description": "打开泳道图时是否默认显示性能统计面板",
   "PyPTOToolkit.showIsMixMode.description": "打开泳道图时是否默认为mix模式",
+  "PyPTOToolkit.enableNativeLayout.description": "计算图优先使用本地原生(OGDF)布局引擎（默认开启），失败时自动回退ELK布局。取消勾选则使用ELK布局。切换该配置会自动清理已有布局缓存。",
   "pypto.selectComGraph": "请选择要绑定的计算图json文件",
   "pypto.noFileSelect": "没有选择文件",
   "pypto.emptyNodeList": "当前节点仅有引用而无定义",
