@@ -101,13 +101,6 @@ const getScheduleKey = (event) => {
   return match ? `SCHED-${match.groups.num}` : '';
 };
 
-const TimeWithUsUint = (time) => {
-  const nanoseconds = time;
-  const microseconds = nanoseconds / 1000;
-  const timeWithUint = microseconds.toFixed(1) + 'μs';
-  return timeWithUint;
-};
-
 const aicpuFormatTimeWithUnit = (timeInNanoseconds) => {
   const nanoseconds = (timeInNanoseconds * 1000) / tsScale.value;
   const microseconds = nanoseconds / 1000;
@@ -135,15 +128,26 @@ const aicpuFormatTimeWithUnit = (timeInNanoseconds) => {
 
 watch(canvasclickedEvent, (newEvent) => {
   if (newEvent) {
-    startTimeInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.startTime - viewState.minTime).value;
-    startTimeUnitInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.startTime - viewState.minTime).unit;
-    endTimeInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.endTime - viewState.minTime).value;
-    endTimeUnitInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.endTime - viewState.minTime).unit;
-    durationInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.duration).value;
-    durationUnitInfo.value = aicpuFormatTimeWithUnit(canvasclickedEvent.value.duration).unit;
-    startTipTimeInfo.value = TimeWithUsUint(canvasclickedEvent.value.startTime - viewState.minTime);
-    endTipTimeInfo.value = TimeWithUsUint(canvasclickedEvent.value.endTime - viewState.minTime);
-    durationTipTimeInfo.value = TimeWithUsUint(canvasclickedEvent.value.duration);
+    const startFormatted = aicpuFormatTimeWithUnit(canvasclickedEvent.value.startTime - viewState.minTime);
+    const durationFormatted = aicpuFormatTimeWithUnit(canvasclickedEvent.value.duration);
+
+    startTimeInfo.value = startFormatted.value;
+    startTimeUnitInfo.value = startFormatted.unit;
+    durationInfo.value = durationFormatted.value;
+    durationUnitInfo.value = durationFormatted.unit;
+
+    if (startFormatted.unit && startFormatted.unit === durationFormatted.unit) {
+      endTimeInfo.value = parseFloat((startFormatted.value + durationFormatted.value).toFixed(2));
+      endTimeUnitInfo.value = startFormatted.unit;
+    } else {
+      const endFormatted = aicpuFormatTimeWithUnit(canvasclickedEvent.value.endTime - viewState.minTime);
+      endTimeInfo.value = endFormatted.value;
+      endTimeUnitInfo.value = endFormatted.unit;
+    }
+
+    startTipTimeInfo.value = startFormatted.value + startFormatted.unit;
+    durationTipTimeInfo.value = durationFormatted.value + durationFormatted.unit;
+    endTipTimeInfo.value = endTimeInfo.value + endTimeUnitInfo.value;
   }
 });
 
