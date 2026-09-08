@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
   pull_request_comment:
     types: [created]
-    branches: [ '*' ]
+    branches: [ '**' ]
     comments: [ '^(?:\/)?compile*' ]
   pr_comment:
     types: [ created ]
@@ -22,9 +22,9 @@ env:
   org_name: ${{ vars.ORG_NAME }}
   repo_name: ${{ atomgit.event.repository.name}}
   MERGE_ID: ${{ atomgit.event.pull_request.number }}
-  TARGET_BRANCH: ${{ atomgit.base_ref }}
+  TARGET_BRANCH: ${{ atomgit.ref_name }}
   SOURCE_BRANCH: ${{ atomgit.head_ref }}
-  obs_path: "${{ vars.OBS_PATH }}/${{ env.MERGE_ID }}"
+  obs_path: "${{ env.org_name }}/${{ env.repo_name }}/ci/package/${{ env.MERGE_ID }}"
   online: ${{ vars.APPLY_LABEL }}
 
 stages:
@@ -68,7 +68,19 @@ stages:
     pre:
     - type: auto
     fail-fast: false
-
+  stage3:
+    name: UT
+    select: selected_by_default
+    jobs:
+      UT_Test:
+        name: UT_Test
+        uses: .gitcode/workflows/llt_action.yml
+        with:
+          ut_type: 'ts'
+          task_name: 'UT_Test'
+          image_version: ${{ jobs.JOB_image.outputs.UT_Test }}
+    pre:
+    - type: auto
 
 post:
   jobs:
