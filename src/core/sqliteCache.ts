@@ -154,9 +154,10 @@ export class SQLiteCache {
   private async open() {
     await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(this.dbFile)));
 
-    const SQL = await initSqlJs({
-      locateFile: () => path.join(__dirname, '..', 'node_modules', 'sql.js', 'sql-wasm.wasm'),
-    });
+    // 不传 locateFile：emscripten 在 node 环境默认从 sql.js 模块所在目录（node_modules/sql.js/dist/）解析 wasm，
+    // 源码模式与 VSIX 打包（node_modules 随包分发）下均真实存在。
+    // 旧实现指向 dist/node_modules/sql.js/sql-wasm.wasm，该位置仅由 build/copy-wasm.js 隐式落位，属脆弱的跨文件约定。
+    const SQL = await initSqlJs();
 
     let buf: Uint8Array | undefined;
     try {

@@ -79,12 +79,19 @@ export abstract class GraphData {
     const fileStream = createReadStream(fsPath);
     const jsonParser = parser();
     const valuesStreamer = streamValues();
-    // 错误统一收集
+    // 错误统一收集，并销毁下游流，让异步迭代器立即抛出（否则文件缺失时迭代器会永久挂起）
     let streamError: Error | null = null;
+    const collectError = (code: string) => (err: Error) => {
+      // 保留首个错误（根因），销毁引发的下游 error 事件不再覆盖错误码
+      if (!streamError) {
+        streamError = Object.assign(err, { code });
+      }
+      valuesStreamer.destroy(streamError);
+    };
 
-    fileStream.on('error', (err) => streamError = Object.assign(err, { code: 'FILE_READ_ERROR' }));
-    jsonParser.on('error', (err) => streamError = Object.assign(err, { code: 'JSON_PARSE_ERROR' }));
-    valuesStreamer.on('error', (err) => streamError = Object.assign(err, { code: 'STREAM_PROCESSING_ERROR' }));
+    fileStream.on('error', collectError('FILE_READ_ERROR'));
+    jsonParser.on('error', collectError('JSON_PARSE_ERROR'));
+    valuesStreamer.on('error', collectError('STREAM_PROCESSING_ERROR'));
 
     try {
       const pipelineStream = fileStream.pipe(jsonParser).pipe(valuesStreamer);

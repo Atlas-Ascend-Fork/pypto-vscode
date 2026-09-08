@@ -116,6 +116,33 @@ describe('MemoryTraceServer', () => {
     expect(server.getRef('InitMemoryTraceFlag')).toBe('true');
   });
 
+  it('getInitialData completes initialization without throwing when _path is undefined', async () => {
+    const { server } = createServer({});
+
+    await server.getInitialData();
+
+    expect(MemoryTraceHandler.parse).not.toHaveBeenCalled();
+    expect(MemoryTraceHandler.getMetadata).not.toHaveBeenCalled();
+    expect(server.getRef('InitMemoryTraceFlag')).toBe('true');
+  });
+
+  it('getInitialData completes initialization without throwing when query is missing', async () => {
+    const ctx = {
+      viewType: 'memoryTrace',
+      fileUri: { fsPath: '/test/trace.json', query: undefined },
+      init: vi.fn(),
+      setRef: vi.fn(),
+      closeWebview: vi.fn(),
+    };
+    const server = new MemoryTraceServer(ctx as any);
+    server.query = undefined;
+
+    await server.getInitialData();
+
+    expect(MemoryTraceHandler.parse).not.toHaveBeenCalled();
+    expect(server.getRef('InitMemoryTraceFlag')).toBe('true');
+  });
+
   it('getMetadata sets Metadata ref', async () => {
     const { server } = createServer();
 

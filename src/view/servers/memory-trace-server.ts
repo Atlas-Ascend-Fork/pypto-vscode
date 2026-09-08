@@ -30,17 +30,20 @@ export class MemoryTraceServer extends ViewServer<import('./view-server-interfac
 
   @viewApi()
   public getInitialData = async () => {
-    let fsPath = this.query._path;
+    let fsPath = this.query?._path;
+    // _path 缺失（如非内存追踪入口打开）时直接完成初始化，避免 undefined.replace 抛 TypeError
+    if (!fsPath) {
+      this.setRef('InitMemoryTraceFlag', 'true');
+      return;
+    }
     if (!/_OoO_Memory_Trace\.json$/.test(fsPath)) {
       fsPath = fsPath.replace(/\.json$/, '_OoO_Memory_Trace.json');
     }
-    if (fsPath) {
-      console.log('[MemoryTrace] Step 2: Loading file:', fsPath);
-      await MemoryTraceHandler.parse(fsPath);
-      const metadata = await MemoryTraceHandler.getMetadata(this.query._path);
-      this.setRef('Metadata', metadata);
-      console.log('[MemoryTrace] Step 3: Data loaded');
-    }
+    console.log('[MemoryTrace] Step 2: Loading file:', fsPath);
+    await MemoryTraceHandler.parse(fsPath);
+    const metadata = await MemoryTraceHandler.getMetadata(this.query._path);
+    this.setRef('Metadata', metadata);
+    console.log('[MemoryTrace] Step 3: Data loaded');
     this.setRef('InitMemoryTraceFlag', 'true');
   };
 

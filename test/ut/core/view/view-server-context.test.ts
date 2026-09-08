@@ -106,6 +106,32 @@ describe('view-server-context', () => {
       });
     });
 
+    it('should reply with an error response for undeclared apis instead of rejecting', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      @viewRefs([])
+      class EmptyServer extends ViewServer<any, any> {}
+
+      const ctx = makeViewServerContext(mockWebviewPanel, 'testView');
+      const server = new EmptyServer(ctx);
+      ctx.init.call(server);
+
+      const dispatch = (message: any) =>
+        Promise.allSettled((mockWebview as any)._callbacks.map((cb: any) => cb(message)));
+
+      await dispatch({ channel: '__connector__', data: 'viewServerApi' });
+      await dispatch({ channel: 'viewServerApi', data: { api: 'nope', requestId: 'r2', params: [] } });
+
+      const responses = vi
+        .mocked(mockWebview.postMessage)
+        .mock.calls.map((args: any[]) => args[0])
+        .filter((msg) => msg?.channel === 'viewServerApi');
+      expect(responses).toEqual([
+        { channel: 'viewServerApi', data: { requestId: 'r2', response: undefined, error: expect.stringContaining('未声明接口nope') } },
+      ]);
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+
     it('should stream ReadableStream responses chunk by chunk', async () => {
       @viewRefs([])
       class StreamServer extends ViewServer<any, any> {

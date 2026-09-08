@@ -128,7 +128,7 @@ async function installPythonDependencies(dependencies: string[], outputChannel: 
       outputChannel.appendLine(`\n==================== ${t('PyPTOToolkit.welcome.runPython.Installation.results')} ====================`);
       if (installFailed || code !== 0) {
         outputChannel.appendLine(
-          `install err(${code || 'undefined'})\n${t('PyPTOToolkit.welcome.runPython.Installation.solution')}:${pythonCmd} ${pipArgs.join(
+          `install err(${code ?? 'undefined'})\n${t('PyPTOToolkit.welcome.runPython.Installation.solution')}:${pythonCmd} ${pipArgs.join(
             ' ',
           )}`,
         );

@@ -192,6 +192,14 @@ describe('graphData', () => {
       expect(Object.keys(data.dataMap)).toEqual(['h1']);
       expect(data.funcHashMap.h2).toBeDefined();
     });
+
+    it('propagates FILE_READ_ERROR instead of hanging when file is missing', async () => {
+      const data = new SingleGraphData(nodePath.join(tmpDir, 'missing.json'), undefined);
+
+      await expect((data as any).readWithStream(nodePath.join(tmpDir, 'missing.json'))).rejects.toMatchObject({
+        code: 'FILE_READ_ERROR',
+      });
+    }, 10000);
   });
 
   describe('getCompleteData', () => {

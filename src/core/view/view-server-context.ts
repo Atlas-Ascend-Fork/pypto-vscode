@@ -87,6 +87,8 @@ export type ViewServerApiResponse = ViewServerApiCommonResponse | ViewServerApiS
 interface ViewServerApiCommonResponse {
   requestId: string;
   response: unknown;
+  /** 服务端执行异常时的错误信息（前端可据此时完成挂起的请求，而非等待至超时） */
+  error?: string;
 }
 
 /**
@@ -117,11 +119,18 @@ export interface ViewServerApiMessage {
 function initApiConnector(webview: Webview, instance: ViewServer<never, {}>): SingleWebviewConnector {
   const apiConnector = new SingleWebviewConnector<ViewServerApiResponse, ViewServerApiMessage>('viewServerApi', webview, receive);
   async function receive({ api, requestId, params }): Promise<void> {
-    if (!serverHasApi(instance, api)) {
-      throw new Error(`视图类${instance.constructor.name}中未声明接口${api}，请使用 @viewApi 补充声明`);
+    try {
+      if (!serverHasApi(instance, api)) {
+        throw new Error(`视图类${instance.constructor.name}中未声明接口${api}，请使用 @viewApi 补充声明`);
+      }
+      const response = await instance[api].call(instance, ...params);
+      sendResponse(requestId, response);
+    } catch (error) {
+      // 派发侧为 fire-and-forget，此处必须兜底：回传错误响应让前端挂起的请求得以完成，
+      // 同时避免 unhandled rejection（与 request-server 的错误处理方式保持一致）
+      console.error(`[ViewServer] API ${api} 执行失败：`, error);
+      apiConnector.send({ requestId, response: undefined, error: (error as Error)?.message ?? String(error) });
     }
-    const response = await instance[api].call(instance, ...params);
-    sendResponse(requestId, response);
   }
 
   /**

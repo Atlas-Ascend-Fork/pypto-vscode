@@ -210,7 +210,7 @@ describe('welcome/run-python', () => {
 
       const logged = mockChannel.appendLine.mock.calls.map((args: any[]) => args[0]).join('\n');
       expect(logged).toContain('[PyPTOToolkit.welcome.runPython.Installation.error] ERROR: could not find a version');
-      expect(logged).toContain('install err(undefined)');
+      expect(logged).toContain('install err(0)');
     });
 
     it('marks install failed on non-zero exit code', async () => {
