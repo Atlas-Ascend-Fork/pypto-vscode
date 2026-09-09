@@ -3281,7 +3281,7 @@ const calculateThreadHeadTime = (events)=> {
       }
       i++;
     }
-    const remainingHeadTime = collectFirstValidRoundHeadTime(events.slice(i));
+    const remainingHeadTime = calculateThreadHeadTime(events.slice(i));
     return headTime + remainingHeadTime;
   }
 
