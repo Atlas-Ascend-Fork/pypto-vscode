@@ -854,8 +854,11 @@ const collectLastValidRoundTailTime = (events) => {
   let validRound = -1;
   for (let i = kernelIndex + 1; i < events.length; i++) {
     if (!isKernelEvent(events[i])) {
-      validRound = extractEventIndex(events[i].name || '');
-      break;
+      const round = extractEventIndex(events[i].name || '');
+      if (round !== -1) {
+        validRound = round;
+        break;
+      }
     }
   }
 
@@ -866,7 +869,7 @@ const collectLastValidRoundTailTime = (events) => {
   let tailTime = 0;
   for (let i = kernelIndex + 1; i < events.length; i++) {
     const eventRound = extractEventIndex(events[i].name || '');
-    if (eventRound !== validRound) {
+    if (eventRound !== -1 && eventRound !== validRound) {
       break;
     }
     if (!isKernelEvent(events[i])) {
@@ -922,6 +925,8 @@ const calculateDevice = () => {
   const aicAivThreadInfo = [];
   let firstValidThreadEvents = null;
   let lastValidThreadEvents = null;
+  let minKernelStartTime = 0;
+  let maxKernelEndTime = 0;
 
   for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
     for (const threadInfo of Array.from(processInfo.threads.values())) {
@@ -948,11 +953,19 @@ const calculateDevice = () => {
       if (isAicOrAiv) {
         const hasKernel = hasKernelEventInThread(events);
         aicAivThreadInfo.push({ hasKernel, events });
-        if (hasKernel && firstValidThreadEvents === null) {
-          firstValidThreadEvents = events;
-        }
         if (hasKernel) {
-          lastValidThreadEvents = events;
+          for (const event of events) {
+            if (isKernelEvent(event)) {
+              if (firstValidThreadEvents === null || event.startTime < minKernelStartTime) {
+                minKernelStartTime = event.startTime;
+                firstValidThreadEvents = events;
+              }
+              if (lastValidThreadEvents === null || event.endTime > maxKernelEndTime) {
+                maxKernelEndTime = event.endTime;
+                lastValidThreadEvents = events;
+              }
+            }
+          }
         }
       }
     }

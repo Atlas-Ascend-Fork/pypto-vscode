@@ -3142,50 +3142,234 @@ const isKernelEvent = (event) => {
   return !(event.originalThreadName !== undefined && event.originalThreadName !== null);
 };
 
-const calculateThreadHeadTime = (events)=> {
-  let headTime = 0;
-  const hasKernelEvent = events.some(event => isKernelEvent(event));
-  if (!hasKernelEvent) {
-    return 0;
+const extractEventIndex = (eventName) => {
+  if (!eventName) {
+    return -1;
   }
-  let firstKernelIndex = -1;
-  for (let i = 0; i < events.length; i++) {
-    if (isKernelEvent(events[i])) {
-      firstKernelIndex = i;
+  const match = eventName.match(/\((\d+)\)$/);
+  return match ? parseInt(match[1], 10) : -1;
+};
+
+
+const isBeginOrInitEvent = (eventName) => {
+  if (!eventName) {
+    return false;
+  }
+  return eventName.startsWith('BEGIN') || eventName.startsWith('INIT');
+};
+
+const hasKernelInRound = (events, startIndex, currentRound) => {
+  for (let i = startIndex; i < events.length; i++) {
+    const eventRound = extractEventIndex(events[i].name || '');
+    if (eventRound !== -1 && eventRound !== currentRound) {
       break;
     }
+    if (isKernelEvent(events[i])) {
+      return true;
+    }
   }
-  for (let i = 0; i < firstKernelIndex; i++) {
-    headTime += events[i].duration || (events[i].endTime - events[i].startTime);
+  return false;
+};
+
+const collectSortedEvents = (threadInfo) => {
+  const events = [];
+  for (const eventId of threadInfo.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (!event) {
+      continue;
+    }
+    events.push(event);
   }
+  events.sort((a, b) => a.startTime - b.startTime);
+  return events;
+};
+
+const firstEventFound = (events) => {
+  let isFirst = false;
+  let earlastEvent;
+  if (!events || events.length === 0) {
+    return false;
+  }
+  for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
+    for (const threadInfo of Array.from(processInfo.threads.values())) {
+      const { threadName } = threadInfo;
+      if (threadName === events[0].threadName) {
+        const allEvent = collectSortedEvents(threadInfo);
+        for (const event of allEvent) {
+          if (isKernelEvent(event)) {
+            earlastEvent = event;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (earlastEvent) {
+    const isContained = events.some(event => event.name === earlastEvent.name);
+    if (isContained) {
+      isFirst = true;
+    }
+  }
+
+  return isFirst;
+};
+
+const lastEventFound = (events) => {
+  let isLast = false;
+  let lastKernelEvent;
+  if (!events || events.length === 0) {
+    return false;
+  }
+  for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
+    for (const threadInfo of Array.from(processInfo.threads.values())) {
+      const { threadName } = threadInfo;
+      if (threadName === events[0].threadName) {
+        const allEvent = collectSortedEvents(threadInfo);
+        for (const event of allEvent) {
+          if (isKernelEvent(event)) {
+            lastKernelEvent = event;
+          }
+        }
+      }
+    }
+  }
+
+  if (lastKernelEvent) {
+    const isContained = events.some(event => event.name === lastKernelEvent.name);
+    if (isContained) {
+      isLast = true;
+    }
+  }
+
+  return isLast;
+};
+
+const calculateThreadHeadTime = (events)=> {
+  let isFirst = firstEventFound(events);
+  if (!isFirst) {
+    return 0;
+  }
+  let i = 0;
+
+  let headTime = 0;
+  while (i < events.length && isBeginOrInitEvent(events[i].name || '')) {
+    headTime += events[i].duration || 0;
+    i++;
+  }
+
+  if (i >= events.length) {
+    return 0;
+  }
+
+  const firstRound = extractEventIndex(events[i].name || '');
+  if (firstRound === -1) {
+    if (isKernelEvent(events[i])) {
+      return headTime;
+    }
+    return headTime + (events[i].duration || 0);
+  }
+
+  if (!hasKernelInRound(events, i, firstRound)) {
+    while (i < events.length) {
+      const currentRound = extractEventIndex(events[i].name || '');
+      if (currentRound !== firstRound) {
+        break;
+      }
+      if (!isKernelEvent(events[i])) {
+        headTime += events[i].duration || 0;
+      }
+      i++;
+    }
+    const remainingHeadTime = collectFirstValidRoundHeadTime(events.slice(i));
+    return headTime + remainingHeadTime;
+  }
+
+  for (let j = i; j < events.length; j++) {
+    const eventRound = extractEventIndex(events[j].name || '');
+    if (eventRound !== -1 && eventRound !== firstRound) {
+      break;
+    }
+    if (isKernelEvent(events[j])) {
+      break;
+    }
+    headTime += events[j].duration || 0;
+  }
+
   return headTime;
 };
 
 const calculateThreadTailTime = (events) => {
-  let tailTime = 0;
-  const hasKernelEvent = events.some(event => isKernelEvent(event));
-  if (!hasKernelEvent) {
+  let isLast = lastEventFound(events);
+  if (!isLast) {
     return 0;
   }
-  let lastKernelIndex = -1;
+  if (events.length === 0) {
+    return 0;
+  }
+
+  let kernelIndex = -1;
   for (let i = events.length - 1; i >= 0; i--) {
     if (isKernelEvent(events[i])) {
-      lastKernelIndex = i;
+      kernelIndex = i;
       break;
     }
   }
-  for (let i = lastKernelIndex + 1; i < events.length; i++) {
-    tailTime += events[i].duration || (events[i].endTime - events[i].startTime);
+
+  if (kernelIndex === -1) {
+    return 0;
   }
+
+  let validRound = -1;
+  for (let i = kernelIndex + 1; i < events.length; i++) {
+    if (!isKernelEvent(events[i])) {
+      const round = extractEventIndex(events[i].name || '');
+      if (round !== -1) {
+        validRound = round;
+        break;
+      }
+    }
+  }
+
+  if (validRound === -1) {
+    return 0;
+  }
+
+  let tailTime = 0;
+  for (let i = kernelIndex + 1; i < events.length; i++) {
+    const eventRound = extractEventIndex(events[i].name || '');
+    if (eventRound !== -1 && eventRound !== validRound) {
+      break;
+    }
+    if (!isKernelEvent(events[i])) {
+      tailTime += events[i].duration || 0;
+    }
+  }
+
   return tailTime;
 };
 
 const calculateAndAddCoreWaitTime = (aicpuThreadEvents, coreWaitEvents, startTime, endTime) => {
   let coreWaitTime = 0;
 
+  let earliestKernelThreadEvents = null;
+  let minKernelStartTime = Infinity;
+
   for (const threadEvents of aicpuThreadEvents) {
     const sortedEvents = [...threadEvents].sort((a, b) => a.startTime - b.startTime);
-    coreWaitTime += calculateThreadHeadTime(sortedEvents);
+    for (const event of sortedEvents) {
+      if (isKernelEvent(event)) {
+        if (event.startTime < minKernelStartTime) {
+          minKernelStartTime = event.startTime;
+          earliestKernelThreadEvents = sortedEvents;
+        }
+        break;
+      }
+    }
+  }
+
+  if (earliestKernelThreadEvents) {
+    coreWaitTime = calculateThreadHeadTime(earliestKernelThreadEvents);
   }
 
   if (measureDetailsData.value.length > 0) {
@@ -3246,9 +3430,24 @@ const calculateDeviceDataMap = (coreWaitEvents, startTime, endTime) => {
 const calculateAndAddCoreExecutTime = (aicpuThreadEvents, startTime, endTime) => {
   let coreExecutTime = 0;
 
+  let latestKernelThreadEvents = null;
+  let maxKernelEndTime = 0;
+
   for (const threadEvents of aicpuThreadEvents) {
     const sortedEvents = [...threadEvents].sort((a, b) => a.startTime - b.startTime);
-    coreExecutTime += calculateThreadTailTime(sortedEvents);
+    for (let i = sortedEvents.length - 1; i >= 0; i--) {
+      if (isKernelEvent(sortedEvents[i])) {
+        if (sortedEvents[i].endTime > maxKernelEndTime) {
+          maxKernelEndTime = sortedEvents[i].endTime;
+          latestKernelThreadEvents = sortedEvents;
+        }
+        break;
+      }
+    }
+  }
+
+  if (latestKernelThreadEvents) {
+    coreExecutTime = calculateThreadTailTime(latestKernelThreadEvents);
   }
 
   if (measureDetailsData.value.length > 0) {
