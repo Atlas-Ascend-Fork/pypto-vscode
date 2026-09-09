@@ -324,24 +324,29 @@ export async function syncRunDataFiles(rundataJsonPath: string): Promise<{ allSy
 const syncedRunDataDirs = new Set<string>();
 
 /**
+ * 判断记录是否已无任何可用数据文件（含 opcheck/taskcheck 检测结果）。
+ * 记录中的路径字段经 readRunData 的存在性过滤：本地不存在的路径（如远端源码路径）为 null。
+ */
+function isAllDataFilesMissing(record: OutputRecord): boolean {
+  const hasFilePath = [record.sourceFilePath, record.controlFlowFilePath, record.swimlaneGraphFilePath, record.computeGraphDirPath].some(Boolean);
+  return !hasFilePath && !record.hasOpeCheck && !record.hasTaskCheck;
+}
+
+/**
  * 尝试同步并刷新记录：检查缺失文件 → 同步 → 刷新缓存
- * 只有全部同步成功才标记为已同步
+ * 只有全部同步成功才标记为已同步；无论是否同步，只要 rundata.json 存在就重读缓存以获取最新存在状态
  */
 async function trySyncAndRefresh(directoryPath: string): Promise<OutputRecord | undefined> {
   const rundataJsonPath = path.join(directoryPath, 'rundata.json');
   if (!fs.existsSync(rundataJsonPath)) {
     return undefined;
   }
-  if (syncedRunDataDirs.has(directoryPath)) {
-    return undefined;
-  }
-  if (!hasMissingRunDataFiles(rundataJsonPath)) {
-    return undefined;
-  }
   try {
-    const { allSynced } = await syncRunDataFiles(rundataJsonPath);
-    if (allSynced) {
-      syncedRunDataDirs.add(directoryPath);
+    if (!syncedRunDataDirs.has(directoryPath) && hasMissingRunDataFiles(rundataJsonPath)) {
+      const { allSynced } = await syncRunDataFiles(rundataJsonPath);
+      if (allSynced) {
+        syncedRunDataDirs.add(directoryPath);
+      }
     }
     return await useService('runData').refreshOutputRecord(directoryPath);
   } catch (err) {
@@ -351,10 +356,11 @@ async function trySyncAndRefresh(directoryPath: string): Promise<OutputRecord | 
 }
 
 /**
- * 刷新后同步列表第一条（最新）记录的数据文件，并按原逻辑重新缓存
+ * 刷新后同步列表第一条（最新）记录的数据文件，并按原逻辑重新缓存。
+ * 仅在第一条记录已无任何可用数据文件时触发（避免每次刷新都对部分缺文件的记录做无谓重读）
  */
 async function syncFirstRunDataFiles(firstRecord: OutputRecord | undefined): Promise<OutputRecord | undefined> {
-  if (!firstRecord) {
+  if (!firstRecord || !isAllDataFilesMissing(firstRecord)) {
     return undefined;
   }
   return trySyncAndRefresh(firstRecord.directoryPath);
@@ -453,28 +459,30 @@ export interface GetOutputDetailRes {
 }
 
 /**
- * 获取运行结果详情（缓存有数据文件时直接使用缓存；有缺失文件时尝试同步，已完全同步的直接使用缓存）
+ * 获取运行结果详情（缓存有数据文件时直接使用缓存；记录无任何可用数据文件时尝试同步后重读）。
+ * 注意：以记录字段（经本地存在性过滤）为准，而非 rundata.json 原始路径——
+ * 远端专有路径（如源码文件）在本地不存在不影响打开，只要仍有任一可用数据文件即可展示
  */
 export async function fetchRunDataDetail({ outputDirPath }: GetOutputDetailParams): Promise<GetOutputDetailRes> {
   const runDataService = useService('runData');
-  const rundataJsonPath = path.join(outputDirPath, 'rundata.json');
-  
-  // Step 1: 读缓存，有数据且无缺失文件 → 直接使用
+
+  // Step 1: 读缓存，记录存在且尚有可用数据文件时直接使用
   const record = await runDataService.getOutputRecord(outputDirPath);
-  if (record && !hasMissingRunDataFiles(rundataJsonPath)) {
+  if (record && !isAllDataFilesMissing(record)) {
     const detail = await runDataService.getOutputDetail(outputDirPath);
     return { data: detail ?? null };
   }
-  
-  // Step 2: 有缺失文件 → 直接尝试同步
-  await trySyncAndRefresh(outputDirPath);
-  
-  // Step 3: 同步后检查是否还有缺失
-  if (hasMissingRunDataFiles(rundataJsonPath)) {
+
+  // Step 2: 缓存无可用数据文件 → 尝试同步缺失文件并强制重读（Windows 等无法同步的环境退化为仅重读）
+  const refreshedRecord = await trySyncAndRefresh(outputDirPath);
+
+  // Step 3: 重读后仍无任何可用数据文件 → 提示未找到
+  const finalRecord = refreshedRecord ?? record;
+  if (!finalRecord || isAllDataFilesMissing(finalRecord)) {
     vscode.window.showWarningMessage(t('pypto.remoteTool.filesNotFound'));
     return { data: null };
   }
-  
+
   const detail = await runDataService.getOutputDetail(outputDirPath);
   return { data: detail ?? null };
 }

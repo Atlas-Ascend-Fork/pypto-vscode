@@ -128,16 +128,21 @@ describe('run-data/api', () => {
       expect(result.data).toBe(mockDetail);
     });
 
-    it('should return cached detail when all rundata files exist', async () => {
-      const mockRecord = { title: 'run1' };
+    it('opens with partial data when some rundata paths are remote-only (windows regression)', async () => {
+      // 回归场景：pto_src_file 为远端源码路径（本地不存在），但控制流文件已同步到本地
+      // 旧逻辑（rundata.json 原始路径判断）会误报"未找到对应数据文件"，应按记录字段判断
+      const mockRecord = { title: 'run1', controlFlowFilePath: '/local/program.json' };
       const mockDetail = { title: 'run1', directoryTree: { children: [] } };
       mockRunDataService.getOutputRecord.mockResolvedValue(mockRecord);
       mockRunDataService.getOutputDetail.mockResolvedValue(mockDetail);
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/run-all/source.json' }));
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json') || String(p).endsWith('program.json'));
+      mockReadFileSync.mockReturnValue(
+        JSON.stringify({ pto_src_file: '/remote/source.py', program_file: '/local/program.json' }),
+      );
 
-      const result = await fetchRunDataDetail({ outputDirPath: '/test/run-all' });
+      const result = await fetchRunDataDetail({ outputDirPath: '/test/run1' });
 
+      expect(mockExec).not.toHaveBeenCalled();
       expect(mockRunDataService.refreshOutputRecord).not.toHaveBeenCalled();
       expect(result.data).toBe(mockDetail);
     });
@@ -168,7 +173,24 @@ describe('run-data/api', () => {
       expect(result.data).toBe(mockDetail);
     });
 
-    it('should return null with filesNotFound when files still missing after sync attempt on windows', async () => {
+    it('should re-read and return detail when cache is stale but files now exist (windows)', async () => {
+      // 缓存记录无数据文件，但文件现已存在（如手动拷贝到位）→ 强制重读后应正常打开
+      const staleRecord = { title: 'run1' };
+      const refreshedRecord = { title: 'run1', sourceFilePath: '/local/now-exists.json' };
+      const mockDetail = { title: 'run1', directoryTree: { children: [] } };
+      mockRunDataService.getOutputRecord.mockResolvedValue(staleRecord);
+      mockRunDataService.refreshOutputRecord.mockResolvedValue(refreshedRecord);
+      mockRunDataService.getOutputDetail.mockResolvedValue(mockDetail);
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/local/now-exists.json' }));
+
+      const result = await fetchRunDataDetail({ outputDirPath: '/test/run-stale' });
+
+      expect(mockRunDataService.refreshOutputRecord).toHaveBeenCalledWith('/test/run-stale');
+      expect(result.data).toBe(mockDetail);
+    });
+
+    it('should return null with filesNotFound when no data files exist after sync attempt on windows', async () => {
       const mockRecord = { title: 'run1' };
       mockRunDataService.getOutputRecord.mockResolvedValue(mockRecord);
       mockRunDataService.refreshOutputRecord.mockResolvedValue(mockRecord);
