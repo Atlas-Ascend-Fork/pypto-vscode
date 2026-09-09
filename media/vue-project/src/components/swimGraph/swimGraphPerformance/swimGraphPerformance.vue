@@ -163,7 +163,7 @@
           <div class="aicore-container-column" :style="{gap: deviceContainerColumnGap + 'px'}">
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
-                <d-tooltip :content="$t('AICPUExecution')">
+                <d-tooltip :content="$t('AICPUExecution', {AICPUExecutionUint})">
                   <div class="task-title">{{ $t('AICPUExecution', {AICPUExecutionUint}) }}</div>
                 </d-tooltip>
               </div>
@@ -179,7 +179,7 @@
           <div class="aicore-container-column" :style="{height: 46 + 'px', marginTop: 8 + 'px', gap: deviceContainerColumnGap + 'px'}">
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
-                <d-tooltip :content="$t('AICPUOverhead')">
+                <d-tooltip :content="$t('AICPUOverhead', {AICPUOverheadUint})">
                   <div class="task-title">{{ $t('AICPUOverhead', {AICPUOverheadUint}) }}</div>
                 </d-tooltip>
                 <d-tooltip :content="$t('AICPUOverheadTip')">
@@ -190,7 +190,7 @@
             </div>
             <div class="task-item-container" :style="{width: innerContainerWidth + 'px'}">
               <div class="task-title-container">
-                <d-tooltip :content="$t('AICPUTail')">
+                <d-tooltip :content="$t('AICPUTail', {AICPUTailUint})">
                   <div class="task-title">{{ $t('AICPUTail', {AICPUTailUint}) }}</div>
                 </d-tooltip>
                 <d-tooltip :content="$t('AICPUTailTip')">
@@ -752,8 +752,8 @@ const extractEventIndex = (eventName) => {
   if (!eventName) {
     return -1;
   }
-  const match = eventName.match(/_(?<index>\d+)\(/);
-  return match ? parseInt(match.groups.index, 10) : -1;
+  const match = eventName.match(/\((\d+)\)$/);
+  return match ? parseInt(match[1], 10) : -1;
 };
 
 const isAicpuEvent = (event) => {
@@ -766,141 +766,115 @@ const isKernelEvent = (event) => {
 
 const isBeginOrInitEvent = (eventName) => {
   if (!eventName) {
-    return -1;
+    return false;
   }
   return eventName.startsWith('BEGIN') || eventName.startsWith('INIT');
 };
 
-const collectBeginInitEventsTime = (events) => {
-  let headTime = 0;
-  const hasKernelEvent = events.some(event => isKernelEvent(event));
-  if (!hasKernelEvent) {
-    return { headTime, hasKernelEvent };
-  }
-  for (const event of events) {
-    if (isKernelEvent(event)) {
-      break;
-    }
-    const eventName = event.name || '';
-    if (isBeginOrInitEvent(eventName)) {
-      headTime += event.duration || 0;
-    }
-  }
-  return { headTime, hasKernelEvent };
-};
-
-const findFirstKernelIndex = (events, startIndex, currentRound) => {
+const hasKernelInRound = (events, startIndex, currentRound) => {
   for (let i = startIndex; i < events.length; i++) {
     const eventRound = extractEventIndex(events[i].name || '');
-    if (isKernelEvent(events[i])) {
-      return i;
-    }
     if (eventRound !== -1 && eventRound !== currentRound) {
       break;
     }
-  }
-  return -1;
-};
-
-const findLastKernelIndex = (events, firstKernelIndex, currentRound) => {
-  let lastKernelIndex = firstKernelIndex;
-  for (let i = firstKernelIndex + 1; i < events.length; i++) {
-    const eventRound = extractEventIndex(events[i].name || '');
     if (isKernelEvent(events[i])) {
-      lastKernelIndex = i;
-    }
-    if (eventRound !== -1 && eventRound !== currentRound) {
-      break;
+      return true;
     }
   }
-  return lastKernelIndex;
+  return false;
 };
 
-const collectHeadTimeBeforeKernel = (events, startIndex, firstKernelIndex, currentRound) => {
+const collectFirstValidRoundHeadTime = (events) => {
+  let i = 0;
+
   let headTime = 0;
-  for (let i = startIndex; i < firstKernelIndex; i++) {
-    const eventRound = extractEventIndex(events[i].name || '');
-    if (eventRound === -1 || eventRound === currentRound) {
-      headTime += events[i].duration || 0;
-    }
+  while (i < events.length && isBeginOrInitEvent(events[i].name || '')) {
+    headTime += events[i].duration || 0;
+    i++;
   }
+
+  if (i >= events.length) {
+    return 0;
+  }
+
+  const firstRound = extractEventIndex(events[i].name || '');
+  if (firstRound === -1) {
+    if (isKernelEvent(events[i])) {
+      return headTime;
+    }
+    return headTime + (events[i].duration || 0);
+  }
+
+  if (!hasKernelInRound(events, i, firstRound)) {
+    while (i < events.length) {
+      const currentRound = extractEventIndex(events[i].name || '');
+      if (currentRound !== firstRound) {
+        break;
+      }
+      if (!isKernelEvent(events[i])) {
+        headTime += events[i].duration || 0;
+      }
+      i++;
+    }
+    const remainingHeadTime = collectFirstValidRoundHeadTime(events.slice(i));
+    return headTime + remainingHeadTime;
+  }
+
+  for (let j = i; j < events.length; j++) {
+    const eventRound = extractEventIndex(events[j].name || '');
+    if (eventRound !== -1 && eventRound !== firstRound) {
+      break;
+    }
+    if (isKernelEvent(events[j])) {
+      break;
+    }
+    headTime += events[j].duration || 0;
+  }
+
   return headTime;
 };
 
-const collectTailTimeAfterKernel = (events, lastKernelIndex, currentRound) => {
+const collectLastValidRoundTailTime = (events) => {
+  if (events.length === 0) {
+    return 0;
+  }
+
+  let kernelIndex = -1;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (isKernelEvent(events[i])) {
+      kernelIndex = i;
+      break;
+    }
+  }
+
+  if (kernelIndex === -1) {
+    return 0;
+  }
+
+  let validRound = -1;
+  for (let i = kernelIndex + 1; i < events.length; i++) {
+    if (!isKernelEvent(events[i])) {
+      validRound = extractEventIndex(events[i].name || '');
+      break;
+    }
+  }
+
+  if (validRound === -1) {
+    return 0;
+  }
+
   let tailTime = 0;
-  for (let i = lastKernelIndex + 1; i < events.length; i++) {
+  for (let i = kernelIndex + 1; i < events.length; i++) {
     const eventRound = extractEventIndex(events[i].name || '');
-    if (isKernelEvent(events[i])) {
+    if (eventRound !== validRound) {
       break;
     }
-    if (eventRound !== -1 && eventRound !== currentRound) {
-      break;
+    if (!isKernelEvent(events[i])) {
+      tailTime += events[i].duration || 0;
     }
-    tailTime += events[i].duration || 0;
   }
+
   return tailTime;
-};
-
-const skipToNextRound = (events, currentIndex, currentRound) => {
-  let i = currentIndex;
-  while (i < events.length) {
-    if (isKernelEvent(events[i])) {
-      i++;
-      continue;
-    }
-    const eventRound = extractEventIndex(events[i].name || '');
-    if (eventRound !== -1 && eventRound !== currentRound) {
-      break;
-    }
-    i++;
-  }
-  return i;
-};
-
-const processAicAivThread = (events) => {
-  let threadHeadTime = 0;
-  let threadTailTime = 0;
-
-  const { headTime, hasKernelEvent } = collectBeginInitEventsTime(events);
-  threadHeadTime += headTime;
-
-  let i = 0;
-  while (i < events.length) {
-    if (isKernelEvent(events[i])) {
-      i++;
-      continue;
-    }
-    const eventName = events[i].name || '';
-
-    if (hasKernelEvent && isBeginOrInitEvent(eventName)) {
-      i++;
-      continue;
-    }
-
-    const currentRound = extractEventIndex(eventName);
-    if (currentRound === -1) {
-      i++;
-      continue;
-    }
-
-    const firstKernelIndex = findFirstKernelIndex(events, i, currentRound);
-
-    if (firstKernelIndex === -1) {
-      i = skipToNextRound(events, i, currentRound);
-      continue;
-    }
-
-    threadHeadTime += collectHeadTimeBeforeKernel(events, i, firstKernelIndex, currentRound);
-
-    const lastKernelIndex = findLastKernelIndex(events, firstKernelIndex, currentRound);
-
-    threadTailTime += collectTailTimeAfterKernel(events, lastKernelIndex, currentRound);
-
-    i = skipToNextRound(events, lastKernelIndex + 1, currentRound);
-  }
-
-  return { beforeHeadTime: threadHeadTime, afterHeadTime: threadTailTime };
 };
 
 const calculateDeviceBarMetrics = (beforeHead, afterHead) => {
@@ -931,12 +905,23 @@ const calculateDeviceBarMetrics = (beforeHead, afterHead) => {
   }
 };
 
+const hasKernelEventInThread = (events) => {
+  for (const event of events) {
+    if (isKernelEvent(event)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const calculateDevice = () => {
   let aicpuExecutionTimeSum = 0;
   let aicpuSchedExecTimeSum = 0;
   let aicpuSchedThreadCount = 0;
-  let aicpuBeforeHeadTimeSum = 0;
-  let aicpuAfterHeadTimeSum = 0;
+
+  const aicAivThreadInfo = [];
+  let firstValidThreadEvents = null;
+  let lastValidThreadEvents = null;
 
   for (const [processKey, processInfo] of Array.from(swimDataManager.processInfo.entries())) {
     for (const threadInfo of Array.from(processInfo.threads.values())) {
@@ -961,9 +946,14 @@ const calculateDevice = () => {
         aicpuSchedThreadCount += aicpuResult.schedThreadCount;
       }
       if (isAicOrAiv) {
-        const aicAivResult = processAicAivThread(events);
-        aicpuBeforeHeadTimeSum += aicAivResult.beforeHeadTime;
-        aicpuAfterHeadTimeSum += aicAivResult.afterHeadTime;
+        const hasKernel = hasKernelEventInThread(events);
+        aicAivThreadInfo.push({ hasKernel, events });
+        if (hasKernel && firstValidThreadEvents === null) {
+          firstValidThreadEvents = events;
+        }
+        if (hasKernel) {
+          lastValidThreadEvents = events;
+        }
       }
     }
   }
@@ -978,13 +968,24 @@ const calculateDevice = () => {
     AICPUExecutionRate.value = '--';
   }
 
-  AICPUBeforeHeadTime.value = parseFloat((aicpuBeforeHeadTimeSum / tsScale.value).toFixed(2));
-  AICPUAfterHeadTime.value = parseFloat((aicpuAfterHeadTimeSum / tsScale.value).toFixed(2));
+  let firstThreadHeadTime = 0;
+  let lastThreadTailTime = 0;
+
+  if (firstValidThreadEvents !== null) {
+    firstThreadHeadTime = collectFirstValidRoundHeadTime(firstValidThreadEvents);
+  }
+
+  if (lastValidThreadEvents !== null) {
+    lastThreadTailTime = collectLastValidRoundTailTime(lastValidThreadEvents);
+  }
+
+  AICPUBeforeHeadTime.value = parseFloat((firstThreadHeadTime / tsScale.value).toFixed(2));
+  AICPUAfterHeadTime.value = parseFloat((lastThreadTailTime / tsScale.value).toFixed(2));
   AICPUOverheadUint.value = formatTimeUnit(AICPUBeforeHeadTime.value);
   AICPUTailUint.value = formatTimeUnit(AICPUAfterHeadTime.value);
 
-  const beforeHead = aicpuBeforeHeadTimeSum / tsScale.value;
-  const afterHead = aicpuAfterHeadTimeSum / tsScale.value;
+  const beforeHead = AICPUBeforeHeadTime.value;
+  const afterHead = AICPUAfterHeadTime.value;
   calculateDeviceBarMetrics(beforeHead, afterHead);
 };
 
