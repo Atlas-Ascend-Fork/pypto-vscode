@@ -123,7 +123,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getOutputDetail, getRunDataList, deleteRunData } from '@/apis/workspace';
+import { fetchRunDataDetail, getRunDataList, deleteRunData } from '@/apis/workspace';
 import { DevUITreeNode } from '@/components/sideBar/types/sidebarModle';
 import { Message } from 'vue-devui/message';
 import { openComputeGraph, openControlFlow, openSwimlaneGraph, openOpCheck, openTaskCheck } from '@/apis/opener';
@@ -137,7 +137,7 @@ import { getWelcomeState } from '@/apis/welcome';
 
 type OutputRecords = Awaited<ReturnType<typeof getRunDataList>>['data'];
 
-type DirectoryTree = Awaited<ReturnType<typeof getOutputDetail>>['data']['directoryTree'];
+type DirectoryTree = Awaited<ReturnType<typeof fetchRunDataDetail>>['data']['directoryTree'];
 const sortDown = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_down.svg`);
 const sortUp = ref(`${window.staticPath}/static-assets/control_flow_sidebar_sort_up.svg`);
 const { t } = useI18n();
@@ -231,7 +231,7 @@ function transformChild(
  * 获取根节点（运行结果记录）的子节点，每次展开重新请求详情，无数据时每次提示
  */
 async function fetchRootNodeChildren(rootNode: DevUITreeNode): Promise<DevUITreeNode[]> {
-  const detail = await getOutputDetail(rootNode.directoryPath);
+  const detail = await fetchRunDataDetail(rootNode.directoryPath);
   // 无数据（文件可能已删除，扩展侧已提示）：返回空，由调用方收起节点
   if (!detail.data) {
     return [];

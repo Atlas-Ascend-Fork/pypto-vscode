@@ -156,7 +156,7 @@ export class SQLiteCache {
 
     // 不传 locateFile：emscripten 在 node 环境默认从 sql.js 模块所在目录（node_modules/sql.js/dist/）解析 wasm，
     // 源码模式与 VSIX 打包（node_modules 随包分发）下均真实存在。
-    // 旧实现指向 dist/node_modules/sql.js/sql-wasm.wasm，该位置仅由 build/copy-wasm.js 隐式落位，属脆弱的跨文件约定。
+    // 旧实现指向 dist/node_modules/sql.js/sql-wasm.wasm，该位置仅由已移除的 copy-wasm 构建脚本隐式落位，属脆弱的跨文件约定。
     const SQL = await initSqlJs();
 
     let buf: Uint8Array | undefined;

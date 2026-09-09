@@ -26,27 +26,33 @@ function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-function getUserHome(): string | undefined {
-  return process.env.PYPTO_HOME || process.env.HOME || process.env.USERPROFILE;
+function getExitCodeDescription(exitCode: number): string {
+  const descriptions: Record<number, string> = {
+    0: t('pypto.remoteTool.exitCode0') ?? 'Success',
+    2: t('pypto.remoteTool.exitCode2') ?? 'Server error (Pod IP or NPU boot failed)',
+    3: t('pypto.remoteTool.exitCode3') ?? 'SSH connection error',
+    4: t('pypto.remoteTool.exitCode4') ?? 'Data sync failed',
+    5: t('pypto.remoteTool.exitCode5') ?? 'Configuration error (token read failed)',
+    6: t('pypto.remoteTool.exitCode6') ?? 'Invalid parameters',
+    7: t('pypto.remoteTool.exitCode7') ?? 'Remote command execution failed',
+    10: t('pypto.remoteTool.exitCode10') ?? 'Unknown error',
+  };
+  return descriptions[exitCode] ?? (t('pypto.remoteTool.exitCode10') ?? 'Unknown error');
 }
 
-function getWorkspaceOrFallback(fallbackPath: string): string {
-  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || path.dirname(fallbackPath);
+function getUserHome(): string | undefined {
+  return process.env.PYPTO_HOME || process.env.HOME || process.env.USERPROFILE;
 }
 
 async function checkRemoteToolEnv(): Promise<boolean> {
   if (os.platform() !== 'linux') {
     return false;
   }
-  const envCheck = await new Promise<boolean>((resolve) => {
+  return new Promise<boolean>((resolve) => {
     exec('remote_tool.sh -h', { encoding: 'utf8', timeout: 5000 }, (error) => {
       resolve(!error);
     });
   });
-  if (!envCheck) {
-    return false;
-  }
-  return true;
 }
 
 async function executeRemoteCommand(execCommand: string, progressTitle: string): Promise<ExecResult> {
@@ -91,6 +97,61 @@ function parseRunDataFilePaths(rundataJsonPath: string): string[] | null {
   return filePaths;
 }
 
+/** 检查 rundata.json 中是否有缺失的文件或文件夹 */
+function hasMissingRunDataFiles(rundataJsonPath: string): boolean {
+  const allPaths = parseRunDataFilePaths(rundataJsonPath);
+  if (!allPaths) {
+    return false;
+  }
+  return allPaths.some((p) => !fs.existsSync(p));
+}
+
+/** 将路径分类为文件和文件夹 */
+function classifyPaths(paths: string[]): { files: string[]; folders: string[] } {
+  const files: string[] = [];
+  const folders: string[] = [];
+  
+  for (const p of paths) {
+    if (fs.existsSync(p)) {
+      // 路径存在，使用 stat 判断
+      const stat = fs.statSync(p);
+      if (stat.isDirectory()) {
+        folders.push(p);
+      } else {
+        files.push(p);
+      }
+    } else {
+      // 路径不存在，根据特征推断
+      // 有扩展名视为文件，无扩展名或以 / 结尾视为文件夹
+      if (p.endsWith('/') || !path.extname(p)) {
+        folders.push(p);
+      } else {
+        files.push(p);
+      }
+    }
+  }
+  
+  return { files, folders };
+}
+
+/** 动态构建同步消息，避免显示 "0 files" 或 "0 folders" */
+function buildSyncMessage(
+  filesKey: string,
+  foldersKey: string,
+  bothKey: string,
+  fileCount: number,
+  folderCount: number,
+  extraVars?: Record<string, any>
+): string {
+  if (fileCount > 0 && folderCount > 0) {
+    return t(bothKey, { files: fileCount, folders: folderCount, ...extraVars }) ?? '';
+  } else if (fileCount > 0) {
+    return t(filesKey, { count: fileCount, ...extraVars }) ?? '';
+  } else {
+    return t(foldersKey, { count: folderCount, ...extraVars }) ?? '';
+  }
+}
+
 function getSyncPaths(): string | null {
   const userHome = getUserHome();
   if (!userHome) {
@@ -100,27 +161,83 @@ function getSyncPaths(): string | null {
   return userHome;
 }
 
-function showRemoteDataResult(result: ExecResult): void {
+async function showMessageWithCopyCommand(
+  message: string,
+  command: string,
+  severity: 'error' | 'warning'
+): Promise<void> {
+  const copyBtn = t('pypto.remoteTool.copyCommand') ?? 'Copy Command';
+  const viewLogBtn = t('pypto.remoteTool.viewLog') ?? 'View Log';
+  const showFn = severity === 'error' ? vscode.window.showErrorMessage : vscode.window.showWarningMessage;
+  const action = await showFn(message, copyBtn, viewLogBtn);
+  if (action === copyBtn) {
+    await vscode.env.clipboard.writeText(command);
+    vscode.window.showInformationMessage(t('pypto.remoteTool.commandCopied') ?? 'Command copied to clipboard');
+  } else if (action === viewLogBtn) {
+    const logUri = vscode.Uri.file('/opt/log/remote_tool.log');
+    try {
+      const doc = await vscode.workspace.openTextDocument(logUri);
+      await vscode.window.showTextDocument(doc);
+    } catch (err) {
+      vscode.window.showErrorMessage(t('pypto.remoteTool.logNotFound') ?? 'Log file not found: /opt/log/remote_tool.log');
+    }
+  }
+}
+
+function showRemoteDataResult(result: ExecResult, command: string): void {
   if (result.success) {
     vscode.window.showInformationMessage(t('pypto.remoteTool.execSuccess'));
   } else {
-    vscode.window.showErrorMessage(
-      t('pypto.remoteTool.execFailed', { exitCode: result.exitCode, stderr: result.stderr || 'Unknown error' }),
+    showMessageWithCopyCommand(
+      t('pypto.remoteTool.execFailed', { exitCode: result.exitCode, stderr: result.stderr || 'Unknown error' }) ?? '',
+      command,
+      'error'
     );
   }
 }
 
-function showSyncFilesResult(result: ExecResult, syncedCount: number, totalCount: number): void {
-  if (!result.success) {
-    vscode.window.showErrorMessage(
-      t('pypto.remoteTool.syncFilesFailed', { count: totalCount, exitCode: result.exitCode, stderr: result.stderr || 'Unknown error' }),
+function showSyncFilesResult(
+  result: ExecResult,
+  totalFiles: number,
+  totalFolders: number,
+  syncedFiles: number,
+  syncedFolders: number,
+  command: string
+): void {
+  const allSuccess = syncedFiles === totalFiles && syncedFolders === totalFolders;
+  const allFailed = syncedFiles === 0 && syncedFolders === 0;
+  
+  if (allSuccess) {
+    const msg = buildSyncMessage(
+      'pypto.remoteTool.syncSuccessFiles',
+      'pypto.remoteTool.syncSuccessFolders',
+      'pypto.remoteTool.syncSuccessFilesAndFolders',
+      syncedFiles,
+      syncedFolders
     );
-    return;
-  }
-  if (syncedCount === totalCount) {
-    vscode.window.showInformationMessage(t('pypto.remoteTool.syncFilesSuccess', { count: syncedCount }));
+    vscode.window.showInformationMessage(msg);
+  } else if (allFailed) {
+    const exitDesc = getExitCodeDescription(result.exitCode);
+    const errorMsg = result.stderr ? `${exitDesc} - ${result.stderr}` : exitDesc;
+    const msg = buildSyncMessage(
+      'pypto.remoteTool.syncFailedFiles',
+      'pypto.remoteTool.syncFailedFolders',
+      'pypto.remoteTool.syncFailedFilesAndFolders',
+      totalFiles,
+      totalFolders,
+      { exitCode: result.exitCode, stderr: errorMsg }
+    );
+    showMessageWithCopyCommand(msg, command, 'error');
   } else {
-    vscode.window.showWarningMessage(t('pypto.remoteTool.syncFilesPartial', { synced: syncedCount, total: totalCount }));
+    const msg = buildSyncMessage(
+      'pypto.remoteTool.syncPartialFiles',
+      'pypto.remoteTool.syncPartialFolders',
+      'pypto.remoteTool.syncPartialFilesAndFolders',
+      totalFiles,
+      totalFolders,
+      { syncedFiles, syncedFolders }
+    );
+    showMessageWithCopyCommand(msg, command, 'warning');
   }
 }
 
@@ -134,74 +251,113 @@ async function syncRemoteData(): Promise<void> {
     if (!userHome) {
       return;
     }
-    const pullDir = `${userHome}/.pypto`;
-    const mkdirPaths = `${userHome}/.pypto`;
-    const execCommand = `remote_tool.sh exec --no-sync --command 'mkdir -p ${mkdirPaths}' --pull-dir '${pullDir}'`;
+    const pyptoPath = `${userHome}/.pypto`;
+    const execCommand = `remote_tool.sh exec --no-sync --command 'mkdir -p ${pyptoPath}' --pull-dir '${pyptoPath}'`;
     const progressTitle = t('pypto.remoteTool.syncing') ?? '';
     const result = await executeRemoteCommand(execCommand, progressTitle);
-    showRemoteDataResult(result);
+    showRemoteDataResult(result, execCommand);
   } catch (err) {
     console.warn('[PyPTO] Remote sync failed:', err);
   }
 }
 
-export async function syncRunDataFiles(rundataJsonPath: string): Promise<void> {
+export async function syncRunDataFiles(rundataJsonPath: string): Promise<{ allSynced: boolean }> {
   try {
     const envOk = await checkRemoteToolEnv();
     if (!envOk) {
-      return;
+      return { allSynced: false };
     }
-    const filePaths = parseRunDataFilePaths(rundataJsonPath);
-    if (!filePaths) {
-      return;
+    const allPaths = parseRunDataFilePaths(rundataJsonPath);
+    if (!allPaths) {
+      return { allSynced: false };
     }
-    const pullDir = filePaths.join(',');
-    const workspace = getWorkspaceOrFallback(rundataJsonPath);
-    const mkdirPaths = filePaths.map((fp) => path.dirname(fp)).join(' ');
+    
+    // 只同步缺失的文件（夹）
+    const missingPaths = allPaths.filter((fp) => !fs.existsSync(fp));
+    if (missingPaths.length === 0) {
+      return { allSynced: true };
+    }
+    
+    // 分类缺失的文件和文件夹
+    const { files: missingFiles, folders: missingFolders } = classifyPaths(missingPaths);
+    
+    const pullDir = missingPaths.join(',');
+    const mkdirPaths = missingPaths.map((fp) => path.dirname(fp)).join(' ');
     const execCommand = `remote_tool.sh exec --no-sync --command 'mkdir -p ${mkdirPaths}' --pull-dir '${pullDir}'`;
-    const progressTitle = t('pypto.remoteTool.syncingFiles', { count: filePaths.length }) ?? '';
+    
+    // 构建进度标题，区分文件和文件夹
+    const progressTitle = buildSyncMessage(
+      'pypto.remoteTool.syncingFiles',
+      'pypto.remoteTool.syncingFolders',
+      'pypto.remoteTool.syncingFilesAndFolders',
+      missingFiles.length,
+      missingFolders.length
+    );
+    
     const result = await executeRemoteCommand(execCommand, progressTitle);
-    const syncedCount = filePaths.filter((fp) => fs.existsSync(fp)).length;
-    showSyncFilesResult(result, syncedCount, filePaths.length);
+    
+    // 同步后检查缺失的文件（夹）是否同步成功
+    const syncedMissingFiles = missingFiles.filter((fp) => fs.existsSync(fp)).length;
+    const syncedMissingFolders = missingFolders.filter((fp) => fs.existsSync(fp)).length;
+    
+    showSyncFilesResult(
+      result, 
+      missingFiles.length,
+      missingFolders.length,
+      syncedMissingFiles,
+      syncedMissingFolders,
+      execCommand
+    );
+    
+    return { 
+      allSynced: (syncedMissingFiles === missingFiles.length) && 
+                 (syncedMissingFolders === missingFolders.length) 
+    };
   } catch (err) {
     console.error('[PyPTO] Sync rundata files failed:', err);
     vscode.window.showErrorMessage(t('pypto.remoteTool.syncFilesError', { error: getErrorMessage(err) }));
+    return { allSynced: false };
   }
 }
 
-/** 判断记录的数据文件是否全部缺失（含 opcheck/taskcheck 检测结果） */
-function isAllDataFilesMissing(record: OutputRecord): boolean {
-  const hasFilePath = [record.sourceFilePath, record.controlFlowFilePath, record.swimlaneGraphFilePath, record.computeGraphDirPath].some(Boolean);
-  return !hasFilePath && !record.hasOpeCheck && !record.hasTaskCheck;
-}
-
-/** 已尝试同步过数据文件的 rundata 目录（每次刷新重置，避免重复同步） */
+/** 已完全同步成功的 rundata 目录（所有文件都同步成功才标记，每次刷新重置） */
 const syncedRunDataDirs = new Set<string>();
+
+/**
+ * 尝试同步并刷新记录：检查缺失文件 → 同步 → 刷新缓存
+ * 只有全部同步成功才标记为已同步
+ */
+async function trySyncAndRefresh(directoryPath: string): Promise<OutputRecord | undefined> {
+  const rundataJsonPath = path.join(directoryPath, 'rundata.json');
+  if (!fs.existsSync(rundataJsonPath)) {
+    return undefined;
+  }
+  if (syncedRunDataDirs.has(directoryPath)) {
+    return undefined;
+  }
+  if (!hasMissingRunDataFiles(rundataJsonPath)) {
+    return undefined;
+  }
+  try {
+    const { allSynced } = await syncRunDataFiles(rundataJsonPath);
+    if (allSynced) {
+      syncedRunDataDirs.add(directoryPath);
+    }
+    return await useService('runData').refreshOutputRecord(directoryPath);
+  } catch (err) {
+    console.warn('[PyPTO] Sync and refresh failed:', err);
+    return undefined;
+  }
+}
 
 /**
  * 刷新后同步列表第一条（最新）记录的数据文件，并按原逻辑重新缓存
  */
 async function syncFirstRunDataFiles(firstRecord: OutputRecord | undefined): Promise<OutputRecord | undefined> {
-  if (!firstRecord || !isAllDataFilesMissing(firstRecord)) {
+  if (!firstRecord) {
     return undefined;
   }
-  const rundataJsonPath = path.join(firstRecord.directoryPath, 'rundata.json');
-  if (!fs.existsSync(rundataJsonPath)) {
-    return undefined;
-  }
-  // 静默检查环境，非目标环境直接跳过
-  if (!(await checkRemoteToolEnv())) {
-    return undefined;
-  }
-  try {
-    await syncRunDataFiles(rundataJsonPath);
-    syncedRunDataDirs.add(firstRecord.directoryPath);
-    // 同步结束后按原逻辑重新缓存
-    return await useService('runData').refreshOutputRecord(firstRecord.directoryPath);
-  } catch (err) {
-    console.warn('[PyPTO] Sync first rundata files failed:', err);
-    return undefined;
-  }
+  return trySyncAndRefresh(firstRecord.directoryPath);
 }
 
 export interface GetOutputRecordParams {
@@ -297,33 +453,28 @@ export interface GetOutputDetailRes {
 }
 
 /**
- * 获取运行结果详情（缓存有数据文件时直接使用缓存；全缺失时未同步过的尝试同步，已同步过的直接提示）
+ * 获取运行结果详情（缓存有数据文件时直接使用缓存；有缺失文件时尝试同步，已完全同步的直接使用缓存）
  */
-export async function getOutputDetail({ outputDirPath }: GetOutputDetailParams): Promise<GetOutputDetailRes> {
+export async function fetchRunDataDetail({ outputDirPath }: GetOutputDetailParams): Promise<GetOutputDetailRes> {
   const runDataService = useService('runData');
-  // 优先读缓存，缓存已有数据文件时无需重读
-  let record = await runDataService.getOutputRecord(outputDirPath);
-  if (!record || isAllDataFilesMissing(record)) {
-    // 缓存无数据文件，强制重读文件获取最新存在状态
-    record = await runDataService.refreshOutputRecord(outputDirPath);
-    if (!record || isAllDataFilesMissing(record)) {
-      // 未同步过的记录尝试同步远程文件后重读（刷新时已同步过第一条的除外）
-      const rundataJsonPath = path.join(outputDirPath, 'rundata.json');
-      let hasSynced = false;
-      if (os.platform() === 'linux' && fs.existsSync(rundataJsonPath) && !syncedRunDataDirs.has(outputDirPath)) {
-        syncedRunDataDirs.add(outputDirPath);
-        await syncRunDataFiles(rundataJsonPath);
-        hasSynced = true;
-        record = await runDataService.refreshOutputRecord(outputDirPath);
-      }
-      if (!record || isAllDataFilesMissing(record)) {
-        // 本次执行过同步仍无数据提示同步后未找到；未同步（如 Windows 环境无法执行脚本）直接提示未找到
-        const messageKey = hasSynced ? 'pypto.remoteTool.filesDeleted' : 'pypto.remoteTool.filesNotFound';
-        vscode.window.showWarningMessage(t(messageKey));
-        return { data: null };
-      }
-    }
+  const rundataJsonPath = path.join(outputDirPath, 'rundata.json');
+  
+  // Step 1: 读缓存，有数据且无缺失文件 → 直接使用
+  const record = await runDataService.getOutputRecord(outputDirPath);
+  if (record && !hasMissingRunDataFiles(rundataJsonPath)) {
+    const detail = await runDataService.getOutputDetail(outputDirPath);
+    return { data: detail ?? null };
   }
+  
+  // Step 2: 有缺失文件 → 直接尝试同步
+  await trySyncAndRefresh(outputDirPath);
+  
+  // Step 3: 同步后检查是否还有缺失
+  if (hasMissingRunDataFiles(rundataJsonPath)) {
+    vscode.window.showWarningMessage(t('pypto.remoteTool.filesNotFound'));
+    return { data: null };
+  }
+  
   const detail = await runDataService.getOutputDetail(outputDirPath);
   return { data: detail ?? null };
 }

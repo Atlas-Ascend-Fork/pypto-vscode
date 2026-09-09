@@ -88,7 +88,7 @@ import HistoryNpuIcon from './icons/history-npu-icon.vue';
 import { NavbarProvideKey } from './navbar-types';
 import type { ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass, CallLeafRecord } from '../../../../../src/types/control-flow/path';
-import { getOutputDetail } from '../../apis/workspace';
+import { fetchRunDataDetail } from '../../apis/workspace';
 import { getControlFlow, readProgramPath } from '../../apis/control-flow';
 import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
 import { findFirstPath } from './util';
@@ -141,7 +141,7 @@ watch(
     if (!outputDirPath) {
       return;
     }
-    currentRecord.value = (await getOutputDetail(outputDirPath)).data;
+    currentRecord.value = (await fetchRunDataDetail(outputDirPath)).data;
     if (currentRecord.value && props.currentStep !== 'controlFlow') {
       getControlFlow(
         { outputDirPath, controlFlowFilePath: currentRecord.value.controlFlowFilePath },

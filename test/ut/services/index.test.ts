@@ -66,7 +66,7 @@ vi.mock('../../../src/services/tmp-view-opener', () => ({
 
 vi.mock('../../../src/services/run-data/api', () => ({
   getRunDataList: vi.fn(),
-  getOutputDetail: vi.fn(),
+  fetchRunDataDetail: vi.fn(),
   getRunDataBySwimlaneGraphPath: vi.fn(),
   deleteRunData: vi.fn(),
 }));

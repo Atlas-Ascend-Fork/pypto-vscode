@@ -12,7 +12,7 @@ vi.mock('../../../../src/services/control-flow/store', () => ({
 
 const mockGetOutputDetail = vi.fn();
 vi.mock('../../../../src/services/run-data/api', () => ({
-  getOutputDetail: (...args: any[]) => mockGetOutputDetail(...args),
+  fetchRunDataDetail: (...args: any[]) => mockGetOutputDetail(...args),
 }));
 
 vi.mock('../../../../src/services/control-flow/flow-tree', () => ({

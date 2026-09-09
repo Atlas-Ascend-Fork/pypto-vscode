@@ -20,7 +20,7 @@ import {
   openSwimlaneGraph,
   openThreeColumnGraph,
 } from './tmp-view-opener';
-import { getRunDataList, getOutputDetail, getRunDataBySwimlaneGraphPath, deleteRunData } from './run-data/api';
+import { getRunDataList, fetchRunDataDetail, getRunDataBySwimlaneGraphPath, deleteRunData } from './run-data/api';
 import { RunDataService } from './run-data';
 import { ConfigDataService } from './schema-config/configdata';
 import { RunConfigLanguageFeaturesService } from './schema-config/run-config-language-features';
@@ -77,7 +77,7 @@ export const serviceApis = {
     getRunDataList,
 
     /** 获取运行结果详情 */
-    getOutputDetail,
+    fetchRunDataDetail,
 
     /** 根据泳道图路径获取运行结果记录 */
     getRunDataBySwimlaneGraphPath,

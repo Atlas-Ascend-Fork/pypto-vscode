@@ -37,9 +37,9 @@ export function deleteRunData(params: { directoryPaths: string[] }): Promise<voi
 /**
  * 获取运行记录详情（子目录）
  */
-export function getOutputDetail(outputDirPath: string): Promise<GetOutputDetailRes> {
+export function fetchRunDataDetail(outputDirPath: string): Promise<GetOutputDetailRes> {
   const params: GetOutputDetailParams = { outputDirPath };
-  return request.post(`${WORKSPACE_PREFIX}/getOutputDetail`, params);
+  return request.post(`${WORKSPACE_PREFIX}/fetchRunDataDetail`, params);
 }
 
 /**

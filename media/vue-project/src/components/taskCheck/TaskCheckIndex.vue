@@ -76,7 +76,7 @@ import TaskCheckDetail from './TaskCheckDetail.vue';
 import { getQuery } from '@/core/query';
 import { useViewServer } from '@/core/use-view-server.js';
 import { TaskCheckViewServer } from 'ext:/view/servers/taskcheck-server.js';
-import { getOutputDetail } from '@/apis/workspace';
+import { fetchRunDataDetail } from '@/apis/workspace';
 
 const { t } = useI18n();
 
@@ -250,7 +250,7 @@ onMounted(async () => {
   // 动态获取taskCheckDirPath，从中筛选出task check文件
   if (outputPath) {
     try {
-      const detail = await getOutputDetail(outputPath);
+      const detail = await fetchRunDataDetail(outputPath);
 
       taskCheckDirPath.value = detail.data?.taskCheckDirPath ?? null;
 

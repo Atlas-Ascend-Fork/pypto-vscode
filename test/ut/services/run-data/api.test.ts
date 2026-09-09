@@ -46,7 +46,7 @@ vi.mock('child_process', () => ({
   exec: (...args: any[]) => mockExec(...args),
 }));
 
-import { getRunDataList, getOutputDetail, getRunDataBySwimlaneGraphPath, deleteRunData, syncRunDataFiles } from '../../../../src/services/run-data/api';
+import { getRunDataList, fetchRunDataDetail, getRunDataBySwimlaneGraphPath, deleteRunData, syncRunDataFiles } from '../../../../src/services/run-data/api';
 
 describe('run-data/api', () => {
   beforeEach(() => {
@@ -99,10 +99,11 @@ describe('run-data/api', () => {
       expect(result.data[0].directoryTree).toBeUndefined();
     });
 
-    it('should sync first record files when forceReload on linux with rundata.json', async () => {
+    it('should sync and refresh first record when rundata has missing files on linux', async () => {
       mockPlatform.mockReturnValue('linux');
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue('{}');
+      // rundata.json 存在，但其中声明的文件缺失
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json'));
+      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/run1/source.json' }));
       const noFileRecord = { title: 'run1', directoryPath: '/test/run1', directoryTree: { children: [] } };
       const refreshedRecord = { title: 'run1', directoryPath: '/test/run1', sourceFilePath: '/test/run1/source.json', directoryTree: { children: [] } };
       mockQueryResult.exec.mockResolvedValue([noFileRecord]);
@@ -114,61 +115,77 @@ describe('run-data/api', () => {
     });
   });
 
-  describe('getOutputDetail', () => {
-    it('should return output detail when record has files', async () => {
+  describe('fetchRunDataDetail', () => {
+    it('should return cached detail when rundata.json is absent', async () => {
       const mockRecord = { title: 'run1', sourceFilePath: '/test/run1/source.json' };
       const mockDetail = { title: 'run1', directoryTree: { children: [] } };
       mockRunDataService.getOutputRecord.mockResolvedValue(mockRecord);
       mockRunDataService.getOutputDetail.mockResolvedValue(mockDetail);
 
-      const result = await getOutputDetail({ outputDirPath: '/test/run1' });
+      const result = await fetchRunDataDetail({ outputDirPath: '/test/run1' });
 
+      expect(mockRunDataService.refreshOutputRecord).not.toHaveBeenCalled();
       expect(result.data).toBe(mockDetail);
     });
 
-    it('should refresh and return detail when files initially missing but refresh succeeds', async () => {
-      const noFileRecord = { title: 'run1' };
-      const refreshedRecord = { title: 'run1', sourceFilePath: '/test/run1/source.json' };
+    it('should return cached detail when all rundata files exist', async () => {
+      const mockRecord = { title: 'run1' };
       const mockDetail = { title: 'run1', directoryTree: { children: [] } };
-      mockRunDataService.getOutputRecord.mockResolvedValue(noFileRecord);
+      mockRunDataService.getOutputRecord.mockResolvedValue(mockRecord);
+      mockRunDataService.getOutputDetail.mockResolvedValue(mockDetail);
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/run-all/source.json' }));
+
+      const result = await fetchRunDataDetail({ outputDirPath: '/test/run-all' });
+
+      expect(mockRunDataService.refreshOutputRecord).not.toHaveBeenCalled();
+      expect(result.data).toBe(mockDetail);
+    });
+
+    it('should sync missing files on linux, refresh and return detail', async () => {
+      mockPlatform.mockReturnValue('linux');
+      let filesPresent = false;
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json') || filesPresent);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/run-sync/source.json' }));
+      mockExec.mockImplementation((cmd: string, ...rest: any[]) => {
+        if (String(cmd).includes('remote_tool.sh exec')) {
+          filesPresent = true;
+        }
+        const cb = rest[rest.length - 1];
+        if (typeof cb === 'function') cb(null, '', '');
+      });
+      const mockRecord = { title: 'run1' };
+      const refreshedRecord = { title: 'run1', sourceFilePath: '/test/run-sync/source.json' };
+      const mockDetail = { title: 'run1', directoryTree: { children: [] } };
+      mockRunDataService.getOutputRecord.mockResolvedValue(mockRecord);
       mockRunDataService.refreshOutputRecord.mockResolvedValue(refreshedRecord);
       mockRunDataService.getOutputDetail.mockResolvedValue(mockDetail);
 
-      const result = await getOutputDetail({ outputDirPath: '/test/run1' });
+      const result = await fetchRunDataDetail({ outputDirPath: '/test/run-sync' });
 
-      expect(mockRunDataService.refreshOutputRecord).toHaveBeenCalledWith('/test/run1');
+      expect(mockExec).toHaveBeenCalled();
+      expect(mockRunDataService.refreshOutputRecord).toHaveBeenCalledWith('/test/run-sync');
       expect(result.data).toBe(mockDetail);
     });
 
-    it('should return null and show filesNotFound on Windows when files still missing after refresh', async () => {
-      const noFileRecord = { title: 'run1' };
-      mockRunDataService.getOutputRecord.mockResolvedValue(noFileRecord);
-      mockRunDataService.refreshOutputRecord.mockResolvedValue(noFileRecord);
+    it('should return null with filesNotFound when files still missing after sync attempt on windows', async () => {
+      const mockRecord = { title: 'run1' };
+      mockRunDataService.getOutputRecord.mockResolvedValue(mockRecord);
+      mockRunDataService.refreshOutputRecord.mockResolvedValue(mockRecord);
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json'));
+      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/run-miss/source.json' }));
 
-      const result = await getOutputDetail({ outputDirPath: '/test/run1' });
+      const result = await fetchRunDataDetail({ outputDirPath: '/test/run-miss' });
 
       expect(result.data).toBeNull();
       expect(vi.mocked(await import('vscode')).window.showWarningMessage).toHaveBeenCalled();
     });
 
-    it('should return null when record is undefined and refresh is also undefined', async () => {
+    it('should return null when record is undefined and no rundata.json exists', async () => {
       mockRunDataService.getOutputRecord.mockResolvedValue(undefined);
-      mockRunDataService.refreshOutputRecord.mockResolvedValue(undefined);
+      mockRunDataService.getOutputDetail.mockResolvedValue(undefined);
 
-      const result = await getOutputDetail({ outputDirPath: '/test/run1' });
-
-      expect(result.data).toBeNull();
-    });
-
-    it('should sync on linux when files missing and rundata.json exists', async () => {
-      mockPlatform.mockReturnValue('linux');
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue('{}');
-      const noFileRecord = { title: 'run1' };
-      mockRunDataService.getOutputRecord.mockResolvedValue(noFileRecord);
-      mockRunDataService.refreshOutputRecord.mockResolvedValue(noFileRecord);
-
-      const result = await getOutputDetail({ outputDirPath: '/test/run1' });
+      const result = await fetchRunDataDetail({ outputDirPath: '/test/run-none' });
 
       expect(result.data).toBeNull();
     });
@@ -214,8 +231,9 @@ describe('run-data/api', () => {
 
   describe('syncRunDataFiles', () => {
     it('should return early on non-linux platform', async () => {
-      await syncRunDataFiles('/test/rundata.json');
+      const result = await syncRunDataFiles('/test/rundata.json');
 
+      expect(result).toEqual({ allSynced: false });
       expect(mockExec).not.toHaveBeenCalled();
     });
 
@@ -223,8 +241,9 @@ describe('run-data/api', () => {
       mockPlatform.mockReturnValue('linux');
       mockExistsSync.mockReturnValue(false);
 
-      await syncRunDataFiles('/test/rundata.json');
+      const result = await syncRunDataFiles('/test/rundata.json');
 
+      expect(result).toEqual({ allSynced: false });
       expect(mockReadFileSync).not.toHaveBeenCalled();
     });
 
@@ -234,31 +253,94 @@ describe('run-data/api', () => {
       mockReadFileSync.mockReturnValue(JSON.stringify({ runtype: 'test' }));
       const vscode = await import('vscode');
 
-      await syncRunDataFiles('/test/rundata.json');
+      const result = await syncRunDataFiles('/test/rundata.json');
 
       expect(vscode.window.showInformationMessage).toHaveBeenCalled();
+      expect(result).toEqual({ allSynced: false });
     });
 
-    it('should sync files and show success when all files exist', async () => {
+    it('should skip syncing and report allSynced when all files already exist', async () => {
       mockPlatform.mockReturnValue('linux');
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/source.json' }));
-      const vscode = await import('vscode');
 
-      await syncRunDataFiles('/test/rundata.json');
+      const result = await syncRunDataFiles('/test/rundata.json');
 
-      expect(vscode.window.showInformationMessage).toHaveBeenCalled();
+      const syncCommands = mockExec.mock.calls.filter(([cmd]: [string]) => String(cmd).includes('--pull-dir'));
+      expect(syncCommands).toHaveLength(0);
+      expect(result).toEqual({ allSynced: true });
     });
 
-    it('should show partial warning when some files do not exist', async () => {
+    it('should sync missing files and show success when sync completes', async () => {
       mockPlatform.mockReturnValue('linux');
-      mockExistsSync.mockImplementation((p: string) => p.endsWith('rundata.json'));
-      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/source.json', controlFlowFilePath: '/test/control.json' }));
+      let filesPresent = false;
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json') || filesPresent);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/source.json' }));
+      mockExec.mockImplementation((cmd: string, ...rest: any[]) => {
+        if (String(cmd).includes('remote_tool.sh exec')) {
+          filesPresent = true;
+        }
+        const cb = rest[rest.length - 1];
+        if (typeof cb === 'function') cb(null, '', '');
+      });
       const vscode = await import('vscode');
+
+      const result = await syncRunDataFiles('/test/rundata.json');
+
+      const syncCommands = mockExec.mock.calls.filter(([cmd]: [string]) => String(cmd).includes('--pull-dir'));
+      expect(syncCommands).toHaveLength(1);
+      expect(syncCommands[0][0]).toContain('/test/source.json');
+      expect(vscode.window.showInformationMessage).toHaveBeenCalled();
+      expect(result).toEqual({ allSynced: true });
+    });
+
+    it('should classify folder paths without extension and include them in the sync command', async () => {
+      mockPlatform.mockReturnValue('linux');
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json'));
+      mockReadFileSync.mockReturnValue(JSON.stringify({ computeGraphDirPath: '/data/graph_folder' }));
 
       await syncRunDataFiles('/test/rundata.json');
 
+      expect(mockExec).toHaveBeenCalledWith(
+        expect.stringContaining('/data/graph_folder'),
+        expect.anything(),
+        expect.any(Function),
+      );
+    });
+
+    it('should show partial warning when only some missing files are synced', async () => {
+      mockPlatform.mockReturnValue('linux');
+      let fileASynced = false;
+      mockExistsSync.mockImplementation((p: string) => {
+        if (String(p).endsWith('rundata.json')) return true;
+        return String(p).endsWith('a.json') && fileASynced;
+      });
+      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/a.json', controlFlowFilePath: '/test/b.json' }));
+      mockExec.mockImplementation((cmd: string, ...rest: any[]) => {
+        if (String(cmd).includes('remote_tool.sh exec')) {
+          fileASynced = true;
+        }
+        const cb = rest[rest.length - 1];
+        if (typeof cb === 'function') cb(null, '', '');
+      });
+      const vscode = await import('vscode');
+
+      const result = await syncRunDataFiles('/test/rundata.json');
+
       expect(vscode.window.showWarningMessage).toHaveBeenCalled();
+      expect(result).toEqual({ allSynced: false });
+    });
+
+    it('should show error message when all missing file syncs fail', async () => {
+      mockPlatform.mockReturnValue('linux');
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json'));
+      mockReadFileSync.mockReturnValue(JSON.stringify({ sourceFilePath: '/test/a.json', controlFlowFilePath: '/test/b.json' }));
+      const vscode = await import('vscode');
+
+      const result = await syncRunDataFiles('/test/rundata.json');
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+      expect(result).toEqual({ allSynced: false });
     });
 
     it('should show error message when sync throws', async () => {

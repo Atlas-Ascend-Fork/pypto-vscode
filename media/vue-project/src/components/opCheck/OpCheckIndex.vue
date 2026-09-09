@@ -62,7 +62,7 @@ import PrecisionDetail from './PrecisionDetail.vue';
 import { getQuery } from '@/core/query';
 import { useViewServer } from '@/core/use-view-server.js';
 import { OpCheckViewServer } from 'ext:/view/servers/opcheck-server.js';
-import { getOutputDetail } from '@/apis/workspace';
+import { fetchRunDataDetail } from '@/apis/workspace';
 
 const { t } = useI18n();
 
@@ -166,7 +166,7 @@ onMounted(async () => {
   // 动态获取opeCheckDirPath，避免因opeCheckDirPath变化导致打开多个页面
   if (outputPath) {
     try {
-      const detail = await getOutputDetail(outputPath);
+      const detail = await fetchRunDataDetail(outputPath);
       console.log('detail', detail);
       opeCheckDirPath.value = detail.data?.opeCheckDirPath ?? null;
       if (opeCheckDirPath.value && opeCheckDirPath.value.length > 0) {

@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
 
 import { ControlFlowPath, ControlFlowIf, ControlFlowLoop, ProgramOutput } from '../../types/control-flow';
 import { ComputeDirectory } from '../../types/workspace';
-import { getOutputDetail } from '../run-data/api';
+import { fetchRunDataDetail } from '../run-data/api';
 
 import { FlowTreeAnalyzer } from './flow-tree';
 import { openTargetFileInSplit, readLinesByTextDocument } from './source-code';
@@ -53,7 +53,7 @@ export async function getControlFlow(params: GetControlFlowParams): Promise<GetC
     throw new Error('无法解析program.json');
   }
 
-  const outputDetail = (await getOutputDetail({ outputDirPath: params.outputDirPath })).data;
+  const outputDetail = (await fetchRunDataDetail({ outputDirPath: params.outputDirPath })).data;
   const computeDir = outputDetail?.directoryTree?.children.find((child) => {
     return child.type === 'dir' && child.directoryType === 'compute';
   }) as ComputeDirectory | undefined;
