@@ -639,8 +639,8 @@ export default {
     'pmuLegend': '图例说明',
     'pmuTaskId': '任务ID',
     dataError: {
-        title: '当前数据无法处理',
-        message: '请尝试其他数据集',
+        title: '当前数据格式有误',
+        message: '请重新生成数据',
     },
     'swimGraphNodeNotFound': '未找到节点: seqNo={seqNo}, taskId={taskId}',
     'swimGraphUnsupportedType': '该类型泳道图不支持节点定位',

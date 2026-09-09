@@ -639,8 +639,8 @@ export default {
     'pmuLegend': 'Legend',
     'pmuTaskId': 'Task ID',
     dataError: {
-        title: 'This data cannot be processed',
-        message: 'Please try another dataset.',
+        title: 'Current data format is incorrect',
+        message: 'Please regenerate the data.',
     },
     'swimGraphNodeNotFound': 'Node not found: seqNo={seqNo}, taskId={taskId}',
     'swimGraphUnsupportedType': 'This type of swimlane graph does not support node location',
