@@ -9,7 +9,7 @@
  */
 import * as vscode from 'vscode';
 
-import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile, readProgramPath } from './control-flow';
+import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile, readProgramPath, readProgramConfiguredPath } from './control-flow';
 import {
   openComputeGraph,
   openControlFlow,
@@ -19,6 +19,7 @@ import {
   openPyPTOWelcome,
   openSwimlaneGraph,
   openThreeColumnGraph,
+  warnComputeGraphNotExist,
 } from './tmp-view-opener';
 import { getRunDataList, fetchRunDataDetail, getRunDataBySwimlaneGraphPath, deleteRunData } from './run-data/api';
 import { RunDataService } from './run-data';
@@ -70,6 +71,8 @@ export const serviceApis = {
     openControlFlowTargetFile,
     /** 读取program.json的path */
     readProgramPath,
+    /** 读取runData.json中配置的program_file原始路径 */
+    readProgramConfiguredPath,
   },
   // 工作区
   workspace: {
@@ -95,6 +98,8 @@ export const serviceApis = {
     openPtoConfig,
     openPyPTOWelcome,
     openThreeColumnGraph,
+    /** 提示配置的计算图文件不存在 */
+    warnComputeGraphNotExist,
   },
 };
 
@@ -103,7 +108,7 @@ const privateServices: BasicService[] = [];
 type Services = typeof singletonServices;
 export function startAllServices(context: vscode.ExtensionContext) {
   singletonServices = { extension: new ExtensionConfig(context), runData: new RunDataService(), configData: new ConfigDataService() };
-  
+
   /** ---- 以下是外部无需引用的service ---- */
   privateServices.push(new RunConfigLanguageFeaturesService(context));
 }

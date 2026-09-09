@@ -36,7 +36,7 @@ vi.mock('../../../../src/services/run-data/utils/scan-run-data', () => ({
   readRunData: (...args: any[]) => mockReadRunData(...args),
 }));
 
-import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile, readProgramPath } from '../../../../src/services/control-flow';
+import { getControlFlow, getSnippetCodeText, openControlFlowTargetFile, readProgramPath, readProgramConfiguredPath } from '../../../../src/services/control-flow';
 
 describe('control-flow/index', () => {
   beforeEach(() => {
@@ -109,6 +109,36 @@ describe('control-flow/index', () => {
       const result = await readProgramPath({ outputPath: '/test/output' });
 
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('readProgramConfiguredPath', () => {
+    it('should return the raw program_file path from rundata.json', async () => {
+      const rundata = JSON.stringify({ runtype: 'npu', program_file: '/test/configured/program.json' });
+      vi.mocked(vscode.workspace.fs.readFile).mockResolvedValue(Buffer.from(rundata, 'utf-8') as any);
+
+      const result = await readProgramConfiguredPath({ outputPath: '/test/output' });
+
+      expect(result).toBe('/test/configured/program.json');
+      expect(vscode.workspace.fs.readFile).toHaveBeenCalledWith(
+        expect.objectContaining({ fsPath: '/test/output/rundata.json' }),
+      );
+    });
+
+    it('should return null when program_file is not a string', async () => {
+      vi.mocked(vscode.workspace.fs.readFile).mockResolvedValue(Buffer.from(JSON.stringify({ program_file: 123 }), 'utf-8') as any);
+
+      const result = await readProgramConfiguredPath({ outputPath: '/test/output' });
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when rundata.json cannot be read', async () => {
+      vi.mocked(vscode.workspace.fs.readFile).mockRejectedValue(new Error('FileNotFound'));
+
+      const result = await readProgramConfiguredPath({ outputPath: '/test/output' });
+
+      expect(result).toBeNull();
     });
   });
 });

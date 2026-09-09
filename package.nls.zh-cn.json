@@ -202,6 +202,7 @@
   "pypto.download.invalidBase64": "无效的 Base64 数据",
   "pypto.download.invalidFilePath": "无效的文件路径",
   "pypto.download.downloadFileFail": "保存文件出错",
+  "pypto.computeGraphFileNotExist": "计算图文件 {{path}} 不存在，请检查rundata.json中program_file的配置",
   "pypto.OpenSwimGraph": "PyPTO Toolkit: 打开泳道图",
   "pypto.remoteTool.linuxOnly": "远程命令执行仅支持 Linux 系统。",
   "pypto.remoteTool.notTargetEnv": "未找到 remote_tool.sh，请确认目标环境已正确配置。",

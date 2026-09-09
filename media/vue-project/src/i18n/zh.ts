@@ -203,6 +203,7 @@ export default {
    compareWrongTips: '选中文件无法解析为计算图',
    controlFlow: '控制流',
    comGraphName: '计算图',
+   computeGraphFileNotExist: '计算图文件不存在，请检查rundata.json中program_file的配置',
    noDataMatched: '未匹配到数据',
    jumpCodeTips: '跳转源码，设计中，敬请期待',
    threeColumnTips: '三纵向布局设计中，敬请期待',

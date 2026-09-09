@@ -51,6 +51,7 @@ vi.mock('../../../src/services/control-flow', () => ({
   getSnippetCodeText: vi.fn(),
   openControlFlowTargetFile: vi.fn(),
   readProgramPath: vi.fn(),
+  readProgramConfiguredPath: vi.fn(),
 }));
 
 vi.mock('../../../src/services/tmp-view-opener', () => ({
@@ -62,6 +63,7 @@ vi.mock('../../../src/services/tmp-view-opener', () => ({
   openPtoConfig: vi.fn(),
   openPyPTOWelcome: vi.fn(),
   openThreeColumnGraph: vi.fn(),
+  warnComputeGraphNotExist: vi.fn(),
 }));
 
 vi.mock('../../../src/services/run-data/api', () => ({

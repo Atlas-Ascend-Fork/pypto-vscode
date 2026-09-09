@@ -203,6 +203,7 @@ export default {
     compareWrongTips: 'The selected file cannot be parsed into a computational graph',
     controlFlow: 'ControlFlow',
     comGraphName: 'ComputationalGraph',
+    computeGraphFileNotExist: 'The compute graph file does not exist. Check the program_file configuration in rundata.json.',
     noDataMatched: 'No data matched',
     jumpCodeTips: 'Jump to source code, under design, please look forward to.',
     threeColumnTips: 'Three vertical layout, under design, please look forward to.',

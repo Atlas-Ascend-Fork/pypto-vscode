@@ -74,3 +74,10 @@ export function openPyPTOWelcome() {
 export function openThreeColumnGraph(params: { isBootStep?: boolean; sameplePath: string }) {
   return request.post(`${OPENER_PREFIX}/openThreeColumnGraph`, params);
 }
+
+/**
+ * 提示rundata.json中配置的计算图文件不存在（VS Code右下角通知）
+ */
+export function warnComputeGraphNotExist(params: { outputPath: string }) {
+  return request.post(`${OPENER_PREFIX}/warnComputeGraphNotExist`, params);
+}

@@ -202,6 +202,7 @@
   "pypto.download.invalidBase64": "Invalid Base64",
   "pypto.download.invalidFilePath": "Invalid FilePath",
   "pypto.download.downloadFileFail": "Download File Fail",
+  "pypto.computeGraphFileNotExist": "The compute graph file {{path}} does not exist. Check the program_file configuration in rundata.json.",
   "pypto.OpenSwimGraph": "PyPTO Toolkit: Open Swimlane Graph",
   "pypto.remoteTool.linuxOnly": "Remote command execution is only supported on Linux.",
   "pypto.remoteTool.notTargetEnv": "remote_tool.sh not found. Please ensure the target environment is properly configured.",

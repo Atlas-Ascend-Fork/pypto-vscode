@@ -110,15 +110,10 @@ export function useNodeActions(ctx: SprottyContext) {
     }
 
     if (comGraphStore.data.selectedNodeSemanticLabel !== semanticLabel) {
-      const firstNode = (ctx.modelSource as any).currentRoot.children.find((t: { type: string | string[] }) =>
-        t.type.includes('node'),
-      );
+      const modelRoot = (ctx.modelSource as any).currentRoot;
       (ctx.modelSource.model as any).notNeedLayout = true;
-      const firstEdge = (ctx.modelSource as any).currentRoot.children.find(
-        (t: any) => t.id === 'node-bottom-edge',
-      );
 
-      ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: firstEdge.id }]);
+      ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: modelRoot.id }]);
       comGraphStore.data.selectedNodeSemanticLabel = semanticLabel;
       const newRect = {
         id: 'show-node-rect',
@@ -129,7 +124,9 @@ export function useNodeActions(ctx: SprottyContext) {
         selectedNodes,
         needCalPostion: true,
       };
-      await ctx.modelSource.addElements([{ element: newRect, parentId: firstEdge.id }]);
+      // 挂载到 root children 末尾（append 即最后渲染），保证高亮框不被节点遮挡；
+      // 不依赖图数据自身的 children 顺序（布局缓存中的旧图顺序可能未更新）
+      await ctx.modelSource.addElements([{ element: newRect, parentId: modelRoot.id }]);
     }
     const fitAction = createFitAction({ maxZoom: 2.0, padding: 50, elementIds: selectedNodes, animate: false });
     isLocate && ctx.modelSource.actionDispatcher.dispatch(fitAction).then(() => {
@@ -143,9 +140,9 @@ export function useNodeActions(ctx: SprottyContext) {
     cancelRectAnimation();
     comGraphStore.data.stableRect = false;
     comGraphStore.data.selectedNodeSemanticLabel = '';
-    const node = (ctx.modelSource as any).currentRoot.children?.find((t: { id: string }) => t.id === 'node-bottom-edge');
-    if (node?.children?.length) {
-      await ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: node.id }]);
+    const modelRoot = (ctx.modelSource as any).currentRoot;
+    if (modelRoot?.children?.some((t: { id: string }) => t.id === 'show-node-rect')) {
+      await ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: modelRoot.id }]);
     }
   };
 

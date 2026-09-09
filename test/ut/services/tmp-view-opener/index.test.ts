@@ -34,6 +34,11 @@ vi.mock('../../../../src/services', () => ({
   }),
 }));
 
+const mockReadProgramConfiguredPath = vi.fn();
+vi.mock('../../../../src/services/control-flow', () => ({
+  readProgramConfiguredPath: (...args: any[]) => mockReadProgramConfiguredPath(...args),
+}));
+
 import {
   openControlFlow,
   openComputeGraph,
@@ -43,6 +48,7 @@ import {
   openPtoConfig,
   openPyPTOWelcome,
   openThreeColumnGraph,
+  warnComputeGraphNotExist,
 } from '../../../../src/services/tmp-view-opener';
 import { useView } from '../../../../src/view';
 import { useService } from '../../../../src/services';
@@ -372,6 +378,25 @@ describe('tmp-view-opener', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('warnComputeGraphNotExist', () => {
+    it('should show warning message with the configured program file path', async () => {
+      mockReadProgramConfiguredPath.mockResolvedValue('/test/configured/program.json');
+
+      await warnComputeGraphNotExist({ outputPath: '/test/output' });
+
+      expect(mockReadProgramConfiguredPath).toHaveBeenCalledWith({ outputPath: '/test/output' });
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('pypto.computeGraphFileNotExist');
+    });
+
+    it('should show warning message with empty path when rundata cannot be read', async () => {
+      mockReadProgramConfiguredPath.mockResolvedValue(null);
+
+      await warnComputeGraphNotExist({ outputPath: '/test/output' });
+
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('pypto.computeGraphFileNotExist');
     });
   });
 });

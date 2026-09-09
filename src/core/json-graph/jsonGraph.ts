@@ -13,8 +13,8 @@ import { generateColorList, getLighterColorByHex } from '../../color-list';
 import { BaseGraphMsgHandler } from '../../handler/baseGraphMsgHandler';
 import { Util } from '../../util';
 import { getSemanticColor } from '../../process';
-import { AstgrNode, AstgrPort, AstgrSyncNode, AstgrTensorNode, CallInOutItems, DATATYPE_MAP, 
-    ExtendedSModelRoot, FunctionData, MEMTYPE_MAP, Operation, OpReference, PortReference, 
+import { AstgrNode, AstgrPort, AstgrSyncNode, AstgrTensorNode, CallInOutItems, DATATYPE_MAP,
+    ExtendedSModelRoot, FunctionData, MEMTYPE_MAP, Operation, OpReference, PortReference,
     RawTensor, SemanticLab, Tensor } from './jsonGraph.types';
 import { addPhaseGroupingInfo, filterSubgraph, createTensorMaps, hasSameCoordinationScope, hasValidStructure, initializeDataStructures, parseAssembleViewOp, parseConvertOp, parseCopyOp, findIncastIndex, findOutcastIndex, removeEmptyNodesForTensor, buildTensorMetadataCompartment, createEmptyNodeWithPort, createTokenNode, getCastNodeState, buildCastMetadataCompartment, buildMetaLabels, buildCallLabels, getCodePath, getCodeLine, extractNestedData, createSyncControlFlowEdges, buildTensorNodeObject, buildTensorNodesObject, createEmptyNodesForSearch } from './utils';
 
@@ -110,7 +110,7 @@ export class AscppDagBuilder {
     }
 
     public prepareSprottyGraphData() {
-        
+
     }
 
     /**
@@ -130,7 +130,7 @@ export class AscppDagBuilder {
                                     tensorToRawTensorMap: Map<string, string>, rawTensorProducers: Map<string, PortReference[]>,
                                     rawTensorConsumers: Map<string, PortReference[]>, rawTensorMap: Map<string, RawTensor>,
                                     magicToTensorMap: Map<string, Tensor>, tensorMap: Map<string, { nodeId: string }>,
-                                    inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, threeMode: boolean = false, 
+                                    inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, threeMode: boolean = false,
                                     errNodeList?: any, nodeSearchLevel?: string, wrongRawMagicList?: any
     ) {
         const startNode = nodeMagic.toString();
@@ -163,7 +163,7 @@ export class AscppDagBuilder {
         tensorToRawTensorMap: Map<string, string>, rawTensorProducers: Map<string, PortReference[]>,
         rawTensorConsumers: Map<string, PortReference[]>, rawTensorMap: Map<string, RawTensor>,
         magicToTensorMap: Map<string, Tensor>, tensorMap: Map<string, { nodeId: string }>,
-        inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, showSyncNodes: boolean = false, threeMode: boolean = false, 
+        inoutMap: Map<string, Set<string>>, showTensorNodes: boolean, showSyncNodes: boolean = false, threeMode: boolean = false,
         errNodeList?: any, wrongRawMagicList?: any
     ) {
             // Create tensor nodes if enabled
@@ -215,7 +215,7 @@ export class AscppDagBuilder {
                     if (same(producer.portId, consumer.portId) && this.recordInOutRawId.has(rawTensorId)) {
                         continue;
                     }
-                    
+
                     edges.push({
                         type: 'edge',
                         id: `edge-fanout-${rawTensorId}-prod${prodIndex}-${producer.portId}-to-cons${consIndex}-${consumer.portId}`,
@@ -229,7 +229,7 @@ export class AscppDagBuilder {
     }
 
     public deleteMiddleEmptyNodes(nodes: SNode[]): void {
-        for (const mid of this.emptyOutputSet) { 
+        for (const mid of this.emptyOutputSet) {
             const nodeid = `tensor-${mid}-0`;
             const index = nodes.findIndex(n => n.id === nodeid);
             if (index !== -1) {
@@ -237,7 +237,7 @@ export class AscppDagBuilder {
             }
         }
     }
-    
+
     /**
      * Creates a Sprotty graph model from function data
      * @param funcData - The function data containing operations, tensors, etc.
@@ -281,7 +281,7 @@ export class AscppDagBuilder {
 
         // Create fan-out connections when tensor nodes are hidden
         if (!showTensorNodes) {
-            // delete 
+            // delete
             this.deleteMiddleEmptyNodes(nodes);
             this.connectHiddenNodes(rawTensorProducers, rawTensorConsumers, edges);
         }
@@ -301,6 +301,8 @@ export class AscppDagBuilder {
         if (filterSubgraphId !== undefined) {
             [filteredNodes, filteredEdges] = filterSubgraph(filterSubgraphId, nodes, edges);
         }
+        // bottom edge 自身不绘制内容，仅作为高亮框(show-node-rect)的载体；
+        // 放在 children 末尾使其最后渲染，保证高亮框不被节点遮挡
         const bottomNode: SEdge = {
             type: 'bottom',
             id: 'node-bottom-edge',
@@ -310,7 +312,7 @@ export class AscppDagBuilder {
         return {
             type: 'graph',
             id: 'root',
-            children: [bottomNode, ...filteredEdges, ...filteredNodes],
+            children: [...filteredEdges, ...filteredNodes, bottomNode],
             colorBySubgraph, // Add the flag to the root model
             filterSubgraphId // Add the filter setting to the root model
         };
@@ -415,8 +417,8 @@ export class AscppDagBuilder {
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
         showTensorNodes: boolean,
-        threeMode: boolean = false, 
-        errNodeList?: any, 
+        threeMode: boolean = false,
+        errNodeList?: any,
         nodeSearchLevel?: number,
         wrongRawMagicList?: any
     ) {
@@ -467,8 +469,8 @@ export class AscppDagBuilder {
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
         showTensorNodes: boolean,
-        threeMode: boolean = false, 
-        errNodeList?: any, 
+        threeMode: boolean = false,
+        errNodeList?: any,
         nodeSearchLevel?: number,
         wrongRawMagicList?: any
     ) {
@@ -727,8 +729,8 @@ export class AscppDagBuilder {
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
         showTensorNodes: boolean,
-        threeMode: boolean = false, 
-        errNodeList?: any, 
+        threeMode: boolean = false,
+        errNodeList?: any,
         nodeSearchLevel?: number,
         wrongRawMagicList?: any
     ) {
@@ -777,8 +779,8 @@ export class AscppDagBuilder {
         tensorMap: Map<string, { nodeId: string }>,
         inoutMap: Map<string, Set<string>>,
         showTensorNodes: boolean,
-        threeMode: boolean = false, 
-        errNodeList?: any, 
+        threeMode: boolean = false,
+        errNodeList?: any,
         nodeSearchLevel?: number,
         wrongRawMagicList?: any
     ) {

@@ -15,6 +15,7 @@ import { t } from 'i18next';
 
 import { useView } from '../../view';
 import { useService } from '..';
+import { readProgramConfiguredPath } from '../control-flow';
 
 /**
  * 打开控制流
@@ -65,6 +66,14 @@ export async function openComputeGraph(params: {
     flowVerifyPath,
   };
   useView().editorView.open('computeGraph', uri, { query, title: path.basename(params.computeGraphPath) });
+}
+
+/**
+ * 提示rundata.json中配置的计算图文件不存在（VS Code右下角通知，含原始配置路径）
+ */
+export async function warnComputeGraphNotExist(params: { outputPath: string }) {
+  const configuredPath = await readProgramConfiguredPath(params);
+  vscode.window.showWarningMessage(t('pypto.computeGraphFileNotExist', { path: configuredPath ?? '' }));
 }
 
 /**

@@ -90,7 +90,7 @@ import type { ControlFlowData } from './navbar-types';
 import type { PathInPass, LeafInPass, CallLeafRecord } from '../../../../../src/types/control-flow/path';
 import { fetchRunDataDetail } from '../../apis/workspace';
 import { getControlFlow, readProgramPath } from '../../apis/control-flow';
-import { openControlFlow, openSwimlaneGraph, openComputeGraph } from '../../apis/opener';
+import { openControlFlow, openSwimlaneGraph, openComputeGraph, warnComputeGraphNotExist } from '../../apis/opener';
 import { findFirstPath } from './util';
 import { useNavbar } from './hooks/use-navbar';
 import { useOutputNav } from '@/hooks/use-output-nav';
@@ -116,6 +116,7 @@ const currentLeafData = ref<LeafInPass>();
 const getControlFlowError = ref(false);
 const isNpu = computed(() => Boolean(currentRecord.value?.title.startsWith('npu')));
 const programePath = ref('')
+const programeOutputPath = ref('')
 const pathName = ref('')
 
 provide(NavbarProvideKey, {
@@ -210,6 +211,11 @@ function onJumpCom() {
   if (props.currentStep === 'comGraph') {
     return;
   }
+  // rundata.json 配置的计算图文件不存在时 readProgramPath 返回空，由扩展端弹右下角通知（含配置的原始路径）
+  if (!programePath.value) {
+    warnComputeGraphNotExist({ outputPath: programeOutputPath.value });
+    return;
+  }
   jumpComGraph(programePath.value, 'program');
 }
 
@@ -257,6 +263,7 @@ onMounted(async () => {
   const uri = res._uri;
   const query = JSON.parse(uri.query);
   isBootStep = Boolean(query.isBootStep)
+  programeOutputPath.value = res.outputPath
   programePath.value = await readProgramPath({outputPath: res.outputPath})
   pathName.value = query.pathName;
 });

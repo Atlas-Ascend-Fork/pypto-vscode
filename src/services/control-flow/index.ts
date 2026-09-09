@@ -96,3 +96,17 @@ export async function readProgramPath(params: { outputPath: string }) {
     return record.controlFlowFilePath
   }
 }
+
+/**
+ * 读取runData.json中配置的program_file原始路径（不做存在性过滤，用于提示）
+ */
+export async function readProgramConfiguredPath(params: { outputPath: string }): Promise<string | null> {
+  try {
+    const runDataUri = vscode.Uri.joinPath(vscode.Uri.file(params.outputPath), 'rundata.json');
+    const fileContent = await vscode.workspace.fs.readFile(runDataUri);
+    const rundata = JSON.parse(fileContent.toString());
+    return typeof rundata?.program_file === 'string' ? rundata.program_file : null;
+  } catch {
+    return null;
+  }
+}
