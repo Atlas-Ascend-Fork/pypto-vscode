@@ -30,7 +30,7 @@
 
 性能概览标签页展示全局性能统计数据，包括调度间隔分析、任务耗时统计、整体时间指标、AICore性能指标等。
 
-![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/reportOverview.png)
+<img src="https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/reportOverview.png" width="400">
 
 **表 1**  性能概览参数说明
 
@@ -59,7 +59,7 @@
 
 选择"按 Leaf 编号"模式时，展示 Leaf 编号维度的耗时分布。
 
-![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/reportTimeLeafNo.png)
+<img src="https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/reportTimeLeafNo.png" width="400">
 
 **表 2**  按 Leaf 编号统计参数说明
 
@@ -71,7 +71,7 @@
 
 选择"按语义标签"模式时，展示语义标签维度的耗时统计。
 
-![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/reportTimeSemanticLabel.png)
+ <img src="https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/reportTimeSemanticLabel.png" width="400">
 
 **表 3**  按语义标签统计参数说明
 

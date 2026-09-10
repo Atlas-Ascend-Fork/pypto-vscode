@@ -9,9 +9,9 @@
 
 开发者贡献场景主要包括：
 
-- **Bug修复**：如果您在本项目中发现了某些Bug，希望对其进行修复，欢迎您新建Issue进行反馈和跟踪处理。您可以按照[提交Issue/处理Issue任务](https://gitcode.com/cann/community#%E6%8F%90%E4%BA%A4Issue%E5%A4%84%E7%90%86Issue%E4%BB%BB%E5%8A%A1)指引新建 `Bug-Report|缺陷反馈` 类Issue对Bug进行描述，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您进行处理。
-- **代码优化**：如果您对本项目中某些功能实现有泛化性增强/性能优化思路，希望着手实现这些优化点，欢迎您进行优化贡献。您可以按照[提交Issue/处理Issue任务](https://gitcode.com/cann/community#%E6%8F%90%E4%BA%A4Issue%E5%A4%84%E7%90%86Issue%E4%BB%BB%E5%8A%A1)指引新建 `Requirement|需求建议` 类Issue对优化点进行说明，并提供您的设计方案，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您进行跟踪优化。
-- **文档纠错**：如果您在本项目中发现某些文档描述错误，欢迎您新建Issue进行反馈和修复。您可以按照[提交Issue/处理Issue任务](https://gitcode.com/cann/community#%E6%8F%90%E4%BA%A4Issue%E5%A4%84%E7%90%86Issue%E4%BB%BB%E5%8A%A1)指引新建 `Documentation|文档反馈` 类Issue指出对应文档的问题，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您纠正对应文档描述。
+- **Bug修复**：如果您在本项目中发现了某些Bug，希望对其进行修复，欢迎您新建Issue进行反馈和跟踪处理。您可以按照[Issue 操作指南](https://gitcode.com/cann/community/blob/master/contributor/issue-operation.md)指引新建 `缺陷反馈` 类Issue对Bug进行描述，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您进行处理。
+- **代码优化**：如果您对本项目中某些功能实现有泛化性增强/性能优化思路，希望着手实现这些优化点，欢迎您进行优化贡献。您可以按照[Issue 操作指南](https://gitcode.com/cann/community/blob/master/contributor/issue-operation.md)指引新建 `需求建议` 类Issue对优化点进行说明，并提供您的设计方案，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您进行跟踪优化。
+- **文档纠错**：如果您在本项目中发现某些文档描述错误，欢迎您新建Issue进行反馈和修复。您可以按照[Issue 操作指南](https://gitcode.com/cann/community/blob/master/contributor/issue-operation.md)指引新建 `文档反馈` 类Issue指出对应文档的问题，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您纠正对应文档描述。
 - **帮助解决他人Issue**：如果社区中他人遇到的问题您有合适的解决方法，欢迎您在Issue中发表评论交流，帮助他人解决问题和痛点，共同优化易用性。如果对应Issue需要进行代码修改，您可以在Issue评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您，跟踪协助解决问题。
 
 ---
