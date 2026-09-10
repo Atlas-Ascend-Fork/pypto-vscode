@@ -133,7 +133,10 @@ PyPTO Toolkit is a PyPTO framework full process auxiliary tool that provides vis
 
   The visualization interface in the left panel displays the approximate position of Tensor conflicts. It supports zooming in and out of the time axis and the vertical axis. Clicking on a Tensor will display its details in the lower panel.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memory-usage.gif)
+  Double-click a region ID to enter the memory visualization interface for the specified region. You can measure the distance between two Tensors and quickly find the nearest Tensor to a specified Tensor.
+  
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/GMMemViz-en.gif)
+
 
 ## Swimlane Diagram
 
