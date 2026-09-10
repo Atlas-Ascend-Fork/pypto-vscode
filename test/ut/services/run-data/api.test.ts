@@ -113,6 +113,33 @@ describe('run-data/api', () => {
 
       expect(mockRunDataService.refreshOutputRecord).toHaveBeenCalledWith('/test/run1');
     });
+
+    it('syncs partial-missing latest record on linux refresh', async () => {
+      mockPlatform.mockReturnValue('linux');
+      // 最新记录已有部分本地数据，但 rundata.json 仍有缺失路径 → 刷新时同步补齐
+      const partialRecord = { title: 'run1', directoryPath: '/test/run1', controlFlowFilePath: '/local/program.json', directoryTree: { children: [] } };
+      mockQueryResult.exec.mockResolvedValue([partialRecord]);
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json') || String(p).endsWith('program.json'));
+      mockReadFileSync.mockReturnValue(JSON.stringify({ pto_src_file: '/remote/source.py', program_file: '/local/program.json' }));
+
+      await getRunDataList({ page: 1, forceReloadFromFiles: true });
+
+      expect(mockExec).toHaveBeenCalled();
+      expect(mockRunDataService.refreshOutputRecord).toHaveBeenCalledWith('/test/run1');
+    });
+
+    it('does not sync or re-read latest record on windows refresh', async () => {
+      const partialRecord = { title: 'run1', directoryPath: '/test/run1', controlFlowFilePath: '/local/program.json', directoryTree: { children: [] } };
+      mockQueryResult.exec.mockResolvedValue([partialRecord]);
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json') || String(p).endsWith('program.json'));
+      mockReadFileSync.mockReturnValue(JSON.stringify({ pto_src_file: '/remote/source.py', program_file: '/local/program.json' }));
+
+      await getRunDataList({ page: 1, forceReloadFromFiles: true });
+
+      // Windows：刷新列表完全不触发同步与重读
+      expect(mockExec).not.toHaveBeenCalled();
+      expect(mockRunDataService.refreshOutputRecord).not.toHaveBeenCalled();
+    });
   });
 
   describe('fetchRunDataDetail', () => {
@@ -144,6 +171,26 @@ describe('run-data/api', () => {
 
       expect(mockExec).not.toHaveBeenCalled();
       expect(mockRunDataService.refreshOutputRecord).not.toHaveBeenCalled();
+      expect(result.data).toBe(mockDetail);
+    });
+
+    it('syncs missing files on linux but opens with local data even when sync cannot complete', async () => {
+      // Linux：部分数据本地可用 + 部分路径缺失 → 先尝试同步；同步后文件仍未到位 → 仍按本地已有文件展示
+      mockPlatform.mockReturnValue('linux');
+      const partialRecord = { title: 'run1', controlFlowFilePath: '/local/program.json' };
+      const mockDetail = { title: 'run1', directoryTree: { children: [] } };
+      mockRunDataService.getOutputRecord.mockResolvedValue(partialRecord);
+      mockRunDataService.refreshOutputRecord.mockResolvedValue(partialRecord);
+      mockRunDataService.getOutputDetail.mockResolvedValue(mockDetail);
+      mockExistsSync.mockImplementation((p: string) => String(p).endsWith('rundata.json') || String(p).endsWith('program.json'));
+      mockReadFileSync.mockReturnValue(
+        JSON.stringify({ pto_src_file: '/remote/source.py', program_file: '/local/program.json' }),
+      );
+
+      const result = await fetchRunDataDetail({ outputDirPath: '/test/run1' });
+
+      expect(mockExec).toHaveBeenCalled();
+      expect(mockRunDataService.refreshOutputRecord).toHaveBeenCalledWith('/test/run1');
       expect(result.data).toBe(mockDetail);
     });
 
@@ -190,7 +237,7 @@ describe('run-data/api', () => {
       expect(result.data).toBe(mockDetail);
     });
 
-    it('should return null with filesNotFound when no data files exist after sync attempt on windows', async () => {
+    it('should return null with filesNotFound when no data files exist on windows without any sync attempt', async () => {
       const mockRecord = { title: 'run1' };
       mockRunDataService.getOutputRecord.mockResolvedValue(mockRecord);
       mockRunDataService.refreshOutputRecord.mockResolvedValue(mockRecord);
@@ -199,6 +246,8 @@ describe('run-data/api', () => {
 
       const result = await fetchRunDataDetail({ outputDirPath: '/test/run-miss' });
 
+      // Windows 完全不涉及同步：连 remote_tool.sh 环境探测都不应执行
+      expect(mockExec).not.toHaveBeenCalled();
       expect(result.data).toBeNull();
       expect(vi.mocked(await import('vscode')).window.showWarningMessage).toHaveBeenCalled();
     });

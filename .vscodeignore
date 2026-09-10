@@ -10,6 +10,8 @@ dist/test/**
 src/**
 test/**
 coverage/**
+scripts/**
+KNOWN_ISSUES.md
 .gitignore
 .prettierrc
 .eslintrc.json
