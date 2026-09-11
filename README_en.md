@@ -249,33 +249,18 @@ The three-panel linked view simultaneously displays code, a computational graph,
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeViewLock.gif)
 
-## OpCheck
+## Precision Comparison Report
 
-OpCheck provides Op-level precision comparison report viewing capabilities, helping developers quickly locate Op-level precision issues.
+The precision comparison report provides two levels of precision comparison capabilities, helping developers quickly locate precision issues:
 
-- **Open OpCheck Page**
+- **Op level (OpCheck)**: Focuses on operator-level precision comparison, used to locate precision issues of a single operator.
+- **Task level (TaskCheck)**: Focuses on task-level precision comparison, used to quickly locate task-level precision issues.
 
-  In the run result interface, click the `OP Check` button to open the OpCheck page. The program will automatically import Op-level precision comparison data, and upon successful import, the compareList area on the left will display a list of parseable Op-level precision comparison data.
+The operation flow is the same for both levels, with differences mainly in search conditions, filtering options, precision result display fields, and jump targets.
 
-- **Parse Data and Open Diff View**
+- **Open the Precision Comparison Page**
 
-  Click on the data item you want to view in the compareList. For unparsed data items, a parsing dialog will pop up after clicking. Click the `Start Parsing` button to start the parsing process. After parsing is complete, the Diff view will be displayed on the right and the data item status will be updated. For parsed data items, clicking will directly display the Diff view on the right.
-
-- **View Diff View**
-
-  The Diff view supports precise search for Op names and filtering for `Pass Only` or `Fail Only` data items. Click the expand button on a data item to view detailed data, and click to select a data item to open the precision result details.
-
-- **View Precision Results**
-
-  The precision result page supports clicking to jump to the corresponding computation graph, and switching between `Overview` and `Precision Anomaly Detailed Comparison` views through tab pages.
-
-## TaskCheck
-
-TaskCheck provides Task-level precision comparison report viewing capabilities, helping developers quickly locate task-level precision issues.
-
-- **Open TaskCheck Page**
-
-  In the run result interface, click the `Task Check` button to open the TaskCheck page. The program will automatically import Task-level precision comparison data, and upon successful import, the Compare List area on the left will display a list of parseable Task-level precision comparison data.
+  In the run result interface, click the `OP Check` or `Task Check` button according to the level you want to view. The program will automatically import precision comparison data of the corresponding level, and upon successful import, the Compare List area on the left will display a list of parseable precision comparison data.
 
 - **Parse Data and Open Diff View**
 
@@ -283,15 +268,16 @@ TaskCheck provides Task-level precision comparison report viewing capabilities, 
 
 - **View Diff View**
 
-  The Diff view supports multi-condition precise search (including OpMagic, RawMagic, TensorAddr, Symbol, etc.) and filtering for `All`, `Pass Only`, or `Fail Only` data items. Click the expand button on a data item to view detailed data (including left-side CodegenPreproc data and right-side task_dump data), and click to select a data item to open the precision result details.
+  Click the expand button on a data item to view detailed data, and click to select a data item to open the precision result details. Search and filtering capabilities vary by level:
+  - **Op level**: Supports precise search for Op names and filtering for `All`, `Pass Only`, or `Fail Only` data items.
+  - **Task level**: Supports multi-condition precise search (including OpMagic, RawMagic, TensorAddr, Symbol, FuncHash) and filtering for `All`, `Pass Only`, or `Fail Only` data items; expanding a data item shows both left-side CodegenPreproc data and right-side task_dump data.
 
-- **View Precision Result Details**
+- **View Precision Result Details and Jump**
 
-  The precision result page displays overview information (including data type, ValidShape, LoopInfo, rtolAtol and other precision statistical indicators) and detailed comparison data (including Offset, A data, B data, relative error, absolute error, tolerance and other information), supporting custom sorting and single-column sorting.
+  - **Op level**: Supports switching between `Overview` and `Precision Anomaly Detailed Comparison` views through tab pages. The `Precision Anomaly Detailed Comparison` view supports custom sorting and single-column sorting. Clicking to jump to the corresponding computation graph to locate the operator node.
+  - **Task level**: Displays overview information (including data type, ValidShape, LoopInfo, rtolAtol and other precision statistical indicators) and detailed comparison data (including Offset, A data, B data, relative error, absolute error, tolerance and other information), supporting custom sorting and single-column sorting. Left-side data (CodegenPreproc) can jump to the corresponding computation graph view to locate the operator node corresponding to the Task; right-side data (task_dump) can jump to the corresponding swimlane diagram view to locate the execution position corresponding to the Task.
 
-- **Jump to Computation Graph or Swimlane Diagram**
-
-  The precision result page supports jump functionality. For left-side data (CodegenPreproc), click the jump button to open the corresponding computation graph view and locate the operator node corresponding to the Task. For right-side data (task_dump), click the jump button to open the corresponding swimlane diagram view and locate the execution position corresponding to the Task. Through the jump functionality, developers can further analyze the root cause of precision issues in the computation graph or swimlane diagram.
+Through the jump functionality, developers can further analyze the root cause of precision issues in the computation graph or swimlane diagram.
 
 ## Other Helper Features
 

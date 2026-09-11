@@ -29,7 +29,7 @@
 
 Diff视图提供以下功能：
 
-- 支持多条件精准搜索（包括OpMagic、RawMagic、TensorAddr、Symbol等）
+- 支持多条件精准搜索（包括OpMagic、RawMagic、TensorAddr、Symbol、FuncHash）
 - 支持筛选`全部`、`仅Pass`或`仅Fail`的数据项
 - 单击数据项展开按钮，可查看详细数据（包括左侧CodegenPreproc数据和右侧task_dump数据）
 - 单击选中数据项（左侧或右侧），可打开精度结果详情
