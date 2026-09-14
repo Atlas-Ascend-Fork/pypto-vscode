@@ -18,11 +18,11 @@ For detailed usage instructions, please refer to the [PyPTO Toolkit Documentatio
 
 - **Swimlane Diagram:** Provides visual display of inter-core and intra-core pipelines along with statistical information, supporting task dependency analysis and multi-dimensional (overall, single task, and selected range) statistical report display.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph_en.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/openSwimGraph_en.gif)
 
 - **Three-Panel Linked View:** Supports real-time linkage among operator code, computation graph, and swimlane diagram, lowering the barrier for debugging and tuning with the PyPTO framework and improving one-stop debugging and tuning efficiency.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeView_en.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/threeView_en.gif)
 
 - **Accuracy Report:** If the current data contains accuracy anomalies, you can open the accuracy report from the control flow or computation graph. The figure below illustrates opening the accuracy report from the control flow.
 
