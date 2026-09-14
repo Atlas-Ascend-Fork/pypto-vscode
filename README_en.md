@@ -48,4 +48,4 @@ By installing this plugin, you agree to the [Security Statement](https://gitcode
 
 ## License
 
-This project uses the CANN 2.0 license. For details, please refer to the [License](https://gitcode.com/cann/pypto-vscode/blob/master/LICENSE)
+This project is licensed under the Apache 2.0 License. For details, please refer to the [License](https://gitcode.com/cann/pypto-vscode/blob/master/LICENSE)

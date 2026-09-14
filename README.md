@@ -48,4 +48,4 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
 ## 许可证
 
-本项目使用 CANN 2.0 许可证，如需查看详细信息请查阅 [许可证](https://gitcode.com/cann/pypto-vscode/blob/master/LICENSE)
+本项目使用 Apache 2.0 许可证，如需查看详细信息请查阅 [许可证](https://gitcode.com/cann/pypto-vscode/blob/master/LICENSE)
