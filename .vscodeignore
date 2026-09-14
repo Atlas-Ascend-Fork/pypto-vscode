@@ -4,6 +4,10 @@
 .opencode/**
 .omo/**
 .trae/**
+.cac/**
+.gitcode/**
+.husky/**
+build/**
 docs/**
 out/test/**
 dist/test/**

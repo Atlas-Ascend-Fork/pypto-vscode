@@ -1,5 +1,15 @@
 # PyPTO Toolkit Plugin Version Change Notes
 
+## [2.1.0] - 2026.09.14
+
+### Added
+
+- The run results support synchronization in the split deployment environment
+
+### Fixed
+
+- This release fixes some legacy issues of previous versions
+
 ## [2.0.20] - 2026.08.21
 
 ### Added
