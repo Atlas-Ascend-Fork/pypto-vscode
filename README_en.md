@@ -36,7 +36,7 @@ For detailed usage instructions, please refer to the [PyPTO Toolkit Documentatio
 
 - **GM Memory Visualization:** Intuitively displays the approximate locations of Tensor conflicts. It supports zooming the time axis via Ctrl + mouse wheel and zooming the vertical axis via Alt + mouse wheel to quickly locate specific conflict positions. Clicking on a single Tensor displays its detailed information.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memory-usage.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/GMMemViz-en.gif)
 
 ## Contributing
 
@@ -44,7 +44,7 @@ To contribute code, please refer to the [Contributing Guide](https://gitcode.com
 
 ## Security Statement and Disclaimer
 
-By installing this plugin, you agree to the [Security Statement](https://gitcode.com/cann/pypto-vscode/blob/master/SECURITY_en.md) and [Disclaimer](https://gitcode.com/cann/pypto-vscode/blob/master/desclaimer_en.md)
+By installing this plugin, you agree to the [Security Statement](https://gitcode.com/cann/pypto-vscode/blob/master/SECURITY_en.md) and [Disclaimer](https://gitcode.com/cann/pypto-vscode/blob/master/DISCLAIMER_en.md)
 
 ## License
 

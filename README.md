@@ -36,7 +36,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
 - **GM内存可视化：** 可直观的显示Tensor冲突的大概位置，并且支持通过ctrl+鼠标滚轮缩放时间轴，alt+鼠标滚轮缩放纵轴来快速定位到具体冲突位置，并且支持点击单个Tensor查看其详细信息。
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memory-usage.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/GMMemViz.gif)
 
 ## 贡献指南
 
@@ -44,7 +44,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
 ## 安全声明和免责声明
 
-如您安装了本插件，代表您已同意 [安全声明](https://gitcode.com/cann/pypto-vscode/blob/master/SECURITY.md) 和 [免责声明](https://gitcode.com/cann/pypto-vscode/blob/master/desclaimer.md)
+如您安装了本插件，代表您已同意 [安全声明](https://gitcode.com/cann/pypto-vscode/blob/master/SECURITY.md) 和 [免责声明](https://gitcode.com/cann/pypto-vscode/blob/master/DISCLAIMER.md)
 
 ## 许可证
 
