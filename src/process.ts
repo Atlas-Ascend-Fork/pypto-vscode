@@ -14,13 +14,14 @@
  */
 import { generateColorList, getColorByString } from './color-list';
 import { dirname, join, extname, resolve } from 'path';
-import { createReadStream,  createWriteStream, existsSync, mkdirSync } from 'fs';
+import { createReadStream,  createWriteStream, existsSync, mkdirSync, readFileSync, statSync } from 'fs';
 import { getSwimGraphParsedInfoStore } from './core/swimSqlInit';
 import { hismartliteEx } from './hismarliteEx';
-import JSONStream from 'JSONStream';
 import { parser } from 'stream-json';
-import { chain } from 'stream-chain';
-import {streamObject} from 'stream-json/streamers/StreamObject';
+import chain from 'stream-chain';
+import { streamValues } from 'stream-json/streamers/stream-values.js';
+import { streamArray } from 'stream-json/streamers/stream-array.js';
+import {streamObject} from 'stream-json/streamers/stream-object.js';
 
 import { t } from 'i18next';
 
@@ -962,37 +963,54 @@ export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo:
      }
    }
 
+   const SWIM_JSON_STREAM_THRESHOLD = 500 * 1024 * 1024;
+
+   function readJsonFileWithoutBom(swimPath: string): any {
+     const content = readFileSync(swimPath, 'utf8');
+     return JSON.parse(content.charCodeAt(0) === 0xfeff ? content.slice(1) : content);
+   }
+
    async function readPerfSwimlaneFileStream(swimPath: string): Promise<any> {
+     if (statSync(swimPath).size < SWIM_JSON_STREAM_THRESHOLD) {
+       return readJsonFileWithoutBom(swimPath);
+     }
      return new Promise((resolve, reject) => {
        try {
          console.log(`开始流式读取 perf_swimlane.json 文件: ${swimPath}`);
-         
+
          const stream = createReadStream(swimPath, { encoding: 'utf8' });
-         const parser = JSONStream.parse(); 
-         
+         const jsonParser = parser.asStream();
+         const valuesStreamer = streamValues.asStream();
+
          let jsonData: any = null;
-         
-         parser.on('data', (data) => {
-           jsonData = data;
+
+         valuesStreamer.on('data', (data: any) => {
+           jsonData = data.value;
          });
-         
-         parser.on('end', () => {
+
+         valuesStreamer.on('end', () => {
            console.log('perf_swimlane.json 文件流式读取完成');
            resolve(jsonData);
          });
-         
-         parser.on('error', (error) => {
+
+         jsonParser.on('error', (error: any) => {
            console.error('JSON 解析错误:', error);
            reject(error);
          });
-         
-         stream.on('error', (error) => {
+
+         valuesStreamer.on('error', (error: any) => {
+           console.error('JSON 解析错误:', error);
+           reject(error);
+         });
+
+         stream.on('error', (error: any) => {
            console.error('文件读取错误:', error);
            reject(error);
          });
-         
-         stream.pipe(parser);
-         
+
+         stream.pipe(jsonParser);
+         jsonParser.pipe(valuesStreamer);
+
        } catch (err) {
          console.error(`${swimPath} 读取文件时发生错误:`, err);
          reject(err);
@@ -1001,68 +1019,89 @@ export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo:
    }
 
    async function readMergedSwimlaneFileStream(swimPath: string): Promise<any> {
+     if (statSync(swimPath).size < SWIM_JSON_STREAM_THRESHOLD) {
+       const parsed = readJsonFileWithoutBom(swimPath);
+       return Array.isArray(parsed) ? parsed : parsed.traceEvents;
+     }
      return new Promise((resolve, reject) => {
        try {
          console.log(`开始流式读取 merged_swimlane.json 文件: ${swimPath}`);
-         
+
          const stream = createReadStream(swimPath, { encoding: 'utf8' });
-         
+
          let buffer = '';
          let formatDetected = false;
-         let parser: any;
          let traceEvents: any[] = [];
-         
-          const detectFormat = (chunk: string | Buffer) => {
-            if (formatDetected) return;
-            buffer += typeof chunk === 'string' ? chunk : chunk.toString('utf8');
+
+         const setupStream = (streamer: any, onData: (data: any) => void) => {
+           streamer.on('data', onData);
+
+           streamer.on('end', () => {
+             console.log('merged_swimlane.json 文件流式读取完成');
+             resolve(traceEvents);
+           });
+
+           streamer.on('error', (error: any) => {
+             console.error('JSON 解析错误:', error);
+             reject(error);
+           });
+         };
+
+         const detectFormat = (chunk: string | Buffer) => {
+           if (formatDetected) return;
+           buffer += typeof chunk === 'string' ? chunk : chunk.toString('utf8');
            const trimmed = buffer.trim();
            if (trimmed.startsWith('{')) {
              formatDetected = true;
-             parser = JSONStream.parse('traceEvents.*');
-             setupParser();
-             parser.write(buffer);
-             stream.pipe(parser, { end: true });
+             const jsonParser = parser.asStream();
+             const objectStreamer = streamObject.asStream();
+             setupStream(objectStreamer, (data: any) => {
+               if (data.key === 'traceEvents' && Array.isArray(data.value)) {
+                 for (const event of data.value) {
+                   traceEvents.push(event);
+                 }
+               }
+             });
+             jsonParser.on('error', (error: any) => {
+               console.error('JSON 解析错误:', error);
+               reject(error);
+             });
+             jsonParser.write(buffer);
+             stream.pipe(jsonParser, { end: true });
+             jsonParser.pipe(objectStreamer);
            } else if (trimmed.startsWith('[')) {
              formatDetected = true;
-             parser = JSONStream.parse('*');
-             setupParser();
-             parser.write(buffer);
-             stream.pipe(parser, { end: true });
+             const jsonParser = parser.asStream();
+             const arrayStreamer = streamArray.asStream();
+             setupStream(arrayStreamer, (data: any) => {
+               traceEvents.push(data.value);
+             });
+             jsonParser.on('error', (error: any) => {
+               console.error('JSON 解析错误:', error);
+               reject(error);
+             });
+             jsonParser.write(buffer);
+             stream.pipe(jsonParser, { end: true });
+             jsonParser.pipe(arrayStreamer);
            } else if (trimmed.length > 10) {
              reject(new Error('无法识别的JSON格式'));
              stream.destroy();
            }
          };
-         
-         const setupParser = () => {
-           parser.on('data', (data) => {
-             traceEvents.push(data);
-           });
-           
-           parser.on('end', () => {
-             console.log('merged_swimlane.json 文件流式读取完成');
-             resolve(traceEvents);
-           });
-           
-           parser.on('error', (error) => {
-             console.error('JSON 解析错误:', error);
-             reject(error);
-           });
-         };
-         
+
          stream.on('data', detectFormat);
-         
-         stream.on('error', (error) => {
+
+         stream.on('error', (error: any) => {
            console.error('文件读取错误:', error);
            reject(error);
          });
-         
+
          stream.on('end', () => {
            if (!formatDetected) {
              resolve(traceEvents);
            }
          });
-         
+
        } catch (err) {
          console.error(`${swimPath} 读取文件时发生错误:`, err);
          reject(err);
@@ -1155,8 +1194,8 @@ export async function getSavedSwimDataFileStreamAll(swimPath: string): Promise<a
 
       const pipeline = chain([
           createReadStream(swimPath, { encoding: 'utf8' }),
-          parser(), 
-          streamObject() 
+          parser.asStream(),
+          streamObject.asStream()
       ]);
       
       let result: any = {};

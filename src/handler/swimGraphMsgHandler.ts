@@ -25,7 +25,6 @@ async function getDataCompress() {
   return _dataCompress;
 }
 import { getIDETheme } from '../theme';
-import Filter from 'stream-json/filters/Filter';
 import { parsePmuInfo, parseSwimLaneInfo, processTotalPmuCalc, saveParsedInfoToDB, readSwimlaneFileStream, saveCompressedDataPathToDB, writeLargeObjectToFileThreadGranular, getSavedSwimDataFileStreamAll, checkPmuDataValid} from '../process';
 import fs from 'fs/promises';
 import { getMTime, SQLiteCache } from '../core/sqliteCache';

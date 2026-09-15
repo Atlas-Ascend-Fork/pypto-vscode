@@ -42,12 +42,6 @@
   license: Apache-2.0
   type: run
 
-"@monaco-editor/loader":
-  url: https://github.com/suren-atoyan/monaco-loader
-  version: v1.7.0
-  license: MIT
-  type: run
-
 "@types/vscode":
   url: https://github.com/DefinitelyTyped/DefinitelyTyped
   version: v1.136.0
@@ -74,19 +68,13 @@
 
 "csv-parse":
   url: https://github.com/adaltas/node-csv
-  version: v6.2.1
+  version: v7.0.2
   license: MIT
   type: run
 
 "dayjs":
   url: https://github.com/iamkun/dayjs
   version: v1.11.23
-  license: MIT
-  type: run
-
-"decimal.js":
-  url: https://github.com/MikeMcl/decimal.js
-  version: v10.6.0
   license: MIT
   type: run
 
@@ -118,12 +106,6 @@
   url: https://github.com/inversify/InversifyJS
   version: v6.2.2
   license: MIT
-  type: run
-
-"JSONStream":
-  url: https://github.com/dominictarr/JSONStream
-  version: v1.3.5
-  license: (MIT OR Apache-2.0)
   type: run
 
 "lodash":
@@ -176,20 +158,14 @@
 
 "stream-chain":
   url: https://github.com/uhop/stream-chain
-  version: v2.2.5
+  version: v3.6.3
   license: BSD-3-Clause
   type: run
 
 "stream-json":
   url: https://github.com/uhop/stream-json
-  version: v1.9.1
+  version: v2.1.0
   license: BSD-3-Clause
-  type: run
-
-"typescript":
-  url: https://github.com/microsoft/TypeScript
-  version: v5.9.3
-  license: Apache-2.0
   type: run
 
 "vue":
@@ -242,19 +218,13 @@
 
 "@types/node":
   url: https://github.com/DefinitelyTyped/DefinitelyTyped
-  version: v22.20.1
+  version: v22.20.2
   license: MIT
   type: build
 
 "@types/sql.js":
   url: https://github.com/DefinitelyTyped/DefinitelyTyped
   version: v1.4.11
-  license: MIT
-  type: build
-
-"@types/vscode-webview":
-  url: https://github.com/DefinitelyTyped/DefinitelyTyped
-  version: v1.57.5
   license: MIT
   type: build
 
@@ -346,6 +316,12 @@
   url: https://github.com/sass/dart-sass
   version: v1.103.1
   license: MIT
+  type: build
+
+"typescript":
+  url: https://github.com/microsoft/TypeScript
+  version: v5.9.3
+  license: Apache-2.0
   type: build
 
 "unplugin-vue-components":

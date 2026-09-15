@@ -14,7 +14,7 @@
  */
 import { createReadStream } from 'fs';
 import { parser } from 'stream-json';
-import { streamValues } from 'stream-json/streamers/StreamValues';
+import { streamValues } from 'stream-json/streamers/stream-values.js';
 import * as fs from 'fs/promises';
 import { getMemoryTraceCacheStore, getMemoryTraceEventStore, MemoryTraceEvent, BufferState } from '../core/sqlInit';
 
@@ -130,8 +130,8 @@ export class MemoryTraceHandler {
 
   private static async readWithStream(fsPath: string): Promise<any> {
     const fileStream = createReadStream(fsPath);
-    const jsonParser = parser();
-    const valuesStreamer = streamValues();
+    const jsonParser = parser.asStream();
+    const valuesStreamer = streamValues.asStream();
     let streamError: Error | null = null;
 
     fileStream.on('error', (err) => (streamError = Object.assign(err, { code: 'FILE_READ_ERROR' })));

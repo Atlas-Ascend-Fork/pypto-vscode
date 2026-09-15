@@ -61,7 +61,6 @@ vi.mock(import('../../../src/utils/file-system'), () => ({ readFirstNLines: mock
 vi.mock(import('../../../src/services'), () => ({ useService: mocks.services.useService }));
 vi.mock(import('../../../src/command/registerCommand'), () => ({ getBasenameWithoutExt: mocks.registerCommand.getBasenameWithoutExt }));
 vi.mock(import('../../../src/theme'), () => ({ getIDETheme: mocks.theme.getIDETheme }));
-vi.mock('stream-json/filters/Filter', () => ({ default: vi.fn() }));
 
 import { SwimGraphMsgHandler } from '../../../src/handler/swimGraphMsgHandler';
 

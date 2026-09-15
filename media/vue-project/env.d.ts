@@ -12,10 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/// <reference types="@types/vscode-webview" />
 /// <reference types="vite/client" />
 
-import { WebviewApi } from 'vscode-webview';
+import type { WebviewApi } from './src/core/webview-api';
 import type { ViewQuery } from 'ext:/core/view/view-query';
 import type { GmMemoryPerformanceRun } from './src/components/memoryUsage/memoryPerformance';
 
