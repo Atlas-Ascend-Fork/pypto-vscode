@@ -98,7 +98,7 @@
 
 "i18next":
   url: https://github.com/i18next/i18next
-  version: v22.5.1
+  version: v26.4.2
   license: MIT
   type: run
 
