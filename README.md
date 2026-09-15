@@ -26,7 +26,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
 - **精度报告：** 若当前数据有精度异常，可在控制流或计算图中打开精度报告，下图示意从控制流打开精度报告
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromContrl.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracy_zh.gif)
 
 ## 新增特性
 
