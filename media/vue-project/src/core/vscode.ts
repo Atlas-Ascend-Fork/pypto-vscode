@@ -13,7 +13,7 @@
  * limitations under the License.
 
  */
-import type { WebviewApi } from 'vscode-webview';
+import type { WebviewApi } from './webview-api';
 import { computed } from 'vue';
 
 import type { EditorViewState } from 'ext:/core/editorView';

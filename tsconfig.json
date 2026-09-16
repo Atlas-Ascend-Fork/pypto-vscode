@@ -21,6 +21,11 @@
     "declaration": true,
     "declarationMap": false,
     "moduleResolution": "node",
+    "paths": {
+      "stream-json/streamers/stream-values.js": ["./node_modules/stream-json/src/streamers/stream-values.d.ts"],
+      "stream-json/streamers/stream-array.js": ["./node_modules/stream-json/src/streamers/stream-array.d.ts"],
+      "stream-json/streamers/stream-object.js": ["./node_modules/stream-json/src/streamers/stream-object.d.ts"]
+    },
     "typeRoots": ["node_modules/@types"],
     "types": ["node"]
   },

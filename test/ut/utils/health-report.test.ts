@@ -27,24 +27,28 @@ vi.mock('node:fs', () => ({
 
 // Mock stream-json
 vi.mock('stream-json', () => ({
-  parser: vi.fn(() => {
-    const stream = new Readable({ read() {} });
-    (stream as any).pipe = vi.fn().mockReturnThis();
-    return stream;
-  }),
+  parser: {
+    asStream: vi.fn(() => {
+      const stream = new Readable({ read() {} });
+      (stream as any).pipe = vi.fn().mockReturnThis();
+      return stream;
+    }),
+  },
 }));
 
-vi.mock('stream-json/streamers/StreamValues', () => ({
-  streamValues: vi.fn(() => {
-    const stream = new Readable({ read() {} });
-    (stream as any).pipe = vi.fn().mockReturnThis();
-    return stream;
-  }),
+vi.mock('stream-json/streamers/stream-values', () => ({
+  streamValues: {
+    asStream: vi.fn(() => {
+      const stream = new Readable({ read() {} });
+      (stream as any).pipe = vi.fn().mockReturnThis();
+      return stream;
+    }),
+  },
 }));
 
 import fs from 'node:fs';
 import { parser } from 'stream-json';
-import { streamValues } from 'stream-json/streamers/StreamValues';
+import { streamValues } from 'stream-json/streamers/stream-values';
 import { hasHealthReport, getHealthReport } from '../../../src/utils/health-report';
 
 describe('health-report', () => {
@@ -118,7 +122,7 @@ describe('health-report', () => {
       });
 
       const parserStream = { pipe: vi.fn().mockReturnValue(finalStream) };
-      (parser as any).mockReturnValue(parserStream);
+      (parser.asStream as any).mockReturnValue(parserStream);
 
       (fs.createReadStream as any).mockReturnValue({
         pipe: vi.fn().mockReturnValue(parserStream),

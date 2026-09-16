@@ -14,7 +14,7 @@
  */
 import { createReadStream } from 'fs';
 const { parser } = require('stream-json');
-const { streamValues } = require('stream-json/streamers/StreamValues');
+const { streamValues } = require('stream-json/streamers/stream-values.js');
 import * as fs from 'fs/promises';
 
 import { SQLiteCache, getMTime } from './sqliteCache';
@@ -82,8 +82,8 @@ export abstract class GraphData {
 
   private async readWithStream(fsPath: string): Promise<void> {
     const fileStream = createReadStream(fsPath);
-    const jsonParser = parser();
-    const valuesStreamer = streamValues();
+    const jsonParser = parser.asStream();
+    const valuesStreamer = streamValues.asStream();
     // 错误统一收集，并销毁下游流，让异步迭代器立即抛出（否则文件缺失时迭代器会永久挂起）
     let streamError: Error | null = null;
     const collectError = (code: string) => (err: Error) => {
@@ -115,7 +115,7 @@ export abstract class GraphData {
 
   async getCompleteData(fsPath) {
     const fileStream = createReadStream(fsPath);
-    const pipeline = fileStream.pipe(parser()).pipe(streamValues());
+    const pipeline = fileStream.pipe(parser.asStream()).pipe(streamValues.asStream());
     let result: any;
 
     return await new Promise((resolve, reject) => {

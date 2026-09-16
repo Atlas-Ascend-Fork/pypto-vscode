@@ -62,25 +62,30 @@ vi.mock('fs/promises', () => ({
 }));
 
 vi.mock('stream-json', () => ({
-  parser: vi.fn(() => ({
-    on: vi.fn(),
-    pipe: vi.fn(),
-  })),
+  parser: {
+    asStream: vi.fn(() => ({
+      on: vi.fn(),
+      pipe: vi.fn(),
+    })),
+  },
 }));
 
-vi.mock('stream-json/streamers/StreamValues', () => ({
-  streamValues: vi.fn(() => ({
-    on: vi.fn(),
-    [Symbol.asyncIterator]: async function* () {
-      yield { value: {} };
-    },
-  })),
+vi.mock('stream-json/streamers/stream-values', () => ({
+  streamValues: {
+    asStream: vi.fn(() => ({
+      on: vi.fn(),
+      pipe: vi.fn(),
+      [Symbol.asyncIterator]: async function* () {
+        yield { value: {} };
+      },
+    })),
+  },
 }));
 
 import { MemoryTraceHandler } from '../../../src/handler/memoryTraceHandler';
 import { createReadStream } from 'fs';
 import { parser } from 'stream-json';
-import { streamValues } from 'stream-json/streamers/StreamValues';
+import { streamValues } from 'stream-json/streamers/stream-values';
 
 describe('MemoryTraceHandler', () => {
   beforeEach(() => {
@@ -299,8 +304,8 @@ describe('MemoryTraceHandler', () => {
         },
       };
       const jsonParser = { on: vi.fn(), pipe: vi.fn() };
-      vi.mocked(parser).mockImplementation(() => jsonParser as any);
-      vi.mocked(streamValues).mockImplementation(() => valuesStreamer as any);
+      vi.mocked(parser.asStream).mockImplementation(() => jsonParser as any);
+      vi.mocked(streamValues.asStream).mockImplementation(() => valuesStreamer as any);
       vi.mocked(createReadStream).mockImplementation(() => ({ on: vi.fn(), pipe: vi.fn(() => jsonParser) } as any));
 
       await MemoryTraceHandler.parse('/test/big.json');

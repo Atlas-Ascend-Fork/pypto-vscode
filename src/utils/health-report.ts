@@ -16,7 +16,7 @@
 import fs from 'node:fs';
 
 import { parser } from 'stream-json';
-import { streamValues } from 'stream-json/streamers/StreamValues';
+import { streamValues } from 'stream-json/streamers/stream-values.js';
 
 const HEALTH_REPORT_SUFFIX = [
   ['TensorGraph', '_TensorGraphHealthReport.json'],
@@ -57,8 +57,8 @@ function readHealthyJson(fsPath: string): Promise<object> {
   return new Promise<object>((resolve) => {
     const res: object = {};
     fs.createReadStream(fsPath)
-      .pipe(parser())
-      .pipe(streamValues())
+      .pipe(parser.asStream())
+      .pipe(streamValues.asStream())
       .on('data', (d) => Object.assign(res, d.value))
       .on('end', () => resolve(res));
   });

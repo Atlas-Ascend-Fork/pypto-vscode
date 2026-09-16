@@ -10,11 +10,11 @@ For detailed usage instructions, please refer to the [PyPTO Toolkit Documentatio
 
 - **Control Flow Visualization:** Visualizes the computational logic expressed based on the PyPTO framework, providing a mapping relationship view of the computational logic expression code, control flow graph, and computation graph.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openControlFlow.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/result_overview.gif)
 
 - **Computation Graph:** Based on the fundamental graph structure of Tensor and Operation, it provides full-process visualization from the original computation graph to the executable graph compilation.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.0/compute/openCom.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/compute.gif)
 
 - **Swimlane Diagram:** Provides visual display of inter-core and intra-core pipelines along with statistical information, supporting task dependency analysis and multi-dimensional (overall, single task, and selected range) statistical report display.
 
@@ -26,7 +26,7 @@ For detailed usage instructions, please refer to the [PyPTO Toolkit Documentatio
 
 - **Accuracy Report:** If the current data contains accuracy anomalies, you can open the accuracy report from the control flow or computation graph. The figure below illustrates opening the accuracy report from the control flow.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracyFromContrl.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracy_en.gif)
 
 ## New Features
 
@@ -36,7 +36,7 @@ For detailed usage instructions, please refer to the [PyPTO Toolkit Documentatio
 
 - **GM Memory Visualization:** Intuitively displays the approximate locations of Tensor conflicts. It supports zooming the time axis via Ctrl + mouse wheel and zooming the vertical axis via Alt + mouse wheel to quickly locate specific conflict positions. Clicking on a single Tensor displays its detailed information.
 
-  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/memory-usage.gif)
+  ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/GMMemViz-en.gif)
 
 ## Contributing
 
@@ -44,7 +44,7 @@ To contribute code, please refer to the [Contributing Guide](https://gitcode.com
 
 ## Security Statement and Disclaimer
 
-By installing this plugin, you agree to the [Security Statement](https://gitcode.com/cann/pypto-vscode/blob/master/SECURITY_en.md) and [Disclaimer](https://gitcode.com/cann/pypto-vscode/blob/master/desclaimer_en.md)
+By installing this plugin, you agree to the [Security Statement](https://gitcode.com/cann/pypto-vscode/blob/master/SECURITY_en.md) and [Disclaimer](https://gitcode.com/cann/pypto-vscode/blob/master/DISCLAIMER_en.md)
 
 ## License
 

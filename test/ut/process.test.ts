@@ -19,13 +19,14 @@ const M = vi.hoisted(() => {
   const getColorByString = vi.fn(() => ({ baseColor: '#123456', lightColor: '#abcdef' }));
   const generateColorList = vi.fn(() => []);
   const getSwimGraphParsedInfoStore = vi.fn(() => ({ set: vi.fn() }));
-  const mockFs = { createReadStream: vi.fn(), createWriteStream: vi.fn(), existsSync: vi.fn(), mkdirSync: vi.fn() };
+  const mockFs = { createReadStream: vi.fn(), createWriteStream: vi.fn(), existsSync: vi.fn(), mkdirSync: vi.fn(), statSync: vi.fn(), readFileSync: vi.fn() };
   const makeEmitter = () => { const e = new EventEmitter(); (e as any).on = vi.fn(); (e as any).write = vi.fn(); (e as any).pipe = vi.fn(); (e as any).destroy = vi.fn(); return e; };
-  const JSONStreamParse = vi.fn(() => makeEmitter());
+  const streamValuesFn = vi.fn(() => makeEmitter());
+  const streamArrayFn = vi.fn(() => makeEmitter());
   const streamJsonParser = vi.fn(() => makeEmitter());
   const streamChainChain = vi.fn(() => makeEmitter());
   const streamObjectFn = vi.fn(() => makeEmitter());
-  return { getColorByString, generateColorList, getSwimGraphParsedInfoStore, mockFs, makeEmitter, JSONStreamParse, streamJsonParser, streamChainChain, streamObjectFn };
+  return { getColorByString, generateColorList, getSwimGraphParsedInfoStore, mockFs, makeEmitter, streamValuesFn, streamArrayFn, streamJsonParser, streamChainChain, streamObjectFn };
 });
 
 vi.mock('vscode', async () => { const m = await import('./mocks/vscode'); return { ...m }; });
@@ -33,10 +34,11 @@ vi.mock('i18next', () => ({ t: (key: string, opts?: any) => key + (opts ? JSON.s
 vi.mock(import('../../../src/color-list'), () => ({ generateColorList: M.generateColorList, getColorByString: M.getColorByString }));
 vi.mock(import('../../../src/core/swimSqlInit'), () => ({ getSwimGraphParsedInfoStore: M.getSwimGraphParsedInfoStore }));
 vi.mock('fs', async (orig) => { const a = await orig<typeof import('fs')>(); return { ...a, ...M.mockFs }; });
-vi.mock('JSONStream', () => ({ default: { parse: M.JSONStreamParse } }));
-vi.mock('stream-json', () => ({ parser: M.streamJsonParser }));
-vi.mock('stream-chain', () => ({ chain: M.streamChainChain }));
-vi.mock('stream-json/streamers/StreamObject', () => ({ streamObject: M.streamObjectFn }));
+vi.mock('stream-json', () => ({ parser: { asStream: M.streamJsonParser } }));
+vi.mock('stream-chain', () => ({ default: M.streamChainChain, chain: M.streamChainChain }));
+vi.mock('stream-json/streamers/stream-object.js', () => ({ streamObject: { asStream: M.streamObjectFn } }));
+vi.mock('stream-json/streamers/stream-values.js', () => ({ streamValues: { asStream: M.streamValuesFn } }));
+vi.mock('stream-json/streamers/stream-array.js', () => ({ streamArray: { asStream: M.streamArrayFn } }));
 
 import { getSemanticColor, parsePmuInfo, processTotalPmuCalc, checkPmuDataValid, parseSwimLaneInfo, saveParsedInfoToDB, saveCompressedDataPathToDB, readSwimlaneFileStream, writeLargeObjectToFileThreadGranular, getSavedSwimDataFileStreamAll } from '../../../src/process';
 import { hismartliteEx } from '../../../src/hismarliteEx';
@@ -54,8 +56,8 @@ beforeEach(() => {
   M.mockFs.createWriteStream.mockClear();
   M.mockFs.existsSync.mockClear();
   M.mockFs.mkdirSync.mockClear();
-  M.JSONStreamParse.mockClear();
-  M.JSONStreamParse.mockReturnValue(M.makeEmitter());
+  M.streamValuesFn.mockClear();
+  M.streamValuesFn.mockReturnValue(M.makeEmitter());
   M.streamJsonParser.mockClear();
   M.streamJsonParser.mockReturnValue(M.makeEmitter());
   M.streamChainChain.mockClear();
@@ -220,24 +222,17 @@ describe('saveCompressedDataPathToDB', () => {
 
 describe('readSwimlaneFileStream', () => {
   it('reads perf swimlane format', async () => {
-    const parser = M.makeEmitter();
-    const rs = M.makeEmitter();
-    M.mockFs.createReadStream.mockReturnValue(rs);
-    M.JSONStreamParse.mockReturnValue(parser);
-    (parser as any).on.mockImplementation((e: string, cb: Function) => { if (e === 'data') setTimeout(() => cb({}), 0); if (e === 'end') setTimeout(cb, 10); });
+    (M.mockFs.statSync as any).mockReturnValue({ size: 1024 });
+    (M.mockFs.readFileSync as any).mockReturnValue('{"a":1}');
     const result = await readSwimlaneFileStream('/test/swim.json', true);
-    expect(result).toBeDefined();
+    expect(result).toEqual({ a: 1 });
   });
 
   it('reads merged swimlane format', async () => {
-    const parser = M.makeEmitter();
-    const rs = M.makeEmitter();
-    M.mockFs.createReadStream.mockReturnValue(rs);
-    M.JSONStreamParse.mockReturnValue(parser);
-    (parser as any).on.mockImplementation((e: string, cb: Function) => { if (e === 'end') setTimeout(cb, 30); });
-    (rs as any).on.mockImplementation((e: string, cb: Function) => { if (e === 'data') setTimeout(() => cb(Buffer.from('{"traceEvents":[]}')), 0); if (e === 'end') setTimeout(cb, 20); });
+    (M.mockFs.statSync as any).mockReturnValue({ size: 1024 });
+    (M.mockFs.readFileSync as any).mockReturnValue('{"traceEvents":[{"a":1}]}');
     const result = await readSwimlaneFileStream('/test/swim.json', false);
-    expect(result).toBeDefined();
+    expect(result).toEqual([{ a: 1 }]);
   });
 });
 
@@ -473,35 +468,37 @@ describe('process.ts coverage supplements', () => {
   });
 
   it('readPerfSwimlaneFileStream with stream error', async () => {
-    const parser = M.makeEmitter();
+    (M.mockFs.statSync as any).mockReturnValue({ size: 600 * 1024 * 1024 });
     const rs = M.makeEmitter();
     M.mockFs.createReadStream.mockReturnValue(rs);
-    M.JSONStreamParse.mockReturnValue(parser);
     (rs as any).on.mockImplementation((e: string, cb: Function) => { if (e === 'error') setTimeout(() => cb(new Error('read error')), 0); });
     await expect(readSwimlaneFileStream('/test/swim.json', true)).rejects.toThrow();
   });
 
   it('readPerfSwimlaneFileStream with JSON parse error', async () => {
+    (M.mockFs.statSync as any).mockReturnValue({ size: 600 * 1024 * 1024 });
     const parser = M.makeEmitter();
     const rs = M.makeEmitter();
     M.mockFs.createReadStream.mockReturnValue(rs);
-    M.JSONStreamParse.mockReturnValue(parser);
+    M.streamJsonParser.mockReturnValue(parser);
     (parser as any).on.mockImplementation((e: string, cb: Function) => { if (e === 'error') setTimeout(() => cb(new Error('parse error')), 0); });
     await expect(readSwimlaneFileStream('/test/swim.json', true)).rejects.toThrow();
   });
 
   it('readPerfSwimlaneFileStream with createReadStream throwing', async () => {
+    (M.mockFs.statSync as any).mockReturnValue({ size: 600 * 1024 * 1024 });
     M.mockFs.createReadStream.mockImplementation(() => { throw new Error('ENOENT'); });
     await expect(readSwimlaneFileStream('/test/swim.json', true)).rejects.toThrow();
   });
 
   it('readMergedSwimlaneFileStream with array format', async () => {
-    const parser = M.makeEmitter();
+    (M.mockFs.statSync as any).mockReturnValue({ size: 600 * 1024 * 1024 });
     const rs = M.makeEmitter();
     M.mockFs.createReadStream.mockReturnValue(rs);
-    M.JSONStreamParse.mockReturnValue(parser);
-    (parser as any).on.mockImplementation((e: string, cb: Function) => {
-      if (e === 'data') setTimeout(() => cb({ name: 'event' }), 0);
+    const arrayStreamer = M.makeEmitter();
+    M.streamArrayFn.mockReturnValue(arrayStreamer);
+    (arrayStreamer as any).on.mockImplementation((e: string, cb: Function) => {
+      if (e === 'data') setTimeout(() => cb({ key: 0, value: { name: 'event' } }), 0);
       if (e === 'end') setTimeout(cb, 30);
     });
     (rs as any).on.mockImplementation((e: string, cb: Function) => {
@@ -509,10 +506,11 @@ describe('process.ts coverage supplements', () => {
       if (e === 'end') setTimeout(cb, 20);
     });
     const result = await readSwimlaneFileStream('/test/swim.json', false);
-    expect(result).toBeDefined();
+    expect(result).toEqual([{ name: 'event' }]);
   });
 
   it('readMergedSwimlaneFileStream with unrecognizable format', async () => {
+    (M.mockFs.statSync as any).mockReturnValue({ size: 600 * 1024 * 1024 });
     const rs = M.makeEmitter();
     M.mockFs.createReadStream.mockReturnValue(rs);
     (rs as any).on.mockImplementation((e: string, cb: Function) => {
@@ -522,6 +520,7 @@ describe('process.ts coverage supplements', () => {
   });
 
   it('readMergedSwimlaneFileStream with stream error', async () => {
+    (M.mockFs.statSync as any).mockReturnValue({ size: 600 * 1024 * 1024 });
     const rs = M.makeEmitter();
     M.mockFs.createReadStream.mockReturnValue(rs);
     (rs as any).on.mockImplementation((e: string, cb: Function) => {
@@ -531,10 +530,11 @@ describe('process.ts coverage supplements', () => {
   });
 
   it('readMergedSwimlaneFileStream with JSON parse error', async () => {
+    (M.mockFs.statSync as any).mockReturnValue({ size: 600 * 1024 * 1024 });
     const parser = M.makeEmitter();
     const rs = M.makeEmitter();
     M.mockFs.createReadStream.mockReturnValue(rs);
-    M.JSONStreamParse.mockReturnValue(parser);
+    M.streamJsonParser.mockReturnValue(parser);
     (parser as any).on.mockImplementation((e: string, cb: Function) => {
       if (e === 'error') setTimeout(() => cb(new Error('parse error')), 0);
     });
@@ -605,15 +605,13 @@ describe('process.ts coverage supplements', () => {
   });
 
   it('readMergedSwimlaneFileStream with multiple data chunks after format detected', async () => {
-    const parser = M.makeEmitter();
+    (M.mockFs.statSync as any).mockReturnValue({ size: 600 * 1024 * 1024 });
     const rs = M.makeEmitter();
     M.mockFs.createReadStream.mockReturnValue(rs);
-    M.JSONStreamParse.mockReturnValue(parser);
+    M.streamJsonParser.mockReturnValue(M.makeEmitter());
+    const objectStreamer = M.makeEmitter();
+    M.streamObjectFn.mockReturnValue(objectStreamer);
     let dataCallCount = 0;
-    (parser as any).on.mockImplementation((e: string, cb: Function) => {
-      if (e === 'data') setTimeout(() => cb({ name: 'event' }), 0);
-      if (e === 'end') setTimeout(cb, 30);
-    });
     (rs as any).on.mockImplementation((e: string, cb: Function) => {
       if (e === 'data') {
         setTimeout(() => { cb(Buffer.from('{"traceEvents":[]}')); dataCallCount++; }, 0);
@@ -621,8 +619,12 @@ describe('process.ts coverage supplements', () => {
       }
       if (e === 'end') setTimeout(cb, 20);
     });
+    (objectStreamer as any).on.mockImplementation((e: string, cb: Function) => {
+      if (e === 'data') setTimeout(() => cb({ key: 'traceEvents', value: [{ name: 'event' }] }), 8);
+      if (e === 'end') setTimeout(cb, 30);
+    });
     const result = await readSwimlaneFileStream('/test/swim.json', false);
-    expect(result).toBeDefined();
+    expect(result).toEqual([{ name: 'event' }]);
   });
 
   it('Fake Core event where existing line exceeds maxEnd (tryPlaceInExistingLine continue)', async () => {
