@@ -13,15 +13,30 @@
  * limitations under the License.
  */
 import { eventTextSize, getFontStyle } from '../../swimGraphUtils';
-import { Dependencies } from './utils';
+import { Dependencies, createHatchFill } from './utils';
 
 export const ARROW_WIDTH = 12;
 
 export class EventRender {
   deps: Dependencies;
+  private hatchPattern: CanvasPattern | null = null;
+  private hatchThemeKey = '';
 
   constructor(dependencies: Dependencies) {
     this.deps = dependencies;
+  }
+
+  private getHatchPattern(ctx: CanvasRenderingContext2D, isDimmed = false): CanvasPattern | null {
+    const isDark = this.deps.isDarkTheme?.value ?? true;
+    const themeKey = `${isDark ? 'dark' : 'light'}-${isDimmed ? 'dim' : 'normal'}`;
+    if (this.hatchPattern && this.hatchThemeKey === themeKey) {
+      return this.hatchPattern;
+    }
+    const hatchColor = (isDimmed ? this.deps.colorCfg?.aicpuHatchNoColor : this.deps.colorCfg?.aicpuHatchColor)
+      || (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)');
+    this.hatchPattern = createHatchFill(ctx, isDark, hatchColor);
+    this.hatchThemeKey = themeKey;
+    return this.hatchPattern;
   }
 
   drawEvent(eventDatas: any, ctx: CanvasRenderingContext2D, isDimmed = false, isPinned = false) {
@@ -36,6 +51,8 @@ export class EventRender {
       ctx.setTransform(viewState.pixelScale, 0, 0, devicePixelRatio, viewState.pixelOffsetX, 0);
     }
     
+    let hatchPattern: CanvasPattern | null | undefined;
+    const hatchRects: Array<{ x: number; y: number; w: number; h: number }> = [];
     for (const drawData of eventDatas) {
       if (!drawData) {
         continue;
@@ -74,6 +91,28 @@ export class EventRender {
       if (drawData.strokeColor && width * viewState.scale > 10) {
         ctx.stroke();
       }
+      if (drawData.isAicpu) {
+        if (hatchPattern === undefined) {
+          hatchPattern = this.getHatchPattern(ctx, isDimmed);
+        }
+        if (hatchPattern) {
+          hatchRects.push({
+            x: drawData.rectX * viewState.pixelScale + viewState.pixelOffsetX,
+            y: (isPinned ? drawData.pinnedEventY : drawData.rectY) * devicePixelRatio,
+            w: width * viewState.pixelScale,
+            h: drawData.height * devicePixelRatio,
+          });
+        }
+      }
+    }
+    if (hatchRects.length > 0 && hatchPattern) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = hatchPattern;
+      for (const rect of hatchRects) {
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+      }
+      ctx.restore();
     }
     ctx.restore();
   }

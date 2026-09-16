@@ -79,7 +79,7 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithU
   FAKE_CORE_KEYWORD
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
-import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm} from './render/utils';
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
 import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
@@ -170,6 +170,7 @@ const {
   draggingSelection,
   draggingSelectionProcessKey,
   deviceDataMap,
+  isDeviceView,
 } = swimGraphState;
 
 const {
@@ -2711,7 +2712,8 @@ const createParentEventDrawData = (parentEvent, threadId, processKey) => {
     endTime: parentEvent.endTime,
     duration,
     pinnedEventY: eventY,
-    hashorder: parentEvent.args?.['hashOrder-hint']
+    hashorder: parentEvent.args?.['hashOrder-hint'],
+    isAicpu: isAicpuHatchEvent(props.process.type, parentEvent, isDeviceView)
   };
   
   parentEvent.drawData = drawData;
@@ -3147,6 +3149,7 @@ const highlightEvent = (ctx, event, processKey, stroke=true, highlight=true) => 
     eventWidth: width, height: renderInfo.height,
     rectColor: fillColor, strokeColor: '', text: '', textX: 0, textY: 0,
     fontColor, show: true, width, duration,
+    isAicpu: isAicpuHatchEvent(props.process.type, event, isDeviceView),
   };
   eventRenderer.drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
@@ -3184,6 +3187,7 @@ const highlightMixEvent = (ctx, event, processKey) => {
     rectColor: fillColor, strokeColor: '', text: event.name || '', textX: 0, 
     textY: renderInfo.y * devicePixelRatio + eventTextSize,
     fontColor, show: true, width, duration,
+    isAicpu: isAicpuHatchEvent(props.process.type, event, isDeviceView),
   };
   eventRenderer.drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
@@ -3379,10 +3383,11 @@ const getDrawData = (ctx, event, eventY, drawData, processKey) => {
   const colors = getEventColor(event, eventRenderer.deps, processKey);
   const { fillColor, fontColor, strokeColor } = colors;
   const duration = event.duration ?? (event.endTime - event.startTime);
+  const isAicpu = isAicpuHatchEvent(props.process.type, event, isDeviceView);
   Object.assign(drawData, {
     rectX: x, rectY: eventY, rectPixelX: x * devicePixelRatio, rectPixelY: eventY * devicePixelRatio,
     eventWidth, height: eventHeight, rectColor: fillColor, strokeColor,
-    fontColor, fontColor, pinnedEventY: eventY, duration});
+    fontColor, fontColor, pinnedEventY: eventY, duration, isAicpu});
   if (pinnedStatus.value) {
     Object.assign(event.renderInfo, {x: originalX, y: originalY, width: originalWidth});
     Object.assign(drawData, {rectX: originalX, rectY: originalY, rectPixelX: originalX * devicePixelRatio, 
@@ -4287,6 +4292,7 @@ const renderThreadNormalEvents = ({thread, threadY, laneHeight, drawDatas, proce
   .map(id => swimDataManager.getEventById(id))
   .filter(e => e && (!swimDataManager.isMixParentEvent(e) || !wrapIds.includes(e.args?.wrapId)));
   
+  const processType = props.process.type;
   for (const event of normalEvents) {
     if (event.endTime < timelineState.startTime || event.startTime > timelineState.endTime) continue;
     const x = getPositionByTime(event.startTime, viewState, layout) - processLabelWidth;
@@ -4319,7 +4325,8 @@ const renderThreadNormalEvents = ({thread, threadY, laneHeight, drawDatas, proce
       endTime: event.endTime,
       duration,
       pinnedEventY: eventY,
-      hashorder: event.args?.['hashOrder-hint']
+      hashorder: event.args?.['hashOrder-hint'],
+      isAicpu: isAicpuHatchEvent(processType, event, isDeviceView)
     };
     
     event.drawData = drawData;
@@ -4348,9 +4355,11 @@ const renderMixThreadMipmap = (thread, threadY, laneHeight, drawDatas, processKe
   let durBucketCount = 0;
   let zeroBucketCount = 0;
 
+  const processType = props.process.type;
   for (const bucket of buckets) {
     const event = bucket.event;
     const eventType = event._mixEventType || 'normalEvent';
+    const isAicpu = eventType !== 'waitTask' && isAicpuHatchEvent(processType, event, isDeviceView);
 
     let fillColor, fontColor, strokeColor;
     if (eventType === 'waitTask') {
@@ -4392,6 +4401,7 @@ const renderMixThreadMipmap = (thread, threadY, laneHeight, drawDatas, processKe
         pinnedEventY: eventY,
         _mipmapEventId: event.id,
         hashorder: event.args?.['hashOrder-hint'],
+        isAicpu,
       });
     } else {
       durBucketCount++;
@@ -4418,6 +4428,7 @@ const renderMixThreadMipmap = (thread, threadY, laneHeight, drawDatas, processKe
         pinnedEventY: eventY,
         _mipmapEventId: event.id,
         hashorder: event.args?.['hashOrder-hint'],
+        isAicpu,
       });
     }
   }
@@ -4433,6 +4444,7 @@ const renderThreadSubEvents = ({thread, threadY, laneHeight, drawDatas, processK
   const halfEventHeight = eventHeight / 2;
   const baseY = threadY - threadHeight / 2;
   
+  const processType = props.process.type;
   for (const parentEvent of parentEvents) {
     if (parentEvent.endTime < timelineState.startTime || parentEvent.startTime > timelineState.endTime) continue;
     const subEvents = swimDataManager.getSubEvents(parentEvent.id);
@@ -4467,7 +4479,8 @@ const renderThreadSubEvents = ({thread, threadY, laneHeight, drawDatas, processK
         endTime: subEvent.endTime,
         duration,
         pinnedEventY: eventY,
-        hashorder: subEvent.args.hashorder
+        hashorder: subEvent.args.hashorder,
+        isAicpu: isAicpuHatchEvent(processType, subEvent, isDeviceView)
       };
       
       subEvent.drawData = drawData;

@@ -38,7 +38,9 @@ export const COLOR_CFG = {
     wrapTextColorHover: 'rgba(0, 0, 0, 1)',
     wrapBgColorHover: 'rgba(102, 102, 102, 1)',
     wrapBorderBgColorHover: 'rgba(102, 102, 102, 0.1)',
-    wrapBoxBgColor: 'rgba(102, 102, 102, 0.5)'
+    wrapBoxBgColor: 'rgba(102, 102, 102, 0.5)',
+    aicpuHatchColor: 'rgba(255, 255, 255, 0.2)',
+    aicpuHatchNoColor: 'rgba(255, 255, 255, 0.1)'
   },
   light: {
     backGround: '#ffffff',
@@ -60,6 +62,8 @@ export const COLOR_CFG = {
     wrapBgColorHover: 'rgba(119, 119, 119, 1)',
     wrapBorderBgColorHover: 'rgba(119, 119, 119, 0.05)',
     wrapBoxBgColor: 'rgba(119, 119, 119, 0.25)',
+    aicpuHatchColor: 'rgba(0, 0, 0, 0.2)',
+    aicpuHatchNoColor: 'rgba(0, 0, 0, 0.1)'
   }
 };
 
