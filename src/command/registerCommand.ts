@@ -47,6 +47,7 @@ export class RegisterCommand {
       this.registerCloseAllToolPages(),
       this.registerPostLayoutData(),
       this.registerExecuteRemoteCommand(),
+      this.registerOpenWaveform(),
     ];
   }
 
@@ -239,6 +240,23 @@ export class RegisterCommand {
           _('pypto.remoteTool.execFailed', { exitCode: result.exitCode, stderr: result.stderr || 'Unknown error' }),
         );
       }
+    });
+  }
+
+  private registerOpenWaveform() {
+    return commands.registerCommand('PyPTO.Open.OpenWaveform', async (uri: Uri | undefined) => {
+      if (!uri && window.activeTextEditor) uri = window.activeTextEditor.document.uri;
+      if (!uri) return;
+      const ext = path.extname(uri.fsPath).toLowerCase();
+      if (ext !== '.vcd' && ext !== '.fst') {
+        window.showInformationMessage(_('pypto.cannotRender'));
+        return;
+      }
+      const { editorView } = useView();
+      await editorView.open('waveform', vscode.Uri.file(uri.fsPath), {
+        query: {},
+        title: getBasenameWithoutExt(uri.fsPath),
+      });
     });
   }
 
