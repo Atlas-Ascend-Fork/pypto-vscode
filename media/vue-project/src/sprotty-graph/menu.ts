@@ -1,71 +1,68 @@
 /**
  * Copyright (c) 2025-2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
- * CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import { inject, injectable } from 'inversify';
-import {
-  Anchor,
-  EMPTY_ROOT,
-  IActionDispatcher,
-  IContextMenuItemProvider,
-  IContextMenuService,
-  LabeledAction,
-  MenuItem,
-  SModelRootImpl,
-  SChildElementImpl,
-  TYPES,
-  ViewerOptions,
-  SNodeImpl,
-} from 'sprotty';
-import { Action, Point, SetPopupModelAction } from 'sprotty-protocol';
+import { EMPTY_ROOT, LabeledAction, SNodeImpl, TYPES, ViewerOptions } from 'sprotty';
+import type { Anchor, IActionDispatcher, IContextMenuItemProvider, IContextMenuService, MenuItem, SModelRootImpl } from 'sprotty';
+import { SetPopupModelAction } from 'sprotty-protocol';
+import type { Action, Point } from 'sprotty-protocol';
 import { setFixedComGraphFlow } from '../utils/operation';
 import { comGraphStore } from '../service/com-graph-store';
 import { useViewServer } from '../core/use-view-server';
 import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { getQuery } from '@/core/query';
-import { forEach } from 'lodash-es';
-import { sizeType } from 'vue-devui/types/time-picker/src/types';
 
+/** 最近一次构建右键菜单时的图根节点，供“切换节点”功能查询相邻节点使用 */
 let rootNodes: Readonly<SModelRootImpl>;
 
-
 const { server } = useViewServer<IComViewServer>();
+
 @injectable()
 export class AstgrContextMenuService implements IContextMenuService {
-  @inject(TYPES.IActionDispatcher) readonly actionDispatcher: IActionDispatcher;
-  @inject(TYPES.ViewerOptions) protected viewerOptions: ViewerOptions;
+  @inject(TYPES.IActionDispatcher) private readonly dispatcher: IActionDispatcher;
+  @inject(TYPES.ViewerOptions) private readonly viewerOptions: ViewerOptions;
 
   show(items: MenuItem[], anchor: Anchor, onHide?: (() => void) | undefined): void {
-    this.actionDispatcher.dispatch(SetPopupModelAction.create(EMPTY_ROOT));
-    const container = document.getElementById(this.viewerOptions.baseDiv);
-    let menuNode: HTMLDivElement;
-    const hideMenu = () => {
-      container?.removeChild(menuNode);
-      if (onHide) {
-        onHide();
-      }
+    // 先关闭 sprotty 内置的 popup 弹层，避免与右键菜单叠加显示
+    this.dispatcher.dispatch(SetPopupModelAction.create(EMPTY_ROOT));
+
+    // teardown 在菜单挂载时生成，负责摘除菜单节点并回调调用方
+    let teardown: (() => void) | undefined;
+    const closeMenu = () => {
+      teardown?.();
+      teardown = undefined;
     };
-    if (comGraphStore.data.comGraphConfig.isSimple && comGraphStore.data.comGraphConfig.canViewSubgraph) {
-      if (items.length) {
-        menuNode = this.createMenuForSimpleCom(items, hideMenu);
-        container?.appendChild(menuNode);
-        fitInsideViewport({ x: anchor.x, y: anchor.y }, menuNode);
-        menuNode.onmouseleave = () => hideMenu();
-      } else {
+    const mountMenu = (menuNode: HTMLDivElement) => {
+      teardown = () => {
+        menuNode.remove();
         onHide?.();
+      };
+      document.getElementById(this.viewerOptions.baseDiv)?.appendChild(menuNode);
+      fitInsideViewport({ x: anchor.x, y: anchor.y }, menuNode);
+      menuNode.onmouseleave = closeMenu;
+    };
+
+    const { isSimple, canViewSubgraph, canLockPath } = comGraphStore.data.comGraphConfig;
+    if (isSimple && canViewSubgraph) {
+      // 简图三栏模式：菜单只包含“在新标签打开子图”类入口
+      if (items.length === 0) {
+        onHide?.();
+        return;
       }
-    } else if (!comGraphStore.data.isDiffGraph && comGraphStore.data.comGraphConfig.canLockPath) {
-      this.createMenu(items, hideMenu).then((res) => {
-        menuNode = res;
-        container?.appendChild(menuNode);
-        fitInsideViewport({ x: anchor.x, y: anchor.y }, menuNode);
-        menuNode.onmouseleave = (e: MouseEvent) => hideMenu();
-      });
+      mountMenu(this.buildSimpleGraphMenu(items, closeMenu));
+    } else if (!comGraphStore.data.isDiffGraph && canLockPath) {
+      this.buildFullMenu(items, closeMenu).then(mountMenu);
     }
   }
 
@@ -76,7 +73,7 @@ export class AstgrContextMenuService implements IContextMenuService {
     const nodeArrowBox = document.createElement('span');
     nodeArrowBox.style.cssText = 'border:1px solid var(--devui-placeholder-text);padding:3px 3px;border-radius:4px;display:inline-flex;align-items:center;'
     const nodeArrow = document.createElement('i');
-    nodeArrow.className = `icon-arrow-${buttonPos}-l` ; 
+    nodeArrow.className = `icon-arrow-${buttonPos}-l` ;
     nodeArrow.style.fontSize = '12px';
     nodeArrowBox.appendChild(nodeArrow);
     const nodeText = document.createElement('span');
@@ -98,7 +95,7 @@ export class AstgrContextMenuService implements IContextMenuService {
     return nodeWrap;
   }
 
-  findNeighbor(menuNode: HTMLDivElement, menuItem: HTMLDivElement, index: number, selectedNodeId: string, isBootStep = false) {
+  findNeighbor(menuNode: HTMLDivElement, menuItem: HTMLDivElement, selectedNodeId: string, isBootStep = false) {
     menuItem.style.backgroundColor = 'transparent';
 
     const splitLine = document.createElement('div');
@@ -138,153 +135,131 @@ export class AstgrContextMenuService implements IContextMenuService {
     return nodeMagic;
   }
 
-  private createMenuItemContent(menuItem: HTMLDivElement, item: MenuItem, index: number, menuNode: HTMLDivElement, isBootStep: boolean): void {
+  /** 渲染单个菜单项的内容：普通项为“文本 + 快捷键”，特殊项单独渲染交互组件 */
+  private renderItemContent(itemNode: HTMLDivElement, item: MenuItem, menuNode: HTMLDivElement, bootStepMode: boolean): void {
     if (item.label === '') {
-      menuItem.textContent = item.label;
-      menuItem.classList.add('disabled-action');
+      itemNode.textContent = item.label;
+      itemNode.classList.add('disabled-action');
       return;
     }
 
     const { text, key } = splitLabel(item.label);
 
     if (item.id === 'JumpToSibling') {
-      const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
-      this.findNeighbor(menuNode, menuItem, index, selectedNodeId, isBootStep);
+      // 切换节点：渲染分割线与上/下一个节点跳转按钮
+      const { selectedNodeId } = item.actions[0] as unknown as CallSetFixedAction;
+      this.findNeighbor(menuNode, itemNode, selectedNodeId, bootStepMode);
       return;
     }
 
     if (item.id === 'NewTabForCurPath') {
-      const selectedNodeId = (item.actions[0] as any as CallSetFixedAction).selectedNodeId;
+      // 新标签查看当前通路：点击后打开 SearchMode 并定位节点
+      const { selectedNodeId } = item.actions[0] as unknown as CallSetFixedAction;
       const nodeMagic = this.extractNodeMagic(selectedNodeId);
-      const textSpan = document.createElement('span');
-      textSpan.textContent = text;
-      textSpan.className = 'menu-text';
-
-      if (nodeMagic === undefined) {
-        textSpan.style.cursor = 'not-allowed';
-      } else {
-        textSpan.onclick = () => {
-          if (isBootStep) return;
-          (window as any).ascEventBus.emit('SearchModeOpen', String(nodeMagic));
-        };
-      }
-      menuItem.appendChild(textSpan);
+      itemNode.appendChild(this.createMagicSearchLabel(text, nodeMagic, bootStepMode));
       return;
     }
 
-    const textSpan = document.createElement('span');
-    textSpan.textContent = text;
-    textSpan.className = 'menu-text';
-    const keySpan = document.createElement('span');
-    keySpan.className = 'shortcut-key';
-    keySpan.textContent = key;
-    menuItem.appendChild(textSpan);
-    menuItem.appendChild(keySpan);
+    appendLabelWithShortcut(itemNode, text, key);
   }
 
-  private createMenuItemClickHandler(item: MenuItem, closeCallback: () => void, isBootStep: boolean): (e: MouseEvent) => void {
-    return (e: MouseEvent) => {
-      if (isBootStep && item.id !== 'FocusOnCurrent') return;
-      closeCallback();
-      if (item.actions.length === 0) return;
-
-      const cb = item.actions.find((a) => a.kind === CALL_SET_FIXED) as CallSetFixedAction;
-      if (item.id === 'JumpToSibling' || item.id === 'NewTabForCurPath') return;
-
-      if (cb) {
-        if (cb.goToCodeLine) {
-          server.jumpToCodeLine({paramObj: {file: cb.codePath, line: cb.codeLine}});
-          return;
-        }
-        setFixedComGraphFlow(cb.fixedFlag, cb.visibleFlag, cb?.selectedNodeId);
-        if (cb?.selectedNodeId && cb?.selectedNodeId != '') {
-          (window as any).ascEventBus.emit('switchLockInformation', [cb.fixedFlag, cb.visibleFlag]);
-        }
+  /** “新标签查看当前通路”入口的文本标签，可点击时跳转到 SearchMode */
+  private createMagicSearchLabel(text: string, nodeMagic: number | undefined, bootStepMode: boolean): HTMLSpanElement {
+    const label = createSpan('menu-text', text);
+    if (nodeMagic === undefined) {
+      // 无法从节点 id 解析出 magic 时，入口置灰不可点击
+      label.style.cursor = 'not-allowed';
+      return label;
+    }
+    label.onclick = () => {
+      if (bootStepMode) {
         return;
       }
-      this.actionDispatcher.dispatchAll(item.actions);
+      (window as any).ascEventBus.emit('SearchModeOpen', String(nodeMagic));
     };
+    return label;
   }
 
-  protected async createMenu(items: MenuItem[], closeCallback: () => void): Promise<HTMLDivElement> {
-    const res = await getQuery();
-    const query = JSON.parse(res._uri.query);
-    const isBootStep = Boolean(query.isBootStep);
-    const menuNode = document.createElement('div');
-    menuNode.id = 'astgr-context-menu';
-    menuNode.classList.add('astgr-context-menu');
+  /** 菜单项点击处理：先收起菜单，再执行锁通路/跳代码行等动作 */
+  private runItemActions(item: MenuItem, closeCallback: () => void, bootStepMode: boolean): void {
+    if (bootStepMode && item.id !== 'FocusOnCurrent') {
+      return;
+    }
+    closeCallback();
+    if (item.actions.length === 0) {
+      return;
+    }
+    // 切换节点 / 新标签查看通路的行为已在内容渲染阶段单独处理
+    if (item.id === 'JumpToSibling' || item.id === 'NewTabForCurPath') {
+      return;
+    }
+    const fixedAction = findFixedAction(item);
+    if (!fixedAction) {
+      this.dispatcher.dispatchAll(item.actions);
+      return;
+    }
+    if (fixedAction.goToCodeLine) {
+      server.jumpToCodeLine({paramObj: {file: fixedAction.codePath, line: fixedAction.codeLine}});
+      return;
+    }
+    setFixedComGraphFlow(fixedAction.fixedFlag, fixedAction.visibleFlag, fixedAction.selectedNodeId);
+    if (fixedAction.selectedNodeId) {
+      (window as any).ascEventBus.emit('switchLockInformation', [fixedAction.fixedFlag, fixedAction.visibleFlag]);
+    }
+  }
 
-    items.forEach((item, index) => {
-      const menuItem = document.createElement('div');
-      menuItem.id = `astgr-context-menu-item-${item.id}`;
-      menuItem.classList.add('astgr-context-menu-item');
-      if (isBootStep && item.id !== 'FocusOnCurrent') {
-        menuItem.classList.add('disabled-action');
+  /** 完整右键菜单：需要异步读取 webview query 以判断是否处于 boot step 模式 */
+  private async buildFullMenu(items: MenuItem[], closeCallback: () => void): Promise<HTMLDivElement> {
+    const bootStepMode = await resolveBootStepMode();
+    const menuNode = createMenuShell();
+    for (const item of items) {
+      const itemNode = createItemShell(item);
+      if (bootStepMode && item.id !== 'FocusOnCurrent') {
+        itemNode.classList.add('disabled-action');
       }
-
-      this.createMenuItemContent(menuItem, item, index, menuNode, isBootStep);
-      menuItem.onclick = this.createMenuItemClickHandler(item, closeCallback, isBootStep);
-      menuNode.appendChild(menuItem);
-    });
+      this.renderItemContent(itemNode, item, menuNode, bootStepMode);
+      itemNode.onclick = () => this.runItemActions(item, closeCallback, bootStepMode);
+      menuNode.appendChild(itemNode);
+    }
     return menuNode;
   }
 
-  protected createMenuForSimpleCom(items: MenuItem[], closeCallback: () => void) {
-    const menuNode = document.createElement('div');
-    menuNode.id = 'astgr-context-menu';
-    menuNode.classList.add('astgr-context-menu');
-
+  /** 简图模式右键菜单：仅一个入口，点击后经事件总线打开三栏子图 */
+  private buildSimpleGraphMenu(items: MenuItem[], closeCallback: () => void): HTMLDivElement {
+    const menuNode = createMenuShell();
     items.forEach((item) => {
-      const menuItem = document.createElement('div');
-      menuItem.id = `astgr-context-menu-item-${item.id}`;
-      menuItem.classList.add('astgr-context-menu-item');
-      const textSpan = document.createElement('span');
-      textSpan.textContent = item.label;
-      textSpan.className = 'menu-text';
-      menuItem.appendChild(textSpan);
-      menuItem.onclick = () => {
-        const cb = item.actions.find((a) => a.kind === CALL_SET_FIXED) as CallSetFixedAction;
-        (window as any).ascEventBus.emit('OpenSubGraphInThreeColumn', { selectedNode: cb.selectedNode });
+      const itemNode = createItemShell(item);
+      itemNode.appendChild(createSpan('menu-text', item.label));
+      itemNode.onclick = () => {
+        const fixedAction = findFixedAction(item);
+        (window as any).ascEventBus.emit('OpenSubGraphInThreeColumn', { selectedNode: fixedAction?.selectedNode });
         closeCallback();
-      }
-
-      menuNode.appendChild(menuItem);
+      };
+      menuNode.appendChild(itemNode);
     });
-
     return menuNode;
   }
 }
 
 export function findDestNode(selectedNodeId: string, buttonPos: string, nodeId: string): string {
-  let tracePath = comGraphStore.data.historyPath;
-
-  const nodePos = tracePath.findIndex(item => item === selectedNodeId);
-  let newNodeId = nodeId;
+  const tracePath = comGraphStore.data.historyPath;
+  const nodePos = tracePath.indexOf(selectedNodeId);
+  // 当前节点不在历史路径中：以它为起点重新建路
   if (nodePos === -1) {
-    tracePath = [];
-    tracePath.push(selectedNodeId);
-    if (buttonPos === 'left') {
-      tracePath.unshift(nodeId);
-    } else {
-      tracePath.push(nodeId);
-    }
-    comGraphStore.setData('historyPath', tracePath);
-  } else {
-    if (buttonPos === 'left') {
-      if (nodePos - 1 >= 0) {
-        newNodeId = tracePath[nodePos - 1];
-      } else {
-        tracePath.unshift(newNodeId);
-      }
-    } else {
-      if ((nodePos + 1) < tracePath.length) {
-        newNodeId = tracePath[nodePos + 1];
-      } else {
-        tracePath.push(newNodeId);
-      }
-    }
+    comGraphStore.setData('historyPath', buttonPos === 'left' ? [nodeId, selectedNodeId] : [selectedNodeId, nodeId]);
+    return nodeId;
   }
-  return newNodeId;
+  if (buttonPos === 'left') {
+    if (nodePos > 0) {
+      return tracePath[nodePos - 1];
+    }
+    tracePath.unshift(nodeId);
+  } else if (nodePos + 1 < tracePath.length) {
+    return tracePath[nodePos + 1];
+  } else {
+    tracePath.push(nodeId);
+  }
+  return nodeId;
 }
 
 export function findNeighborNode(selectedNode: string, rootNodes: Readonly<SModelRootImpl>): string[] {
@@ -334,7 +309,7 @@ export function findNeighborNode(selectedNode: string, rootNodes: Readonly<SMode
 }
 
 function fitInsideViewport(anchor: Point, menuNode: HTMLElement): void {
-  const pad = -4;                                      
+  const pad = -4;
   const { innerWidth, innerHeight } = window;
   const { offsetWidth: mw, offsetHeight: mh } = menuNode;
 
@@ -362,6 +337,42 @@ function splitLabel(label: string): { text: string; key: string } {
   return m ? { text: m[1], key: m[2] } : { text: label, key: '' };
 }
 
+function createMenuShell(): HTMLDivElement {
+  const menuNode = document.createElement('div');
+  menuNode.id = 'astgr-context-menu';
+  menuNode.classList.add('astgr-context-menu');
+  return menuNode;
+}
+
+function createItemShell(item: MenuItem): HTMLDivElement {
+  const itemNode = document.createElement('div');
+  itemNode.id = `astgr-context-menu-item-${item.id}`;
+  itemNode.classList.add('astgr-context-menu-item');
+  return itemNode;
+}
+
+function createSpan(className: string, text: string): HTMLSpanElement {
+  const span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  return span;
+}
+
+function appendLabelWithShortcut(itemNode: HTMLDivElement, text: string, key: string): void {
+  itemNode.appendChild(createSpan('menu-text', text));
+  itemNode.appendChild(createSpan('shortcut-key', key));
+}
+
+async function resolveBootStepMode(): Promise<boolean> {
+  const queryResult = await getQuery();
+  const query = JSON.parse(queryResult._uri.query);
+  return Boolean(query.isBootStep);
+}
+
+function findFixedAction(item: MenuItem): CallSetFixedAction | undefined {
+  return item.actions.find((action) => action.kind === CALL_SET_FIXED) as CallSetFixedAction | undefined;
+}
+
 export const CALL_SET_FIXED = 'callSetFixed';
 
 // 2. Action 接口不变
@@ -387,69 +398,81 @@ export const callSetFixed = (fixedFlag: boolean, visibleFlag: boolean, selectedN
   codeLine,
 });
 
+/** 三栏模式下选中带子图的节点时，返回“在新标签打开子图”菜单项 */
+function buildOpenSubgraphItem(node: Record<string, any>): MenuItem[] {
+  const { calleeMap } = comGraphStore.data;
+  if (!node.calleehash || !calleeMap || !calleeMap[node.calleehash]) {
+    return [];
+  }
+  const label = `${(window as any).ascLang === 'en' ? 'Open subgraph in new tab' : '在新标签打开子图'}`;
+  return [
+    {
+      id: 'openSubGraph',
+      label,
+      actions: new LabeledAction(label, [{ kind: CALL_SET_FIXED, selectedNode: node } as unknown as CallSetFixedAction])?.actions,
+    },
+  ];
+}
+
+/** 默认菜单项：锁通路/只看通路/新标签查看通路/切换节点，选中节点带代码信息时附加“跳转到代码行” */
+function assembleDefaultItems(selectedNodes: Record<string, any>[], selectedIds: string[]): MenuItem[] {
+  const isEn = (window as any).ascLang === 'en';
+  const lockPathLabel = `${isEn ? 'Lock the path and highlight it' : '锁定通路并高亮'}[Ctrl+L]`;
+  const focusPathLabel = `${isEn ? 'Focus only on the current path' : '只看当前通路'}[Ctrl+H]`;
+  const newTabLabel = isEn ? 'View current path in new tab' : '在新标签查看当前通路';
+  const switchNodeLabel = isEn ? 'Switch Node' : '切换节点';
+
+  const menuItems: MenuItem[] = [
+    {
+      id: 'LockAndHightLight',
+      label: lockPathLabel,
+      actions: new LabeledAction(lockPathLabel, [callSetFixed(true, false, selectedIds[0], false, '', 0)])?.actions,
+    },
+    {
+      id: 'FocusOnCurrent',
+      label: focusPathLabel,
+      actions: new LabeledAction(focusPathLabel, [callSetFixed(true, true, selectedIds[0], false, '', 0)])?.actions,
+    },
+    {
+      id: 'NewTabForCurPath',
+      label: newTabLabel,
+      actions: new LabeledAction(newTabLabel, [callSetFixed(true, true, selectedIds[0], false, '', 0)])?.actions,
+    },
+    {
+      id: 'JumpToSibling',
+      label: switchNodeLabel,
+      actions: new LabeledAction(switchNodeLabel, [callSetFixed(true, true, selectedIds[0], false, '', 0)])?.actions,
+    },
+    // 后续可按需恢复：分隔空项、解除通路锁定[Esc]
+  ];
+
+  const firstSelected = selectedNodes[0];
+  if (firstSelected?.codePath && firstSelected?.codeLine) {
+    const jumpToCodeLabel = isEn ? 'Jump to code line' : '跳转到代码行';
+    menuItems.splice(menuItems.length - 1, 0, {
+      id: 'JumpToCodeLine',
+      label: jumpToCodeLabel,
+      actions: new LabeledAction(jumpToCodeLabel, [
+        callSetFixed(false, false, selectedIds[0], true, firstSelected.codePath, firstSelected.codeLine),
+      ])?.actions,
+    });
+  }
+  return menuItems;
+}
+
 @injectable()
 export class AstgrContextMenuItemProvider implements IContextMenuItemProvider {
-  @inject(TYPES.IActionDispatcher) readonly actionDispatcher: IActionDispatcher;
-
   async getItems(root: Readonly<SModelRootImpl>, lastMousePosition?: Point | undefined): Promise<MenuItem[]> {
-    const selectedNode: Record<string, any>[] = root.children.filter((e) => (e as SNodeImpl).selected);
-    const selectedNodeIds = selectedNode.map((e) => e.id);
+    const selectedNodes = root.children.filter((child) => (child as SNodeImpl).selected) as Record<string, any>[];
+    const selectedIds = selectedNodes.map((node) => node.id);
+    const { isSimple, canViewSubgraph } = comGraphStore.data.comGraphConfig;
 
-    // 三栏模式，支持右键菜单打开子图
-    if (selectedNode.length && comGraphStore.data.comGraphConfig.isSimple && comGraphStore.data.comGraphConfig.canViewSubgraph) {
-      if (selectedNode[0].calleehash && comGraphStore.data.calleeMap && comGraphStore.data.calleeMap[selectedNode[0].calleehash]) {
-        return [
-          {
-            id: 'openSubGraph',
-            label: `${(window as any).ascLang === 'en' ? 'Open subgraph in new tab' : '在新标签打开子图'}`,
-            actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Open subgraph in new tab' : '在新标签打开子图'}`, [
-              { kind: CALL_SET_FIXED, selectedNode: selectedNode[0] } as unknown as CallSetFixedAction,
-            ])?.actions,
-          },
-        ];
-      }
-      return [];
+    // 三栏联动模式：右键菜单只提供“在新标签打开子图”入口
+    if (selectedNodes.length > 0 && isSimple && canViewSubgraph) {
+      return buildOpenSubgraphItem(selectedNodes[0]);
     }
-    
+
     rootNodes = root;
-
-    const menuItemList = [
-      {
-        id: 'LockAndHightLight',
-        label: `${(window as any).ascLang === 'en' ? 'Lock the path and highlight it' : '锁定通路并高亮'}[Ctrl+L]`,
-        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Lock the path and highlight it' : '锁定通路并高亮'}[Ctrl+L]`, [callSetFixed(true, false, selectedNodeIds[0], false, '', 0)])?.actions,
-      },
-      {
-        id: 'FocusOnCurrent',
-        label: `${(window as any).ascLang === 'en' ? 'Focus only on the current path' : '只看当前通路'}[Ctrl+H]`,
-        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Focus only on the current path' : '只看当前通路'}[Ctrl+H]`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
-      },
-      {
-        id: 'NewTabForCurPath',
-        label: `${(window as any).ascLang === 'en' ? 'View current path in new tab' : '在新标签查看当前通路'}`,
-        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'View current path in new tab' : '在新标签查看当前通路'}`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
-      },
-      {
-        id: 'JumpToSibling',
-        label: `${(window as any).ascLang === 'en' ? 'Switch Node' : '切换节点'}`,
-        actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Switch Node' : '切换节点'}`, [callSetFixed(true, true, selectedNodeIds[0], false, '', 0)])?.actions,
-      },
-      //   new LabeledAction('', []), // 后续需要再打开
-      //   new LabeledAction('解除通路锁定[Esc]', [callSetFixed(false, false, [])]),
-    ]
-
-    const nodeInfo = root.children.filter(e => (e as SNodeImpl).selected);
-    if (nodeInfo.length > 0 && (nodeInfo[0].codePath && nodeInfo[0].codeLine)) {
-      const codeLineItem =
-        {
-          id: 'JumpToCodeLine',
-          label: `${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`,
-          actions: new LabeledAction(`${(window as any).ascLang === 'en' ? 'Jump to code line' :'跳转到代码行'}`, [callSetFixed(false, false, selectedNodeIds[0], true, nodeInfo[0].codePath, nodeInfo[0].codeLine)])?.actions,
-        }
-      
-      menuItemList.splice(-1, 0, codeLineItem);
-    }
-
-    return menuItemList;
+    return assembleDefaultItems(selectedNodes, selectedIds);
   }
 }

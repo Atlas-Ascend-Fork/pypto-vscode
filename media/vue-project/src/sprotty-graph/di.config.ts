@@ -1,59 +1,75 @@
 /**
  * Copyright (c) 2025-2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
- * CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+import { Container, ContainerModule, inject, injectable, optional } from 'inversify';
+// ELK 布局内核
 import { LayoutOptions } from 'elkjs/lib/elk-api';
 import ElkConstructor from 'elkjs/lib/elk.bundled';
-import { Container, ContainerModule, injectable } from 'inversify';
+// sprotty-elk：把 ELK 接入 sprotty 布局体系
 import {
-  Animation,
-  CommandExecutionContext,
-  configureModelElement,
-  configureViewerOptions,
-  ConsoleLogger,
-  editFeature,
-  isSelectable,
-  isViewport,
-  loadDefaultModules,
-  LocalModelSource,
-  LogLevel,
-  moveFeature,
-  hoverFeedbackFeature,
+  ElkFactory,
+  ElkLayoutEngine,
+  DefaultElementFilter,
+  DefaultLayoutConfigurator,
+  IElementFilter,
+  ILayoutConfigurator,
+  ILayoutPreprocessor,
+  ILayoutPostprocessor,
+} from 'sprotty-elk/lib/inversify';
+import { Action, SGraph, SModelElement, SModelIndex, SNode, SPort } from 'sprotty-protocol';
+import {
+  // 模型元素实现类
   RectangularNode,
+  SCompartmentImpl,
   SEdgeImpl,
   SGraphImpl,
   SLabelImpl,
+  SModelElementImpl,
   SModelRootImpl,
   SNodeImpl,
   SRoutingHandleImpl,
-  SRoutingHandleView,
+  // DI 容器装配工具
+  configureActionHandler,
+  configureCommand,
+  configureModelElement,
+  configureViewerOptions,
+  loadDefaultModules,
+  LocalModelSource,
   TYPES,
+  // 交互特性开关
+  editFeature,
+  hoverFeedbackFeature,
+  moveFeature,
+  // 命令、动画与视口判定
+  Animation,
+  CommandExecutionContext,
   UpdateAnimationData,
   UpdateModelCommand,
   ViewportAnimation,
-  SCompartmentImpl,
+  isSelectable,
+  isViewport,
+  // 鼠标监听与模型遍历
   MouseListener,
-  SModelElementImpl,
+  SRoutingHandleView,
   findParentByFeature,
-  configureCommand,
-  configureActionHandler,
+  // 日志
+  ConsoleLogger,
+  LogLevel,
+  // 视图注册表的类型标注
+  type CustomFeatures,
+  type IView,
 } from 'sprotty';
-import {
-  DefaultElementFilter,
-  DefaultLayoutConfigurator,
-  ElkFactory,
-  ElkLayoutEngine,
-  IElementFilter,
-  ILayoutConfigurator,
-  ILayoutPostprocessor,
-  ILayoutPreprocessor,
-} from 'sprotty-elk/lib/inversify';
-import { Action, Point, SGraph, SModelElement, SModelIndex, SNode, SPort } from 'sprotty-protocol';
 import {
   AstgrEdge,
   AstgrGraphView,
@@ -78,15 +94,18 @@ import { RectAnimateActionHandler, RectAnimateCommand } from './animation';
 
 const { server } = useViewServer<IComViewServer>();
 
+/** 计算图布局引擎：跳过无需布局的图，并把布局计算委托给外部布局服务，仅负责应用回传结果 */
 @injectable()
 class CustomElkLayoutEngine extends ElkLayoutEngine {
   private layoutWatchStop: (() => void) | null = null;
+
+  // 依赖由 inversify 在解析时注入；布局前/后处理器是可选服务，未绑定时注入 undefined
   constructor(
-    elkFactory: ElkFactory,
-    protected readonly filter: IElementFilter,
-    protected readonly configurator: ILayoutConfigurator,
-    protected readonly preprocessor?: ILayoutPreprocessor,
-    protected readonly postprocessor?: ILayoutPostprocessor,
+    @inject(ElkFactory) elkFactory: ElkFactory,
+    @inject(IElementFilter) protected readonly filter: IElementFilter,
+    @inject(ILayoutConfigurator) protected readonly configurator: ILayoutConfigurator,
+    @optional() @inject(ILayoutPreprocessor) protected readonly preprocessor?: ILayoutPreprocessor,
+    @optional() @inject(ILayoutPostprocessor) protected readonly postprocessor?: ILayoutPostprocessor,
   ) {
     super(elkFactory, filter, configurator, preprocessor, postprocessor);
   }
@@ -134,98 +153,92 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
   }
 }
 
+/** ELK 布局模块：布局引擎注册为单例，依赖在解析时经构造器注入完成装配 */
 const CustomElkLayoutModule = new ContainerModule((bind) => {
-  bind(CustomElkLayoutEngine)
-    .toDynamicValue((context) => {
-      const elkFactory = context.container.get<ElkFactory>(ElkFactory);
-      const elementFilter = context.container.get<IElementFilter>(IElementFilter);
-      const layoutConfigurator = context.container.get<ILayoutConfigurator>(ILayoutConfigurator);
-      const layoutPreprocessor = context.container.isBound(ILayoutPreprocessor)
-        ? context.container.get<ILayoutPreprocessor>(ILayoutPreprocessor)
-        : undefined;
-      const layoutPostprocessor = context.container.isBound(ILayoutPostprocessor)
-        ? context.container.get<ILayoutPostprocessor>(ILayoutPostprocessor)
-        : undefined;
-      return new CustomElkLayoutEngine(elkFactory, elementFilter, layoutConfigurator, layoutPreprocessor, layoutPostprocessor);
-    })
-    .inSingletonScope();
-  bind(IElementFilter).to(DefaultElementFilter);
+  bind(CustomElkLayoutEngine).toSelf().inSingletonScope();
+
+  // 默认布局参数配置器；计算图模块随后会将其 rebind 为 AstgrLayoutConfigurator
   bind(ILayoutConfigurator).to(DefaultLayoutConfigurator);
+  // 默认布局元素过滤器
+  bind(IElementFilter).to(DefaultElementFilter);
 });
 
-export function createDiContainer(sprottyContainerId: string) {
-  const elkFactory: ElkFactory = () =>
-    new ElkConstructor({
-      algorithms: ['layered'],
-    });
+/** 视图注册表复用的特性开关：禁用拖拽，节点位置完全交由 ELK 布局 */
+const NO_DRAG: CustomFeatures = { disable: [moveFeature] };
+/** 视图注册表复用的特性开关：禁用连线编辑，避免路由被手动改动 */
+const NO_EDIT: CustomFeatures = { disable: [editFeature] };
+/** 算子节点在禁用拖拽的基础上保留悬停反馈 */
+const OP_NODE_FEATURES: CustomFeatures = { disable: [moveFeature], enable: [hoverFeedbackFeature] };
 
-  const randomGraphModule = new ContainerModule((bind, unbind, isBound, rebind) => {
-    bind(TYPES.ModelSource).to(LocalModelSource).inSingletonScope();
+/** 单条“模型类型 → 渲染视图”的注册描述 */
+interface AstgrViewRegistration {
+  /** 模型元素的 type 标识 */
+  type: string;
+  /** 模型元素实现类，承载状态与交互特性 */
+  model: new () => SModelElementImpl;
+  /** 视图类，负责把模型渲染为 SVG 虚拟节点 */
+  view: new () => IView;
+  /** 相对模型类默认特性的增删 */
+  features?: CustomFeatures;
+}
 
+/** 计算图全部元素类型的视图注册表 */
+const ASTGR_VIEW_REGISTRATIONS: AstgrViewRegistration[] = [
+  { type: 'graph', model: SGraphImpl, view: AstgrGraphView },
+  { type: 'node', model: RectangularNode, view: AstgrOpView, features: OP_NODE_FEATURES },
+  { type: 'node:input', model: RectangularNode, view: InputOutputNodeView, features: NO_DRAG },
+  { type: 'node:output', model: RectangularNode, view: InputOutputNodeView, features: NO_DRAG },
+  { type: 'node:tensor', model: RectangularNode, view: AstgrTensorView, features: NO_DRAG },
+  { type: 'rect', model: RectangularNode, view: AstgrRectView, features: NO_DRAG },
+  { type: 'port', model: SNodeImpl, view: AstgrPortView, features: NO_DRAG },
+  { type: 'label', model: SLabelImpl, view: AstgrNodeLabelView },
+  { type: 'edge', model: SEdgeImpl, view: AstgrEdge, features: NO_EDIT },
+  { type: 'bottom', model: SEdgeImpl, view: BootomAstgrEdge, features: NO_EDIT },
+  { type: 'compartment', model: SCompartmentImpl, view: CustomCompartmentView },
+  { type: 'routing-point', model: SRoutingHandleImpl, view: SRoutingHandleView, features: NO_DRAG },
+  { type: 'volatile-routing-point', model: SRoutingHandleImpl, view: SRoutingHandleView, features: NO_DRAG },
+];
+
+export function createDiContainer(sprottyContainerId: string): Container {
+  // ELK 内核只注册分层布局算法，其余算法按需再扩展
+  const layeredElkFactory: ElkFactory = () => new ElkConstructor({ algorithms: ['layered'] });
+
+  // 计算图专属容器模块：在 sprotty 默认能力之上替换模型来源、布局配置与交互组件
+  const comGraphModule = new ContainerModule((bind, _unbind, isBound, rebind) => {
+    // 模型来源与布局引擎
+    bind(TYPES.ModelSource)
+      .to(LocalModelSource)
+      .inSingletonScope();
     bind(TYPES.IModelLayoutEngine).toService(CustomElkLayoutEngine);
-    bind(ElkFactory).toConstantValue(elkFactory);
+    bind(ElkFactory).toConstantValue(layeredElkFactory);
 
+    // 布局参数：默认配置器之上叠加 PyPTO 计算图专属参数
     bind(AstgrLayoutConfigurator).toSelf().inSingletonScope();
     rebind(ILayoutConfigurator).to(AstgrLayoutConfigurator).inSingletonScope();
 
-    rebind(TYPES.ILogger).to(ConsoleLogger).inSingletonScope();
+    // 日志收敛到 error 级别，避免 webview 控制台被布局日志刷屏
+    rebind(TYPES.ILogger)
+      .to(ConsoleLogger)
+      .inSingletonScope();
     rebind(TYPES.LogLevel).toConstantValue(LogLevel.error);
-    rebind(UpdateModelCommand).to(TrackSelectedUpdateModelCommand);
+
+    // 计算图定制的模型更新命令、右键菜单与鼠标监听
+    rebind(UpdateModelCommand).to(SelectionFollowUpdateModelCommand);
     bind(TYPES.IContextMenuService).to(AstgrContextMenuService);
     bind(TYPES.IContextMenuItemProvider).to(AstgrContextMenuItemProvider);
     bind(TYPES.MouseListener).to(CustomMouseListener).inSingletonScope();
-    const context = { bind, unbind, isBound, rebind };
-    configureCommand(context, RectAnimateCommand);
-    configureActionHandler(context, 'rectAnimateAction', RectAnimateActionHandler);
+    configureCommand({ bind, isBound }, RectAnimateCommand);
+    configureActionHandler({ bind, isBound }, 'rectAnimateAction', RectAnimateActionHandler);
 
-    configureModelElement(context, 'graph', SGraphImpl, AstgrGraphView);
-    configureModelElement(context, 'node:input', RectangularNode, InputOutputNodeView, {
-      disable: [moveFeature],
-    });
+    // 按“模型类型 → 视图”注册表批量完成元素绑定
+    for (const { type, model, view, features } of ASTGR_VIEW_REGISTRATIONS) {
+      configureModelElement({ bind, isBound }, type, model, view, features);
+    }
 
-    configureModelElement(context, 'node:output', RectangularNode, InputOutputNodeView, {
-      disable: [moveFeature],
-    });
-
-    configureModelElement(context, 'node', RectangularNode, AstgrOpView, {
-      disable: [moveFeature],
-      enable: [hoverFeedbackFeature],
-    });
-
-    configureModelElement(context, 'node:tensor', RectangularNode, AstgrTensorView, {
-      disable: [moveFeature],
-    });
-
-    configureModelElement(context, 'port', SNodeImpl, AstgrPortView, {
-      disable: [moveFeature],
-    });
-
-    configureModelElement(context, 'label', SLabelImpl, AstgrNodeLabelView);
-
-    configureModelElement(context, 'rect', RectangularNode, AstgrRectView, {
-      disable: [moveFeature],
-    });
-
-    configureModelElement(context, 'bottom', SEdgeImpl, BootomAstgrEdge, {
-      disable: [editFeature],
-    });
-
-    configureModelElement(context, 'edge', SEdgeImpl, AstgrEdge, {
-      disable: [editFeature],
-    });
-
-    configureModelElement(context, 'compartment', SCompartmentImpl, CustomCompartmentView);
-
-    configureModelElement(context, 'routing-point', SRoutingHandleImpl, SRoutingHandleView, {
-      disable: [moveFeature],
-    });
-    configureModelElement(context, 'volatile-routing-point', SRoutingHandleImpl, SRoutingHandleView, {
-      disable: [moveFeature],
-    });
-
-    configureViewerOptions(context, {
+    configureViewerOptions({ bind, isBound, rebind }, {
       needsClientLayout: true,
       baseDiv: sprottyContainerId,
+      // 放宽缩放与滚动范围，适配大图漫游
       zoomLimits: { min: 0.0001, max: 10 },
       horizontalScrollLimits: { min: -800000, max: 800000 },
       verticalScrollLimits: { min: -800000, max: 800000 },
@@ -233,154 +246,118 @@ export function createDiContainer(sprottyContainerId: string) {
   });
 
   const container = new Container();
-  loadDefaultModules(container); // Sprotty's default modules
-  container.load(CustomElkLayoutModule); // Elk layout module
-  container.load(randomGraphModule); // Your custom module
-
+  loadDefaultModules(container); // sprotty 默认模块
+  container.load(CustomElkLayoutModule); // ELK 布局模块
+  container.load(comGraphModule); // 计算图定制模块
   return container;
 }
 
+/**
+ * 计算图 ELK 布局参数配置器。
+ *
+ * - graphOptions：图级算法、方向与层间距，并把 showTensor / filePath / renderMode
+ *   透传给实际执行布局的进程；
+ * - nodeOptions：在通用参数之上按节点角色叠加差异化配置；
+ * - portOptions：按端口角色与布局方向决定端口在节点上的朝向。
+ */
 export class AstgrLayoutConfigurator extends DefaultLayoutConfigurator {
+  /** tensor 节点尺寸更小、标签间距更紧凑 */
+  private static readonly TENSOR_EXTRAS: LayoutOptions = {
+    'org.eclipse.elk.nodeSize.minimum': '(50,30)',
+    'org.eclipse.elk.spacing.labelNode': '3.0',
+    'org.eclipse.elk.spacing.labelLabel': '2.0',
+  };
+
+  /** 节点角色 → 差异化参数；未列出的角色（input/output/operation/sync）沿用通用配置 */
+  private static readonly ROLE_EXTRAS: Record<string, LayoutOptions> = {
+    tensor: AstgrLayoutConfigurator.TENSOR_EXTRAS,
+  };
+
   private layoutDirection: 'RIGHT' | 'DOWN' = 'RIGHT';
   private showTensor = 'true';
   private filePath = '';
 
-  setLayoutDirection(direction: 'RIGHT' | 'DOWN') {
+  setLayoutDirection(direction: 'RIGHT' | 'DOWN'): void {
     this.layoutDirection = direction;
   }
 
-  getLayoutDirection() {
-    return this.layoutDirection;
-  }
-
-  setShowTensor(show: boolean) {
+  setShowTensor(show: boolean): void {
     this.showTensor = show ? 'true' : 'false';
   }
 
-  setFilePath(path: string) {
+  setFilePath(path: string): void {
     this.filePath = path;
   }
 
   protected override graphOptions(sgraph: SGraph, _index: SModelIndex): LayoutOptions {
-    // Count nodes for performance optimization
-    const nodeCount = sgraph.children?.filter((child) => child.type.includes('node')).length || 0;
+    // 节点规模过大时改用更快的摆放策略，牺牲少量布局质量换取耗时
+    const nodeTotal = sgraph.children?.filter((child) => child.type.includes('node')).length ?? 0;
+    const nodePlacement = nodeTotal > 10000 ? 'BRANDES_KOEPF' : 'LINEAR_SEGMENTS';
     return {
       'org.eclipse.elk.algorithm': 'org.eclipse.elk.layered',
-      //"org.eclipse.elk.layered.crossingMinimization.semiInteractive": "true",
-      'org.eclipse.elk.layered.nodePlacement.strategy': nodeCount > 10000 ? 'BRANDES_KOEPF' : 'LINEAR_SEGMENTS',
+      'org.eclipse.elk.layered.nodePlacement.strategy': nodePlacement,
+      'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '40.0',
       'elk.direction': this.layoutDirection,
-      //"org.eclipse.elk.spacing.nodeNode": "30.0", // Reduced from 40.0 for tighter layout
-      //"org.eclipse.elk.spacing.nodeNodeBetweenLayers": "25.0", // Reduced layer spacing
-      'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '40.0', // Also set layered-specific spacing
       'PyPTO.showTensor': this.showTensor,
       'PyPTO.filePath': this.filePath,
       'PyPTO.renderMode': sgraph['renderMode'],
-      //"org.eclipse.elk.spacing.labelNode": "5.0",
-      //"org.eclipse.elk.spacing.labelLabel": "2.0",
-      //"elk.nodeLabels.placement": "INSIDE H_CENTER V_CENTER",
-      //"elk.nodeSize.minimum": "(70,45)", // Reduced for more compact labels
-      //"elk.nodeSize.constraints": "NODE_LABELS MINIMUM_SIZE",
     };
   }
 
   protected override nodeOptions(snode: SNode, _index: SModelIndex): LayoutOptions {
     const role = (snode as AstgrNode).role;
-    const base: LayoutOptions = {
-      //'org.eclipse.elk.nodeSize.constraints': 'PORTS NODE_LABELS',
-      //'org.eclipse.elk.nodeSize.minimum': '(100, 40)',
+    return {
+      // 端口停靠边固定，位置由图结构决定
       'org.eclipse.elk.portConstraints': 'FIXED_SIDE',
       'org.eclipse.elk.nodeLabels.placement': 'INSIDE',
-      //'org.eclipse.elk.portLabels.placement': 'OUTSIDE',
-      //'org.eclipse.elk.nodeSize.options' : 'UNIFORM_PORT_SPACING'
+      ...AstgrLayoutConfigurator.ROLE_EXTRAS[role],
     };
-
-    if (role === 'input') {
-      return {
-        ...base,
-        // 'org.eclipse.elk.layered.layering.layerConstraint': 'FIRST'
-      };
-    }
-    if (role === 'output') {
-      return {
-        ...base,
-        // 'org.eclipse.elk.layered.layering.layerConstraint': 'LAST'
-      };
-    }
-    if (role === 'tensor') {
-      return {
-        ...base,
-        //'org.eclipse.elk.nodeSize.constraints': 'NODE_LABELS',
-        'org.eclipse.elk.nodeSize.minimum': '(50,30)',
-        'org.eclipse.elk.spacing.labelNode': '3.0',
-        'org.eclipse.elk.spacing.labelLabel': '2.0',
-      };
-    }
-    if (role === 'operation') {
-      return {
-        ...base,
-        //'org.eclipse.elk.nodeSize.constraints': 'PORTS NODE_LABELS MINIMUM_SIZE',
-        //'org.eclipse.elk.nodeSize.fixedGraphSize': 'true',
-        //'org.eclipse.elk.nodeSize.minimum': '(80,60)', // Reduced size for more compact layout
-        //'org.eclipse.elk.nodeLabels.placement': 'INSIDE H_CENTER V_CENTER'
-      };
-    }
-    if (role === 'sync') {
-      return {
-        ...base,
-        //'org.eclipse.elk.nodeSize.minimum': '(60,25)', // Smaller minimum size for sync nodes
-        //'org.eclipse.elk.portConstraints': 'FREE', // No ports needed for sync nodes
-        //'org.eclipse.elk.spacing.nodeNode': '15.0' // Tighter spacing for sync nodes
-      };
-    }
-    return base;
   }
 
   protected override portOptions(sport: SPort, _index: SModelIndex): LayoutOptions {
-    const role = (sport as AstgrPort).role;
-    const base: LayoutOptions = {
+    // 纵向布局：输入口朝北、输出口朝南；横向布局：输入口朝西、输出口朝东
+    const vertical = this.layoutDirection === 'DOWN';
+    const facing = (sport as AstgrPort).role === 'input' ? (vertical ? 'NORTH' : 'WEST') : (vertical ? 'SOUTH' : 'EAST');
+    return {
       'org.eclipse.elk.port.borderOffset': '1',
+      'org.eclipse.elk.port.side': facing,
     };
-
-    if (role === 'input') {
-      return {
-        ...base,
-        'org.eclipse.elk.port.side': this.layoutDirection === 'DOWN' ? 'NORTH' : 'WEST',
-      };
-    } else {
-      return {
-        ...base,
-        'org.eclipse.elk.port.side': this.layoutDirection === 'DOWN' ? 'SOUTH' : 'EAST',
-      };
-    }
   }
 }
 
 /**
- * Moves the viewport so that the selected element stays at the same position on the screen.
+ * 模型增量更新（局部重布局）时，若被选中的节点发生位移，则让视口反向平移相同的量，
+ * 使选中节点在屏幕上的位置保持稳定，便于持续观察该算子。
  */
-export class TrackSelectedUpdateModelCommand extends UpdateModelCommand {
+class SelectionFollowUpdateModelCommand extends UpdateModelCommand {
   override createAnimations(data: UpdateAnimationData, root: SModelRootImpl, context: CommandExecutionContext): Animation[] {
     const animations = super.createAnimations(data, root, context);
-    const selectedToMove = data.moves?.find((toMove) => isSelectable(toMove.element) && toMove.element.selected);
-    if (isViewport(root) && selectedToMove) {
-      const nodeMove: Point = {
-        x: selectedToMove.fromPosition.x - selectedToMove.toPosition.x,
-        y: selectedToMove.fromPosition.y - selectedToMove.toPosition.y,
-      };
-      const { scroll, zoom } = root;
-      animations.push(
-        new ViewportAnimation(
-          root,
-          { scroll, zoom },
-          {
-            scroll: { x: scroll.x - nodeMove.x, y: scroll.y - nodeMove.y },
-            zoom,
-          },
-          context,
-        ),
-      );
+    const movedSelection = data.moves?.find((item) => isSelectable(item.element) && item.element.selected);
+    if (movedSelection && isViewport(root)) {
+      animations.push(this.createViewportFollowAnimation(movedSelection, root, context));
     }
     return animations;
+  }
+
+  /** 生成一个与节点位移量等大反向的视口滚动动画 */
+  private createViewportFollowAnimation(
+    move: NonNullable<UpdateAnimationData['moves']>[number],
+    root: SModelRootImpl,
+    context: CommandExecutionContext,
+  ): Animation {
+    const shiftX = move.fromPosition.x - move.toPosition.x;
+    const shiftY = move.fromPosition.y - move.toPosition.y;
+    const { scroll, zoom } = root;
+    return new ViewportAnimation(
+      root,
+      { scroll, zoom },
+      {
+        // 视口滚动方向与节点位移相反，抵消节点在屏幕上的移动
+        scroll: { x: scroll.x - shiftX, y: scroll.y - shiftY },
+        zoom,
+      },
+      context,
+    );
   }
 }
 
