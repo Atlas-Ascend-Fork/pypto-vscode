@@ -151,7 +151,7 @@ export function usePinnedThreads(lane2line, layout) {
   };
   
   // 重新计算所有置顶线程的offsetY（用于mix模式切换）
-  const recalculateOffsetY = (isMixMode: Boolean) => {
+  const recalculateOffsetY = (isMixMode: boolean) => {
     const swimLaneOrder = swimDataManager.getSwimLaneOrder();
     const pinnedArray = Array.from(pinnedThreads.entries());
     

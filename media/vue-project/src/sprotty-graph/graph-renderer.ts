@@ -234,7 +234,7 @@ export function useGraphRenderer(ctx: SprottyContext) {
   };
 
   const initComDocText = (
-    jsonData: Object,
+    jsonData: object,
     isDark = true,
     openMode: string,
     nodeMagic: number,

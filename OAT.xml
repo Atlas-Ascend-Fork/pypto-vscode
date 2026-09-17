@@ -20,6 +20,7 @@
                 <filteritem type="filepath" name=".vscodeignore" desc="filter build package ignore config"/>
                 <filteritem type="filepath" name="package-lock.yaml" desc="filter automatically generated lock files."/>
                 <filteritem type="filepath" name="media/vue-project/src/package-lock.yaml" desc="filter automatically generated lock files."/>
+                <filteritem type="filepath" name="Third_Party_Open_Source*" desc="filter third party declare files."/>
             </filefilter>
         </filefilterlist>
         <licensematcherlist>

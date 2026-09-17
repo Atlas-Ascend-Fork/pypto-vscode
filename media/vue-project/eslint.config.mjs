@@ -48,6 +48,7 @@ export default [
       'comma-dangle': ['warn', 'always-multiline'],
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'off',
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
       'max-len': ['warn', { code: 140, tabWidth: 2 }],
       'object-curly-spacing': ['warn', 'always', { arraysInObjects: false, objectsInObjects: false }],

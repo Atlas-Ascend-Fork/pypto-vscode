@@ -92,7 +92,7 @@ export function useVirtualScroll(props: VirtualScrollProps) {
   function buildRenderLists(startIndex: number, renderCount: number) {
     const origin = scrollParams.originData;
     const totalLen = origin.length;
-    let upperStartIndex = Math.max(Math.ceil(startIndex - renderCount), 0);
+    const upperStartIndex = Math.max(Math.ceil(startIndex - renderCount), 0);
     let downStartIndex = Math.floor(startIndex + renderCount);
     downStartIndex = downStartIndex > totalLen - 1 ? totalLen : downStartIndex;
     return {
