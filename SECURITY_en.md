@@ -25,7 +25,7 @@ The public network addresses included in the code of this project are listed bel
 
 | Type | Open Source Code Address | File Name | Public IP Address / Public URL Address / Domain / Email Address / Compressed File Address | Purpose |
 | --- | --- | --- | --- | --- |
-| Dependency | Not applicable | src/services/welcome/index.ts | https://pypi.tuna.tsinghua.edu.cn/simple | Tsinghua PyPI mirror source, used for installing pip dependencies when the welcome page initializes a Python sample project |
+| Dependency | Not applicable | src/services/welcome/index.ts | <https://pypi.tuna.tsinghua.edu.cn/simple> | Tsinghua PyPI mirror source, used for installing pip dependencies when the welcome page initializes a Python sample project |
 
 ---
 

@@ -1,4 +1,4 @@
-## 贡献指南
+# 贡献指南
 
 本项目欢迎广大开发者体验并参与贡献。在参与社区贡献之前，请参见[cann-community](https://gitcode.com/cann/community)了解行为准则，进行CLA协议签署，了解源码仓的贡献流程。
 
@@ -22,7 +22,7 @@
 
 | 工具 | 最低版本 | 说明 |
 | --- | --- | --- |
-| VSCode | >= 1.82.0 | 下载地址：https://code.visualstudio.com/download |
+| VSCode | >= 1.82.0 | [下载](https://code.visualstudio.com/download) |
 | Node.js | >= 22.13 | 建议使用 LTS 版本 |
 | npm | >= 11.0.0 | 随 Node.js 安装 |
 
@@ -51,7 +51,7 @@
 
 ### 目录结构
 
-```
+```text
 pypto-tools
 ├── vitest.config.mts          # Vitest 配置（test.alias 指向 vscode mock，setupFiles 全局 mock）
 ├── test/
@@ -136,12 +136,13 @@ npm run check             # 后端 + 前端类型检查
 格式：`type(scope): subject`
 
 约束：
+
 - type 和 subject 不能为空
 - header 最大长度 88 字符
 
 示例：
 
-```
+```text
 feat(graph): 支持计算图节点搜索高亮
 fix(swimlane): 修复泳道图导出时节点丢失问题
 docs(readme): 更新安装说明
@@ -151,5 +152,5 @@ docs(readme): 更新安装说明
 
 ## 依赖参考文档
 
-1. 当前elkJs使用布局策略为layered，相关配置文档： https://eclipse.dev/elk/reference/algorithms/org-eclipse-elk-layered.html
-2. sprotty使用文档： https://sprotty.org/docs/learn/data-model/
+1. 当前elkJs使用布局策略为layered，相关配置文档： [ELK Layered](https://eclipse.dev/elk/reference/algorithms/org-eclipse-elk-layered.html)
+2. sprotty使用文档： [Sprotty](https://sprotty.org/docs/learn/data-model/)

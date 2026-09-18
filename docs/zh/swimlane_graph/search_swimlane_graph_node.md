@@ -10,21 +10,22 @@
 
 ## 操作步骤
 
-1.  打开泳道图文件。以下提供两种方式：
-    -  在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
-    -  在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
+1. 打开泳道图文件。以下提供两种方式：
 
-2.  在泳道图上方的搜索框中，输入节点名称（例如：0-0-10），按下Enter键。
+    - 在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
+
+    - 在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
+
+2. 在泳道图上方的搜索框中，输入节点名称（例如：0-0-10），按下Enter键。
 
     ![](../figures/swimSearch.png)
 
     搜索结果支持模糊搜索，且按时间排序。
 
-3.  单击搜索栏右侧的“左/右”箭头可查找“上一个/下一个”节点。
+3. 单击搜索栏右侧的“左/右”箭头可查找“上一个/下一个”节点。
 
     ![](../figures/swimSearchNext.png)
 
-4.  单击“A/a”区分大小写按钮，可启用大小写敏感搜索。
+4. 单击“A/a”区分大小写按钮，可启用大小写敏感搜索。
 
     ![](../figures/swimSearchAa.png)
-

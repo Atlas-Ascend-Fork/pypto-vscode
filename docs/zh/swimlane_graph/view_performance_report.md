@@ -11,8 +11,10 @@
 ## 操作步骤
 
 打开泳道图文件。以下提供两种方式：
--  在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
--  在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择"PyPTO Toolkit：打开文件"。
+
+- 在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
+
+- 在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择"PyPTO Toolkit：打开文件"。
 
 ## 查看全局性能报告<a id="viewGlobalReport"></a>
 
@@ -85,15 +87,15 @@
 
 支持通过度量模式特定时间段的泳道图和性能报告。
 
-1.  在泳道图界面中，单击右侧的![](../figures/zh-cn_image_0000002521083697.png)按钮。
+1. 在泳道图界面中，单击右侧的![](../figures/zh-cn_image_0000002521083697.png)按钮。
 
     ![](../figures/swimMeasureModeButton.png)
 
-2.  在任务面板单击并拖拽出待度量的起点和终点，从而决定时间范围。
+2. 在任务面板单击并拖拽出待度量的起点和终点，从而决定时间范围。
 
     系统具有自动吸附功能，拖拽完成后，起点和终点会自动吸附到一定范围内的最近位置。
 
-3.  拖拽完成后，度量范围会变亮，时间轴上会显示度量区域的时间，下方则会弹出度量区域的性能汇总数据。
+3. 拖拽完成后，度量范围会变亮，时间轴上会显示度量区域的时间，下方则会弹出度量区域的性能汇总数据。
 
     ![](../figures/swimMeatureMode.png)
 

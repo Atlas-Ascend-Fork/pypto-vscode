@@ -12,10 +12,11 @@ PMU Trace 用于核内流水分析，是算子深度性能调优的重要工具�
 
 1. 打开泳道图文件。以下提供两种方式：
 
-    -  在Visual Studio Code侧边栏，单击![](../../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
+    - 在Visual Studio Code侧边栏，单击![](../../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
 
-    -  在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择"PyPTO Toolkit：打开文件"。
+    - 在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择"PyPTO Toolkit：打开文件"。
 
 2. 展开 Biu Perf，即可查看核内流水
 
     ![](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/msprof.png)
+    

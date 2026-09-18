@@ -6,7 +6,7 @@ Webview前端。100+ Vue组件，D3.js图渲染，Sprotty-ELK布局，SQL.js内�
 
 ## 结构
 
-```
+```text
 src/
 ├── main.ts               # Vue入口
 ├── App.vue               # 根组件
@@ -37,28 +37,33 @@ src/
 ## 约定
 
 ### 静态资源路径
+
 ```javascript
 // 必须用window.staticPath拼接
 const icon = `${window.staticPath}/boot_steps/icon.svg`
 ```
 
 ### 图组件通信
+
 - 父→子: props传递图数据
 - 子→父: emit事件上报交互
 
 ### D3.js使用
+
 - 计算图: D3拖拽/缩放
 - 泳道图: D3时间轴
 
 ## 反模式
 
 ### 禁止全局State缓存
+
 ```typescript
 // @deprecated 尽量避免使用state缓存，容易导致全局冲突
 // core/state.ts - 已废弃
 ```
 
 ### 禁止硬编码路径
+
 ```javascript
 // 错误
 const icon = '/static-assets/icon.svg'

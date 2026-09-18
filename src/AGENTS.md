@@ -6,7 +6,7 @@ VSCode扩展核心逻辑。100+文件，6大模块：view/services/core/handler/
 
 ## 结构
 
-```
+```text
 src/
 ├── extension.ts         # 入口: activate()初始化
 ├── command/             # 命令注册
@@ -46,6 +46,6 @@ src/
 
 ## 关键依赖
 
-```
+```text
 extension.ts → services → view → handler → core
 ```

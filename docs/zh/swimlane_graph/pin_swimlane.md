@@ -11,11 +11,11 @@
 
 ## 操作步骤
 
-1.  打开泳道图文件。以下提供两种方式：
-    -  在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
-    -  在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
+1. 打开泳道图文件。以下提供两种方式：
+    - 在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
+    - 在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
 
-2.  置顶泳道。
+2. 置顶泳道。
 
     鼠标悬浮于泳道名称，显示![](../figures/topButton.png)图标，单击图标即可置顶，再次单击取消置顶。
     ![](../figures/zh-cn_image_view_top_aicpu.png)

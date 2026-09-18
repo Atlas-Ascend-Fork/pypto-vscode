@@ -4,7 +4,6 @@
 
 本项目支持Markdown格式的内容贡献，对应地可创建`.md`为后缀的文档或修改已存在的文档。
 
-
 ## 更新/新增文档
 
 相关文档写作要求请参考[文档写作要求](https://gitcode.com/cann/community/blob/master/contributor/docs/document_writing_specs.md)。

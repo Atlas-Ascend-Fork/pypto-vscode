@@ -6,7 +6,7 @@
 
 ## 结构
 
-```
+```text
 services/
 ├── index.ts              # 服务聚合入口
 ├── basic-service.ts      # 服务基类

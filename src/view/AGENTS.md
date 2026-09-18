@@ -6,7 +6,7 @@ VSCode Webview视图提供者。计算图、泳道图、控制流、三栏联动
 
 ## 结构
 
-```
+```text
 view/
 ├── index.ts              # 视图初始化入口
 ├── graphView.ts          # 计算图视图

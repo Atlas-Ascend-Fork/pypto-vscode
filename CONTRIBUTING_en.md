@@ -1,4 +1,4 @@
-## Contributing Guide
+# Contributing Guide
 
 This project welcomes developers to experience and participate in contributions. Before participating in community contributions, refer to [cann-community](https://gitcode.com/cann/community) to understand the code of conduct, sign the CLA agreement, and learn the contribution process for the source code repository.
 
@@ -22,7 +22,7 @@ The main contribution scenarios for developers include:
 
 | Tool | Minimum Version | Description |
 | --- | --- | --- |
-| VSCode | >= 1.82.0 | Download: https://code.visualstudio.com/download |
+| VSCode | >= 1.82.0 | [Download](https://code.visualstudio.com/download) |
 | Node.js | >= 22.13 | LTS version recommended |
 | npm | >= 11.0.0 | Installed with Node.js |
 
@@ -51,7 +51,7 @@ Backend unit tests use [Vitest](https://vitest.dev/). Tests run in the Node envi
 
 ### Directory Structure
 
-```
+```text
 pypto-tools
 ├── vitest.config.mts          # Vitest config (test.alias points to vscode mock, setupFiles for global mocks)
 ├── test/
@@ -136,12 +136,13 @@ Allowed types:
 Format: `type(scope): subject`
 
 Constraints:
+
 - type and subject cannot be empty
 - The header has a maximum length of 88 characters
 
 Samples:
 
-```
+```text
 feat(graph): support computation graph node search highlighting
 fix(swimlane): fix node loss issue during swimlane diagram export
 docs(readme): update installation instructions
@@ -151,5 +152,5 @@ docs(readme): update installation instructions
 
 ## Dependency Reference Documentation
 
-1. The current layout strategy used by elkJs is layered. For the related configuration documentation, refer to: https://eclipse.dev/elk/reference/algorithms/org-eclipse-elk-layered.html
-2. sprotty usage documentation: https://sprotty.org/docs/learn/data-model/
+1. The current layout strategy used by elkJs is layered. For the related configuration documentation, refer to [ELK Layered](https://eclipse.dev/elk/reference/algorithms/org-eclipse-elk-layered.html)
+2. sprotty usage documentation: [Sprotty](https://sprotty.org/docs/learn/data-model/)

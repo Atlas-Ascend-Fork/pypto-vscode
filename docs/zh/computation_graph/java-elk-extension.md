@@ -6,8 +6,8 @@
 
 当前版本计算图默认使用内置的原生（OGDF）布局引擎，该插件仅在以下场景生效：
 
--   原生布局引擎执行失败，自动回退到ELK布局时。
--   用户在设置中取消勾选“计算图优先使用本地原生(OGDF)布局引擎”（`PyPTOToolkitOpen.enableNativeLayout`），主动切换到ELK布局时。
+- 原生布局引擎执行失败，自动回退到ELK布局时。
+- 用户在设置中取消勾选“计算图优先使用本地原生(OGDF)布局引擎”（`PyPTOToolkitOpen.enableNativeLayout`），主动切换到ELK布局时。
 
 在ELK布局路径中，若检测到已安装本插件，则优先通过插件执行布局；未安装时使用本地子进程布局。
 
@@ -15,15 +15,15 @@
 
 主要针对大数据渲染和优化：
 
--   针对超大数据（1万节点以上场景），相比本地子进程布局，平均整体开启速度提升50%。
--   该插件可以规避js布局时的堆栈溢出。
+- 针对超大数据（1万节点以上场景），相比本地子进程布局，平均整体开启速度提升50%。
+- 该插件可以规避js布局时的堆栈溢出。
 
 ## 安装
 
-1.  进入插件市场：点击编辑器最左侧活动栏中的 “扩展”图标，或者直接按下快捷键 Ctrl+Shift+X (Windows/Linux) 或 Command+Shift+X (Mac)。
+1. 进入插件市场：点击编辑器最左侧活动栏中的 “扩展”图标，或者直接按下快捷键 Ctrl+Shift+X (Windows/Linux) 或 Command+Shift+X (Mac)。
 
-2.  搜索插件：在顶部的搜索框中输入java-elk-extension。
+2. 搜索插件：在顶部的搜索框中输入java-elk-extension。
 
-3.  识别并安装：在搜索结果中找到java-elk-extension插件，点击蓝色的 “Install”（安装）按钮。
+3. 识别并安装：在搜索结果中找到java-elk-extension插件，点击蓝色的 “Install”（安装）按钮。
 
     ![](../figures/zh-cn_image_0000002026010915.png)

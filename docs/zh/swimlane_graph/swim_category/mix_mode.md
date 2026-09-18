@@ -8,7 +8,7 @@ Mix模式用于展示Wrap内微观任务流水，支持在同个视图中查看�
 
 执行PyPTO程序，生成包含Wrap信息的泳道图文件。
 
-1.  启动性能数据采集功能。
+1. 启动性能数据采集功能。
 
     ```python
     @pypto.frontend.jit(
@@ -16,7 +16,7 @@ Mix模式用于展示Wrap内微观任务流水，支持在同个视图中查看�
     )
     ```
 
-2.  重新执行PyPTO程序，例如：
+2. 重新执行PyPTO程序，例如：
 
     ```bash
     python3 python/tests/st/operator/glm/test_glm_ffn_dense_quant.py
@@ -30,11 +30,11 @@ Mix模式用于展示Wrap内微观任务流水，支持在同个视图中查看�
 
 ## 操作步骤
 
-1.  打开泳道图文件。以下提供两种方式：
-    -  在Visual Studio Code侧边栏，单击![](../../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
-    -  在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择"PyPTO Toolkit：打开文件"。
+1. 打开泳道图文件。以下提供两种方式：
+    - 在Visual Studio Code侧边栏，单击![](../../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
+    - 在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择"PyPTO Toolkit：打开文件"。
 
-2.  启用Mix模式。
+2. 启用Mix模式。
 
     单击泳道图右侧的![](../../figures/zh-cn_image_0000002512322027.png)按钮。
 
@@ -44,13 +44,13 @@ Mix模式用于展示Wrap内微观任务流水，支持在同个视图中查看�
 
     ![](../../figures/useMix.png)
 
-3.  查看Wrap内微观任务流水。
+3. 查看Wrap内微观任务流水。
 
     鼠标悬浮在Sub节点上，可查看Wrap内的微观任务流水，包括子任务的执行顺序、同步事件和等待时间。
 
     ![](../../figures/hoverMix.png)
 
-4.  查看Sub节点宏观依赖。
+4. 查看Sub节点宏观依赖。
 
     点击Sub节点，可展示其宏观依赖关系，包括前序依赖和后续依赖。
 

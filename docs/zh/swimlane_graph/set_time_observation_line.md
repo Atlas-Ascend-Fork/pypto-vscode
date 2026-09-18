@@ -10,23 +10,22 @@
 
 ## 操作步骤
 
-1.  打开泳道图文件。以下提供两种方式：
-    1.  在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
-    2.  在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
+1. 打开泳道图文件。以下提供两种方式：
+    1. 在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
+    2. 在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
 
-2.  打开泳道图并将鼠标悬停在时间轴上，可以看到观测线生成，并且该观测线会随着鼠标的移动而移动。
+2. 打开泳道图并将鼠标悬停在时间轴上，可以看到观测线生成，并且该观测线会随着鼠标的移动而移动。
 
     ![](../figures/swimViewFlag.png)
 
-3.  在时间轴上单击，添加时间观测线，可用于辅助观测泳道图。
+3. 在时间轴上单击，添加时间观测线，可用于辅助观测泳道图。
 
     ![](../figures/swimAddFlag.png)
 
-4.  单击观测线上的旗子，可删除或修改该观测线。
+4. 单击观测线上的旗子，可删除或修改该观测线。
 
     ![](../figures/swimClickFlag.png)
 
     修改时支持修改该观测线的颜色或自定义标签。
 
     ![](../figures/swimEditFlag.png)
-

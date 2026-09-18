@@ -115,6 +115,7 @@
 - In three-column mode, the computation graph first screen automatically navigates to the executeGraph
 
 ### Fixed
+
 - The plugin adds compatibility for two new operators in expression parsing
 
 ## [2.0.5] - 2026.02.28
@@ -221,13 +222,14 @@
 ## [1.0.0] - 2025.11.06
 
 ### Added
+
 - The plugin adds workflow control flow capabilities
 - The computation graph supports hover display of full information after the nodes shrink
 - The swimlane graph supports displaying the tensor list when the user hovers over a dependency line
 
 ### Fixed
-- The swimlane graph fixes the issue where the measurement mode range does not sync with the canvas
 
+- The swimlane graph fixes the issue where the measurement mode range does not sync with the canvas
 
 ## [0.1.12] - 2025.10.20
 

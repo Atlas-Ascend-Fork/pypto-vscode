@@ -111,7 +111,6 @@
 |Total Cycles|当前子图理论执行耗时。|
 |Theoretical Minimum Cycles|当前子图理论耗时最优值。|
 
-
 **表 5**  Block Graph健康报告-区域②参数说明<a id="table5"></a>
 
 |参数|说明|

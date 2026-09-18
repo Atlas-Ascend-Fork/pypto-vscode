@@ -12,15 +12,14 @@ PyPTO Toolkit将基于PyPTO程序的结果文件进行分析，因此建议用�
 
 ## 操作步骤
 
-1.  执行PyPTO程序。参考 [PyPTO 文档 - 快速入门](https://pypto.gitcode.com/tutorials/introduction/quick_start.html)
-2.  在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002489868856.png)图标，打开PyPTO Toolkit。
-3.  在运行结果界面可以看到生成的相关结果文件。
+1. 执行PyPTO程序。参考 [PyPTO 文档 - 快速入门](https://pypto.gitcode.com/tutorials/introduction/quick_start.html)
+2. 在Visual Studio Code侧边栏，单击![](../figures/zh-cn_image_0000002489868856.png)图标，打开PyPTO Toolkit。
+3. 在运行结果界面可以看到生成的相关结果文件。
 
     ![](../figures/zh-cn_image_0000002523389705.png)
 
     结果文件夹以“执行方式 + 执行日期 + 执行时间”命名，例如npu\_20251021\_203500，主要包括如下几类文件：
 
-    -   结果总览：默认展示控制流图，通过控制流图可以清晰了解Loop与Loop、Loop与Path、Loop与If、If与If、If与Path之间的关系。详细介绍请参考[控制流图](../control_flow/view_control_flow.md)。
-    -   泳道图：用于直观展示计算图的实际调度与执行过程，清晰呈现任务的执行顺序和耗时信息，帮助开发者分析算子性能瓶颈。详细介绍请参考[泳道图](../swimlane_graph/swim_category/index.md)。
-    -   计算图：描述PyPTO程序计算流程的结构，由多个计算节点和数据节点组成，通过有向无环图（DAG）的形式表示数据流动和计算逻辑。详细介绍请参考[计算图](../computation_graph/view_computation_graph.md)。
-
+    - 结果总览：默认展示控制流图，通过控制流图可以清晰了解Loop与Loop、Loop与Path、Loop与If、If与If、If与Path之间的关系。详细介绍请参考[控制流图](../control_flow/view_control_flow.md)。
+    - 泳道图：用于直观展示计算图的实际调度与执行过程，清晰呈现任务的执行顺序和耗时信息，帮助开发者分析算子性能瓶颈。详细介绍请参考[泳道图](../swimlane_graph/swim_category/index.md)。
+    - 计算图：描述PyPTO程序计算流程的结构，由多个计算节点和数据节点组成，通过有向无环图（DAG）的形式表示数据流动和计算逻辑。详细介绍请参考[计算图](../computation_graph/view_computation_graph.md)。

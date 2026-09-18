@@ -6,32 +6,32 @@
 
 ## 前提条件
 
--   PyPTO程序代码中，使用pypto.set\_semantic\_label接口设置自定义语义标签。
+- PyPTO程序代码中，使用pypto.set\_semantic\_label接口设置自定义语义标签。
 
     ```python
     pypto.set_semantic_label("softmax")
     softmax_out = pypto.softmax(tile_logits_fp32, -1)
     ```
 
--   执行PyPTO程序，生成计算图和泳道图文件。
+- 执行PyPTO程序，生成计算图和泳道图文件。
 
 ## 操作步骤
 
-1.  在Visual Studio Code工作区，右键单击PyPTO代码文件，例如test\_softmax\_custom.py，在弹出的菜单中选择“PyPTO Toolkit：开启联动模式”。
+1. 在Visual Studio Code工作区，右键单击PyPTO代码文件，例如test\_softmax\_custom.py，在弹出的菜单中选择“PyPTO Toolkit：开启联动模式”。
 
     工具会自动查找当前的工作区下的“output/output\_时间戳”目录，识别最新时间戳目录，并从中读取计算图“program.json”和泳道图文件“merged\_swimlane.json”，同时结合代码文件，共同打开三栏模式。
 
     如果上述查找没有找到目标计算图和泳道图文件，则提示用户选择。
 
-2.  三栏联动视图展示效果如下所示。
+2. 三栏联动视图展示效果如下所示。
 
     ![](../figures/zh-cn_image_0000002502528526.png)
 
     界面同时展示代码、计算图和泳道图，当用户移动鼠标时，系统将动态高亮显示与当前语义标签关联的视图元素。
 
-    -   在代码界面，左侧通过色块标记划分语义标签范围，高亮显示与当前语义标签关联的代码段。
-    -   在计算图界面，系统动态高亮显示与当前语义标签关联的图结构，便于用户观测对应代码行的图结构特征，从而判断是否需要进行图结构相关的优化。关于计算图的详细用法请参见[计算图](../computation_graph/view_computation_graph.md)。在计算图左上角下拉可以选择所有program.json下的子图。
-    -   在泳道图界面，系统高亮显示与当前语义标签关联的Task节点，便于用户观测Task的执行耗时和依赖关系，从而识别性能瓶颈并制定优化策略。关于泳道图的详细用法请参见[泳道图](../swimlane_graph/swim_category/basic_swim.md)。
+    - 在代码界面，左侧通过色块标记划分语义标签范围，高亮显示与当前语义标签关联的代码段。
+    - 在计算图界面，系统动态高亮显示与当前语义标签关联的图结构，便于用户观测对应代码行的图结构特征，从而判断是否需要进行图结构相关的优化。关于计算图的详细用法请参见[计算图](../computation_graph/view_computation_graph.md)。在计算图左上角下拉可以选择所有program.json下的子图。
+    - 在泳道图界面，系统高亮显示与当前语义标签关联的Task节点，便于用户观测Task的执行耗时和依赖关系，从而识别性能瓶颈并制定优化策略。关于泳道图的详细用法请参见[泳道图](../swimlane_graph/swim_category/basic_swim.md)。
 
     如果代码界面未显示颜色条，请检查program.json中semantic\_label字段中的filename参数是否为代码源文件的绝对路径。
 
@@ -43,13 +43,10 @@
     },
     ```
 
-3.  开启锁定模式。
+3. 开启锁定模式。
 
     在三栏联动视图中的任一视图中单击锁定按钮，即可开启锁定模式。在任一视图单击解锁按钮，即可退出该模式。
 
     ![](../figures/zh-cn_image_0000002534328503.png)
 
     进入锁定模式后，在计算图左上角下拉可以选择相关其他有相同semantic\_label的子图。
-
-
-

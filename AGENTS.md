@@ -10,7 +10,7 @@ PyPTO Toolkit - 华为PyPTO框架VSCode可视化插件。为AI算子开发者提
 
 ## 结构
 
-```
+```text
 pypto-tools/
 ├── src/                        # TypeScript源码 (100+文件)
 │   ├── extension.ts            # 扩展入口
@@ -50,6 +50,7 @@ pypto-tools/
 ## 约定
 
 ### TypeScript
+
 - **行宽**: 140字符 (ESLint + Prettier一致)
 - **缩进**: 2空格
 - **分号**: 必须
@@ -58,6 +59,7 @@ pypto-tools/
 - **装饰器**: 开启 (`experimentalDecorators`)
 
 ### Python (有限)
+
 - 仅4个Python文件，无pyproject.toml
 - **编码**: `# coding: utf-8`
 - **文档**: Google/Numpy风格docstring
@@ -65,6 +67,7 @@ pypto-tools/
 - **CLI**: argparse标准库
 
 ### 命名
+
 - 文件: 小写+连字符 (`swim-graph-server.ts`)
 - 类: PascalCase (`SwimGraphServer`)
 - 方法: camelCase (`loadMainData`)
@@ -73,12 +76,14 @@ pypto-tools/
 ## 反模式
 
 ### 避免全局State缓存
+
 ```typescript
 // @deprecated 尽量避免使用state缓存，容易导致全局冲突
 // media/vue-project/src/core/state.ts
 ```
 
 ### 子类必须覆盖
+
 ```typescript
 // src/handler/baseGraphMsgHandler.ts
 throw new Error('子类必须覆盖 loadMainData 方法');
@@ -88,17 +93,20 @@ throw new Error('子类必须覆盖 getGraphData 方法');
 ## 唯特风格
 
 ### 双构建系统
+
 - npm scripts → TypeScript编译
 - Vite → Vue webview热更新
 - 同步执行: `npm run compile` 先Vue后TS
 
 ### 静态资源路径
+
 ```typescript
 // Vue前端必须用window.staticPath拼接
 const iconPath = `${window.staticPath}/icons/...`
 ```
 
 ### 模块懒加载
+
 - 服务按需启动 (`startAllServices`)
 - 视图延迟注册 (`initView`)
 - SQLite缓存首次加载清理 (`globalState`)

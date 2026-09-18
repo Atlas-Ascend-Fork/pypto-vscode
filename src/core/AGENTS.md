@@ -6,7 +6,7 @@
 
 ## 结构
 
-```
+```text
 core/
 ├── store/                # 存储管理
 │   ├── index.ts          # 存储初始化

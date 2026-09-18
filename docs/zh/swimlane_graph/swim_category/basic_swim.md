@@ -8,7 +8,7 @@
 
 执行PyPTO程序，生成泳道图文件。
 
-1.  启动性能数据采集功能。
+1. 启动性能数据采集功能。
 
     ```python
     @pypto.frontend.jit(
@@ -16,7 +16,7 @@
     )
     ```
 
-2.  重新执行PyPTO程序，例如：
+2. 重新执行PyPTO程序，例如：
 
     ```bash
     python3 python/tests/st/operator/glm/test_glm_ffn_dense_quant.py
@@ -26,11 +26,11 @@
 
 ## 操作步骤
 
-1.  打开泳道图文件。以下提供两种方式：
+1. 打开泳道图文件。以下提供两种方式：
     - 在Visual Studio Code侧边栏，单击![](../../figures/zh-cn_image_0000002491265870.png)图标，打开PyPTO Toolkit，在运行结果界面打开泳道图文件。
     - 在Visual Studio Code工作区，右键单击泳道图文件，在弹出的菜单中选择“PyPTO Toolkit：打开文件”。
 
-2.  在展示的界面中可查看泳道图信息。
+2. 在展示的界面中可查看泳道图信息。
 
     ![](../../figures/swimView.png)
 
@@ -44,7 +44,7 @@
 
     区域⑤：性能指标阶梯图，具体请参考[4](#step4)。
 
-3.  单击泳道图中的某个任务节点（Task节点），可显示节点的详细信息面板。<a id="step3"></a>
+3. 单击泳道图中的某个任务节点（Task节点），可显示节点的详细信息面板。<a id="step3"></a>
 
     ![](../../figures/swimClickNode.png)
 
@@ -66,7 +66,6 @@
     |Duration|持续时间|
     |命中率|缓存命中率|
 
-
     **表 2**  区域②参数说明<a id="table2"></a>
 
     |参数|说明|
@@ -80,7 +79,6 @@
     |seqNo|表示第几个stitched function。|
     |taskId|表示第seqNo个stitched function内的第几个root以及第几个call|
 
-
     **表 3**  区域④参数说明<a id="table3"></a>
 
     |参数|说明|
@@ -90,8 +88,7 @@
     |![](../../figures/zh-cn_image_0000002533954015.png)|查看前后续依赖。|
     |任务连线层级|配置为-1表示展示该节点的全部层级，配置为1表示展示该节点的前后一层依赖关系，以此类推。|
 
-
-4.  通过鼠标滚轮纵向移动泳道图，可以在页面底部看到性能指标阶梯图。<a id="step4"></a>
+4. 通过鼠标滚轮纵向移动泳道图，可以在页面底部看到性能指标阶梯图。<a id="step4"></a>
 
     **表 4**  泳道图性能指标阶梯数据参数说明
 
@@ -102,5 +99,3 @@
     |ReadyCount_AIC|Cube核上等待执行的任务个数|
     |ReadyCount_AIV|Vector核上等待执行的任务个数|
     |ReadyCount_Total|Cube + Vector核上等待执行的任务个数|
-
-

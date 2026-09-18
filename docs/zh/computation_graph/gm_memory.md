@@ -4,7 +4,6 @@
 
 用于查看GM内存使用分配情况，包括Tensor的内存分配、冲突等。
 
-
 ##  操作步骤
 
 1. 在Visual Studio Code工作区，右键单击内存分布文件，在弹出的菜单中选择“PyPTO Toolkit：高级操作”，在展开的二级菜单中选择“PyPTO Toolkit：GM内存可视化”。
@@ -22,5 +21,3 @@
 4 右键点击Tensor，可以查看距离该Tensor最近的Tensor。
 
 ![查看最近Tensor](../figures/gm-memory-usage4.gif)
-
-
