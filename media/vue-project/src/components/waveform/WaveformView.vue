@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick, computed, shallowRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useViewServer } from '../../core/use-view-server';
 import type { IWaveformServer } from 'ext:/view/servers/view-server-interface';
 
@@ -31,6 +32,7 @@ interface VcdMetadata {
 }
 
 const { server } = useViewServer<IWaveformServer>();
+const { t } = useI18n();
 
 const metadata = ref<VcdMetadata | null>(null);
 const errorMessage = ref('');
@@ -141,25 +143,58 @@ function isSignalSelected(signalId: string): boolean {
   return selectedSignals.value.includes(signalId);
 }
 
-function zoomIn() {
+const ZOOM_HINT_INTERVAL = 150;
+const ZOOM_HINT_DURATION = 1500;
+const zoomHint = ref('');
+let zoomHintHideTimer: ReturnType<typeof setTimeout> | null = null;
+let lastZoomHintShow = 0;
+
+function showZoomHint(text: string) {
+  const now = Date.now();
+  if (now - lastZoomHintShow < ZOOM_HINT_INTERVAL) return;
+  lastZoomHintShow = now;
+  zoomHint.value = text;
+  if (zoomHintHideTimer) clearTimeout(zoomHintHideTimer);
+  zoomHintHideTimer = setTimeout(() => {
+    zoomHint.value = '';
+    zoomHintHideTimer = null;
+  }, ZOOM_HINT_DURATION);
+}
+
+function zoomAt(anchorTime: number, factor: number) {
+  if (!metadata.value) return;
   const range = viewEnd.value - viewStart.value;
-  const center = (viewStart.value + viewEnd.value) / 2;
-  const newRange = Math.max(range * 0.5, 1);
-  viewStart.value = Math.max(metadata.value!.timeRange.start, center - newRange / 2);
-  viewEnd.value = Math.min(metadata.value!.timeRange.end, center + newRange / 2);
-  if (viewEnd.value - viewStart.value < 1) {
-    viewEnd.value = viewStart.value + 1;
+  const maxRange = metadata.value.timeRange.end - metadata.value.timeRange.start;
+  const newRange = Math.max(Math.min(range * factor, maxRange), 1);
+  if (newRange === range) {
+    showZoomHint(factor < 1 ? t('waveform.zoomMaxIn') : t('waveform.zoomMaxOut'));
+    return;
   }
+  viewStart.value = anchorTime - (anchorTime - viewStart.value) * (newRange / range);
+  viewEnd.value = viewStart.value + newRange;
+  if (viewStart.value < metadata.value.timeRange.start) {
+    viewStart.value = metadata.value.timeRange.start;
+    viewEnd.value = viewStart.value + newRange;
+  }
+  if (viewEnd.value > metadata.value.timeRange.end) {
+    viewEnd.value = metadata.value.timeRange.end;
+    viewStart.value = viewEnd.value - newRange;
+  }
+  if (viewStart.value < metadata.value.timeRange.start) viewStart.value = metadata.value.timeRange.start;
   scheduleRender();
 }
 
+function getZoomAnchorTime(): number {
+  if (cursorTime.value >= 0) return cursorTime.value;
+  return (viewStart.value + viewEnd.value) / 2;
+}
+
+function zoomIn() {
+  zoomAt(getZoomAnchorTime(), 0.5);
+}
+
 function zoomOut() {
-  const range = viewEnd.value - viewStart.value;
-  const center = (viewStart.value + viewEnd.value) / 2;
-  const newRange = range * 2;
-  viewStart.value = Math.max(metadata.value!.timeRange.start, center - newRange / 2);
-  viewEnd.value = Math.min(metadata.value!.timeRange.end, center + newRange / 2);
-  scheduleRender();
+  zoomAt(getZoomAnchorTime(), 2);
 }
 
 function zoomFit() {
@@ -215,6 +250,9 @@ function renderLabelLayer() {
   ctx.stroke();
 
   ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, TIME_AXIS_HEIGHT, w, h - TIME_AXIS_HEIGHT);
+  ctx.clip();
   ctx.translate(0, -waveScrollY.value);
 
   const signals = selectedSignals.value
@@ -302,6 +340,9 @@ function renderWaveLayer() {
   drawTimeAxis(ctx, w, pixelsPerUnit);
 
   ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, TIME_AXIS_HEIGHT, w, h - TIME_AXIS_HEIGHT);
+  ctx.clip();
   ctx.translate(0, -waveScrollY.value);
 
   const signals = selectedSignals.value
@@ -382,7 +423,6 @@ function drawTimeAxis(ctx: CanvasRenderingContext2D, width: number, pixelsPerUni
 
   ctx.fillStyle = c.text;
   ctx.font = FONT_STYLE;
-  ctx.textAlign = 'center';
 
   for (let t = firstTick; t <= viewEnd.value; t += interval) {
     const x = (t - viewStart.value) * pixelsPerUnit;
@@ -390,17 +430,29 @@ function drawTimeAxis(ctx: CanvasRenderingContext2D, width: number, pixelsPerUni
     ctx.moveTo(x, TIME_AXIS_HEIGHT - 5);
     ctx.lineTo(x, TIME_AXIS_HEIGHT);
     ctx.stroke();
-    ctx.fillText(formatTime(t, interval), x, TIME_AXIS_HEIGHT - 8);
+    const label = formatTime(t, interval);
+    const labelWidth = ctx.measureText(label).width;
+    if (x - labelWidth / 2 < 0) {
+      ctx.textAlign = 'left';
+      ctx.fillText(label, 0, TIME_AXIS_HEIGHT - 8);
+    } else if (x + labelWidth / 2 > width) {
+      ctx.textAlign = 'right';
+      ctx.fillText(label, width, TIME_AXIS_HEIGHT - 8);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, TIME_AXIS_HEIGHT - 8);
+    }
   }
 }
 
 function formatTime(t: number, interval?: number): string {
+  const stripZeros = (s: string) => (s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s);
   if (interval !== undefined && interval > 0) {
-    const digits = Math.max(0, Math.ceil(-Math.log10(interval)) + 1);
-    if (t >= 1e9) return `${(t / 1e9).toFixed(Math.max(0, digits + 9))}G`;
-    if (t >= 1e6) return `${(t / 1e6).toFixed(Math.max(0, digits + 6))}M`;
-    if (t >= 1e3) return `${(t / 1e3).toFixed(Math.max(0, digits + 3))}k`;
-    return t.toFixed(digits);
+    const digits = Math.max(0, Math.ceil(-Math.log10(interval)));
+    if (t >= 1e9) return `${stripZeros((t / 1e9).toFixed(Math.max(0, digits + 9)))}G`;
+    if (t >= 1e6) return `${stripZeros((t / 1e6).toFixed(Math.max(0, digits + 6)))}M`;
+    if (t >= 1e3) return `${stripZeros((t / 1e3).toFixed(Math.max(0, digits + 3)))}k`;
+    return stripZeros(t.toFixed(digits));
   }
   if (t >= 1e9) return `${(t / 1e9).toFixed(1)}G`;
   if (t >= 1e6) return `${(t / 1e6).toFixed(1)}M`;
@@ -579,24 +631,30 @@ function drawBusSignal(
   let curValue = getValueAtTime(changes, viewStart.value);
   if (curValue === '') return;
 
-  let curX = 0;
+  const nextTime = endIdx < changes.length ? changes[endIdx][0] : null;
+  let prevTime: number | null = null;
+  let curX: number | null = null;
 
   for (let i = startIdx; i < endIdx; i++) {
     const [time, newValue] = changes[i];
     if (time <= viewStart.value) {
       curValue = newValue;
+      prevTime = time;
       continue;
     }
-    if (time > viewEnd.value) break;
 
     const x = (time - viewStart.value) * pixelsPerUnit;
-    drawBusSegment(ctx, c, curX, x, midY, highY, lowY, curValue, signal.width);
+    const x1 = curX ?? (prevTime !== null ? (prevTime - viewStart.value) * pixelsPerUnit : 0);
+    drawBusSegment(ctx, c, x1, x, midY, highY, lowY, curValue, signal.width);
 
     curValue = newValue;
     curX = x;
   }
 
-  drawBusSegment(ctx, c, curX, width, midY, highY, lowY, curValue, signal.width);
+  const endTime = nextTime ?? metadata.value?.timeRange.end ?? viewEnd.value;
+  const x2 = (endTime - viewStart.value) * pixelsPerUnit;
+  const x1 = curX ?? (prevTime !== null ? (prevTime - viewStart.value) * pixelsPerUnit : 0);
+  drawBusSegment(ctx, c, x1, x2, midY, highY, lowY, curValue, signal.width);
 }
 
 function drawBusSegment(
@@ -653,9 +711,24 @@ function onCanvasMouseMove(event: MouseEvent) {
   scheduleOverlayRender();
 }
 
+function onWaveAreaMouseLeave() {
+  cursorTime.value = -1;
+}
+
 function onCanvasWheel(event: WheelEvent) {
   event.preventDefault();
   if (!metadata.value) return;
+
+  if (event.ctrlKey || event.metaKey) {
+    const container = waveContainerRef.value;
+    if (!container || waveWidth.value <= 0) return;
+    let timeRange = viewEnd.value - viewStart.value;
+    if (timeRange <= 0) timeRange = 1;
+    const x = Math.max(0, Math.min(waveWidth.value, event.clientX - container.getBoundingClientRect().left));
+    const anchorTime = viewStart.value + (x / waveWidth.value) * timeRange;
+    zoomAt(anchorTime, Math.exp(event.deltaY * 0.002));
+    return;
+  }
 
   const scrollAmount = event.deltaY * 0.5;
   const maxScroll = Math.max(0, selectedSignals.value.length * SIGNAL_ROW_HEIGHT - canvasHeight.value + TIME_AXIS_HEIGHT);
@@ -1106,9 +1179,9 @@ onUnmounted(() => {
     </div>
     <template v-else-if="metadata">
       <div class="waveform-toolbar">
-        <button class="toolbar-btn" @click="zoomIn" title="放大">+</button>
-        <button class="toolbar-btn" @click="zoomOut" title="缩小">-</button>
-        <button class="toolbar-btn" @click="zoomFit" title="适应">Fit</button>
+        <button class="toolbar-btn" @mousedown.prevent @click="zoomIn" :title="$t('zoomIn')">+</button>
+        <button class="toolbar-btn" @mousedown.prevent @click="zoomOut" :title="$t('zoomOut')">-</button>
+        <button class="toolbar-btn" @mousedown.prevent @click="zoomFit" :title="$t('resizeWindow')">Fit</button>
         <span class="toolbar-info">
           {{ metadata.timescale }} |
           {{ viewStart.toFixed(0) }} ~ {{ viewEnd.toFixed(0) }} |
@@ -1127,6 +1200,7 @@ onUnmounted(() => {
                     v-if="item.type === 'scope'"
                     class="tree-scope"
                     :style="{ paddingLeft: item.depth * 16 + 8 + 'px' }"
+                    :title="item.node.name"
                     @click="toggleScope(item.node)"
                   >
                     <span class="tree-caret" :class="{ collapsed: isScopeCollapsed(item.node) }">▼</span>
@@ -1137,6 +1211,7 @@ onUnmounted(() => {
                     class="tree-signal"
                     :class="{ selected: isSignalSelected(item.signal.id) }"
                     :style="{ paddingLeft: item.depth * 16 + 8 + 'px' }"
+                    :title="item.signal.name"
                     @click="toggleSignal(item.signal.id)"
                   >
                     <span class="signal-name">{{ item.signal.name }}</span>
@@ -1160,13 +1235,14 @@ onUnmounted(() => {
             ></canvas>
           </div>
           <div class="resize-handle" @mousedown="onLabelResizeStart"></div>
-          <div class="wave-area" ref="waveContainerRef" @wheel="onCanvasWheel">
+          <div class="wave-area" ref="waveContainerRef" @wheel="onCanvasWheel" @mouseleave="onWaveAreaMouseLeave">
             <canvas ref="waveCanvasRef" class="wave-layer"></canvas>
             <canvas
               ref="overlayCanvasRef"
               class="overlay-layer"
               @mousemove="onCanvasMouseMove"
             ></canvas>
+            <div v-if="zoomHint" class="zoom-hint">{{ zoomHint }}</div>
           </div>
         </div>
       </div>
@@ -1413,6 +1489,21 @@ onUnmounted(() => {
   flex: 1;
   position: relative;
   overflow: hidden;
+}
+
+.zoom-hint {
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  background: var(--devui-tooltip-bg, rgba(0, 0, 0, 0.7));
+  color: var(--devui-tooltip-text, #ccc);
+  border: 1px solid var(--devui-line, #333);
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .label-layer,

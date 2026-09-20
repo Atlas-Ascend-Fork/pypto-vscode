@@ -658,4 +658,8 @@ export default {
     'chartView': '图表视图',
     'listView': '列表视图',
     'memoryShowAdjacentTensors': '显示相邻tensor',
+    waveform: {
+        zoomMaxIn: '已放大到最大倍数',
+        zoomMaxOut: '已缩小到最小倍数',
+    },
 }
