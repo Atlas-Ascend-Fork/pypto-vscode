@@ -645,7 +645,7 @@ function drawBusSignal(
 
     const x = (time - viewStart.value) * pixelsPerUnit;
     const x1 = curX ?? (prevTime !== null ? (prevTime - viewStart.value) * pixelsPerUnit : 0);
-    drawBusSegment(ctx, c, x1, x, midY, highY, lowY, curValue, signal.width);
+    drawBusSegment(ctx, c, x1, x, midY, highY, lowY, curValue, signal.width, width);
 
     curValue = newValue;
     curX = x;
@@ -654,7 +654,7 @@ function drawBusSignal(
   const endTime = nextTime ?? metadata.value?.timeRange.end ?? viewEnd.value;
   const x2 = (endTime - viewStart.value) * pixelsPerUnit;
   const x1 = curX ?? (prevTime !== null ? (prevTime - viewStart.value) * pixelsPerUnit : 0);
-  drawBusSegment(ctx, c, x1, x2, midY, highY, lowY, curValue, signal.width);
+  drawBusSegment(ctx, c, x1, x2, midY, highY, lowY, curValue, signal.width, width);
 }
 
 function drawBusSegment(
@@ -667,6 +667,7 @@ function drawBusSegment(
   lowY: number,
   value: string,
   sigWidth: number,
+  width: number,
 ) {
   if (x2 <= x1) return;
   const tw = Math.min(4, (x2 - x1) * 0.1);
@@ -679,12 +680,24 @@ function drawBusSegment(
   ctx.lineTo(x1 + tw, lowY);
   ctx.closePath();
   ctx.stroke();
-  const textW = x2 - x1 - tw * 2;
+  const visibleStart = Math.max(x1, 0);
+  const visibleEnd = Math.min(x2, width);
+  const textW = visibleEnd - visibleStart - tw * 2;
   if (textW > 20) {
-    ctx.fillStyle = c.text;
     ctx.font = FONT_STYLE;
-    ctx.textAlign = 'center';
-    ctx.fillText(formatBusValue(value, sigWidth), (x1 + x2) / 2, midY + 4, textW);
+    let displayText = formatBusValue(value, sigWidth);
+    if (ctx.measureText(displayText).width > textW) {
+      let truncated = displayText;
+      while (truncated.length > 1 && ctx.measureText(`${truncated}...`).width > textW) {
+        truncated = truncated.slice(0, -1);
+      }
+      displayText = truncated.length > 1 ? `${truncated}...` : '';
+    }
+    if (displayText) {
+      ctx.fillStyle = c.text;
+      ctx.textAlign = 'center';
+      ctx.fillText(displayText, (visibleStart + visibleEnd) / 2, midY + 4);
+    }
   }
 }
 
