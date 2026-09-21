@@ -306,12 +306,6 @@
   license: Apache-2.0
   type: build
 
-"npm-run-all2":
-  url: https://github.com/bcomnes/npm-run-all2
-  version: v6.2.6
-  license: MIT
-  type: build
-
 "sass":
   url: https://github.com/sass/dart-sass
   version: v1.103.1
@@ -322,12 +316,6 @@
   url: https://github.com/microsoft/TypeScript
   version: v5.9.3
   license: Apache-2.0
-  type: build
-
-"unplugin-vue-components":
-  url: https://github.com/unplugin/unplugin-vue-components
-  version: v29.2.0
-  license: MIT
   type: build
 
 "vite":
