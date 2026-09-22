@@ -14,7 +14,63 @@ The main contribution scenarios for developers include:
 - **Documentation correction**: If you find errors in the documentation of this project, create an Issue to report and fix them. Follow the [Issue Operation Guide](https://gitcode.com/cann/community/blob/master/contributor/issue-operation.md) guide to create a `Documentation` Issue to point out the documentation problems, then enter "/assign" or "/assign @yourself" in the comment box to assign the Issue to yourself to correct the documentation.
 - **Help resolve Issues of others**: If you have a suitable solution for problems encountered by others in the community, comment in the Issue to communicate and help others solve their problems and pain points, and jointly optimize usability. If the Issue requires code modification, enter "/assign" or "/assign @yourself" in the Issue comment box to assign the Issue to yourself to track and assist in resolving the problem.
 
----
+## Belonging SIG
+
+pypto-vscode is part of the [pto SIG](https://gitcode.com/cann/community/blob/master/CANN/sigs/pto/README.md)
+
+## Source Code Download
+
+All code for this project is hosted on GitCode. Simply clone the master branch:
+
+```bash
+git clone https://gitcode.com/cann/pypto-vscode.git
+cd pypto-vscode
+```
+
+## Directory Structure
+
+```text
+pypto-vscode/
+├── src/                        # Extension host TypeScript source
+│   ├── extension.ts            # Extension entry; activate() initializes services, views, and commands
+│   ├── command/                # VSCode command registration
+│   ├── view/                   # View providers (computation graph, sidebar, three-column linkage entry)
+│   │   └── servers/            # Webview Servers for each view (including swimlane)
+│   ├── services/               # Business services (control flow parsing, run data, configuration, etc.)
+│   │   └── control-flow/       # PATH parsing and control flow tree construction
+│   ├── core/                   # Core data and storage
+│   │   └── store/              # SQLite persistent cache for graph data
+│   ├── handler/                # Webview message handlers (computation graph, swimlane, diff graph, memory trace, etc.)
+│   ├── converter/              # Data converters (swimlane data conversion, format validation)
+│   ├── types/                  # Type definitions
+│   └── utils/                  # Common utilities
+├── media/
+│   └── vue-project/            # Vue Webview frontend project
+│       └── src/
+│           ├── components/     # Vue components
+│           ├── sprotty-graph/  # Sprotty graph rendering
+│           ├── core/           # Frontend core logic and state
+│           ├── hooks/          # Composable functions
+│           ├── i18n/           # Internationalization resources
+│           ├── service/        # Frontend services
+│           └── utils/          # Frontend utilities
+├── test/
+│   ├── ut/                     # Backend unit tests (Vitest)
+│   ├── e2e/                    # End-to-end tests
+│   └── fixtures/               # Test data
+├── docs/                       # Sphinx documentation source
+├── build/                      # Build helper scripts
+├── package.json                # Extension manifest and npm scripts
+├── package.nls.json            # Default (English) localization strings for the extension manifest
+├── package.nls.zh-cn.json      # Simplified Chinese localization strings for the extension manifest
+├── tsconfig.json               # TypeScript configuration
+├── vitest.config.mts           # Vitest configuration
+├── eslint.config.mjs           # ESLint configuration
+├── LICENSE                     # Open source license
+├── .vscodeignore               # File exclusions for VSIX packaging
+├── .gitignore                  # Git ignore rules
+└── .gitattributes              # Git attributes (documentation images, run data, and other large files tracked via Git LFS)
+```
 
 ## Dependency Installation
 

@@ -2,11 +2,13 @@
 
 English | [简体中文](https://gitcode.com/cann/pypto-vscode/blob/master/README.md)
 
+## Introduction
+
 PyPTO Toolkit is a full-process auxiliary tool for the PyPTO framework. It provides visualization of compilation and runtime status, along with operator development workflow capabilities, enabling developers to quickly build an understanding of the PyPTO framework and improve operator development, debugging, and tuning efficiency.
 
 For detailed usage instructions, please refer to the [PyPTO Toolkit Documentation Center](https://pypto-tools.gitcode.com/)
 
-## Core Features
+### Core Features
 
 - **Control Flow Visualization:** Visualizes the computational logic expressed based on the PyPTO framework, providing a mapping relationship view of the computational logic expression code, control flow graph, and computation graph.
 
@@ -28,7 +30,7 @@ For detailed usage instructions, please refer to the [PyPTO Toolkit Documentatio
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracy_en.gif)
 
-## New Features
+### New Features
 
 - **End-to-End Swimlane Diagram:** Supports displaying AICPU and Kernel nodes simultaneously within the same view, helping developers quickly locate performance bottlenecks and tune efficiently.
 
@@ -41,6 +43,10 @@ For detailed usage instructions, please refer to the [PyPTO Toolkit Documentatio
 ## Contributing
 
 To contribute code, please refer to the [Contributing Guide](https://gitcode.com/cann/pypto-vscode/blob/master/CONTRIBUTING_en.md)
+
+## Issue Reporting
+
+For any questions or suggestions, please submit an [Issue](https://gitcode.com/cann/pypto-vscode/issues)
 
 ## Security Statement and Disclaimer
 

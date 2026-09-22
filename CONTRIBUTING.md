@@ -14,7 +14,63 @@
 - **文档纠错**：如果您在本项目中发现某些文档描述错误，欢迎您新建Issue进行反馈和修复。您可以按照[Issue 操作指南](https://gitcode.com/cann/community/blob/master/contributor/issue-operation.md)指引新建 `文档反馈` 类Issue指出对应文档的问题，然后在评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您纠正对应文档描述。
 - **帮助解决他人Issue**：如果社区中他人遇到的问题您有合适的解决方法，欢迎您在Issue中发表评论交流，帮助他人解决问题和痛点，共同优化易用性。如果对应Issue需要进行代码修改，您可以在Issue评论框中输入"/assign"或"/assign @yourself"，将该Issue分配给您，跟踪协助解决问题。
 
----
+## 所属 SIG
+
+pypto-vscode 隶属于 [pto SIG](https://gitcode.com/cann/community/blob/master/CANN/sigs/pto/README.md)
+
+## 源码下载
+
+本项目所有代码均托管在 GitCode，直接克隆 master 分支即可：
+
+```bash
+git clone https://gitcode.com/cann/pypto-vscode.git
+cd pypto-vscode
+```
+
+## 目录结构
+
+```text
+pypto-vscode/
+├── src/                        # 扩展宿主 TypeScript 源码
+│   ├── extension.ts            # 扩展入口，activate() 中初始化服务、视图与命令
+│   ├── command/                # VSCode 命令注册
+│   ├── view/                   # 视图提供者（计算图、侧边栏、三栏联动入口）
+│   │   └── servers/            # 各视图对应的 Webview Server（含泳道图）
+│   ├── services/               # 业务服务（控制流解析、运行数据、配置等）
+│   │   └── control-flow/       # PATH 解析与控制流树构建
+│   ├── core/                   # 核心数据与存储
+│   │   └── store/              # SQLite 图数据持久化缓存
+│   ├── handler/                # Webview 消息处理（计算图、泳道图、Diff 图、内存轨迹等）
+│   ├── converter/              # 数据转换器（泳道图数据转换、格式校验）
+│   ├── types/                  # 类型定义
+│   └── utils/                  # 通用工具函数
+├── media/
+│   └── vue-project/            # Vue Webview 前端工程
+│       └── src/
+│           ├── components/     # Vue 组件
+│           ├── sprotty-graph/  # Sprotty 图渲染相关
+│           ├── core/           # 前端核心逻辑与状态
+│           ├── hooks/          # 组合式函数
+│           ├── i18n/           # 国际化资源
+│           ├── service/        # 前端服务
+│           └── utils/          # 前端工具函数
+├── test/
+│   ├── ut/                     # 后端单元测试（Vitest）
+│   ├── e2e/                    # 端到端测试
+│   └── fixtures/               # 测试数据
+├── docs/                       # Sphinx 文档源码
+├── build/                      # 构建辅助脚本
+├── package.json                # 扩展清单与 npm scripts
+├── package.nls.json            # 扩展清单默认（英文）本地化文案
+├── package.nls.zh-cn.json      # 扩展清单简体中文本地化文案
+├── tsconfig.json               # TypeScript 配置
+├── vitest.config.mts           # Vitest 配置
+├── eslint.config.mjs           # ESLint 配置
+├── LICENSE                     # 开源许可证
+├── .vscodeignore               # VSIX 打包时排除的文件列表
+├── .gitignore                  # Git 忽略规则
+└── .gitattributes              # Git 属性（文档图片、运行数据等大文件走 Git LFS）
+```
 
 ## 依赖安装
 

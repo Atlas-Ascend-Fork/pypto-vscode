@@ -2,11 +2,13 @@
 
 简体中文 | [English](https://gitcode.com/cann/pypto-vscode/blob/master/README_en.md)
 
+## 概述
+
 PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、运行时状态的可视化、算子开发作业流的作业能力，使能开发者快速建立对PyPTO框架的理解，提升算子开发和调试调优效率。
 
 详细使用说明请参考 [PyPTO Toolkit文档中心](https://pypto-tools.gitcode.com/)
 
-## 核心特性
+### 核心特性
 
 - **控制流可视：** 将基于PyPTO框架表达的计算逻辑可视化，提供计算逻辑表达代码、控制流图及计算图的映射关系视图。
 
@@ -28,7 +30,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/accuracy_zh.gif)
 
-## 新增特性
+### 新增特性
 
 - **端到端泳道图：** 支持在同一个视图内同时展示 AICPU 和 Kernel 节点，帮助开发者快速定位性能瓶颈，高效调优。
 
@@ -41,6 +43,10 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 ## 贡献指南
 
 如需贡献代码，请参考 [贡献指南](https://gitcode.com/cann/pypto-vscode/blob/master/CONTRIBUTING.md)
+
+## 问题反馈
+
+如有任何问题或建议，欢迎提交 [Issue](https://gitcode.com/cann/pypto-vscode/issues) 与我们联系
 
 ## 安全声明和免责声明
 
