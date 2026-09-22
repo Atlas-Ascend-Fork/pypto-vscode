@@ -15,7 +15,7 @@
 <template>
   <!-- 遮罩层容器：管理所有遮罩和弹窗层级 -->
   <div v-if="visible" class="guide-mask-container" @pointerup.stop>
-    <!-- 兜底全屏遮罩（始终覆盖视口，拦截操作） -->
+    <!-- 兜底全屏遮罩（始终覆盖视口，阻止操作） -->
     <div v-if="isShowFullFalBack" class="guide-mask-full-fallback" :style="maskFullFallbackStyle"></div>
     <!-- 第一层：全屏遮罩 合并后的包围盒区域（视觉上的整体矩形） -->
     <div class="guide-mask-full" @click.stop :style="maskFullClipStyle"></div>
@@ -182,7 +182,7 @@ const maskFullFallbackStyle = computed<CSSProperties>(() => {
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
     zIndex: 1050,
-    pointerEvents: 'auto', // 拦截所有
+    pointerEvents: 'auto', // 阻止所有
     transition: 'background-color 0.2s ease',
   };
 });
@@ -1108,19 +1108,19 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 1050;
-  pointer-events: none; // 容器不拦截点击
+  pointer-events: none; // 容器不阻止点击
 }
 
 // 第一层：全屏遮罩 - 仅挖掉合并后的包围盒区域
 .guide-mask-full {
   transition: clip-path 0.1s ease-in-out; // 裁剪区域变化时平滑过渡
-  pointer-events: auto; // 拦截非包围盒区域的点击
+  pointer-events: auto; // 阻止非包围盒区域的点击
 }
 
 // 第二层：包围盒内遮罩 - 灰色半透明，仅对指定DOM挖孔
 .guide-mask-inner {
   transition: clip-path 0.1s ease-in-out;
-  pointer-events: auto; // 拦截包围盒内非指定DOM的点击
+  pointer-events: auto; // 阻止包围盒内非指定DOM的点击
   border-radius: 4px; // 和边框圆角一致，视觉更统一
 }
 

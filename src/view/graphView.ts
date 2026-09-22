@@ -180,7 +180,7 @@ export class GraphView<T extends AbstractGraphData> {
   private onMessage(msg: any) {
     const cmd = msg.command;
 
-    // 1. 拦截所有非业务命令
+    // 1. 阻止所有非业务命令
     if (!BaseGraphMsgHandler.WHITE_COMMANDS.has(cmd)) {
       return;
     }

@@ -656,7 +656,7 @@ const bundledChipConfigs: Record<string, ChipConfig> = {
 | --- | --- |
 | 配置在构建时内置 | 用户尚不能在运行时加载任意芯片 JSON 文件。 |
 | 边动画基于 path | `animation.pipeTypes` 目前只是文档元数据，不是激活规则。 |
-| 部分传输兼容性仍硬编码 | `MEM_GM` path 匹配映射到 `MEM_L2`，`MEM_L0C` 输出通过 Cube 兼容 path 扩展。 |
+| 部分传输兼容性仍为固定值 | `MEM_GM` path 匹配映射到 `MEM_L2`，`MEM_L0C` 输出通过 Cube 兼容 path 扩展。 |
 | 样式 token 有限 | 新的视觉语言需要在代码中添加 resolver token。 |
 | canvas 尺寸仅作信息 | 节点放置仍依赖显式坐标。 |
 

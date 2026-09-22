@@ -67,7 +67,7 @@ const copyAllCode = () => {
     if (copyTimer) {
       clearTimeout(copyTimer);
     }
-    // 5. 3秒后隐藏提示
+    // 5. 3秒后不再提示
     copyTimer = setTimeout(() => {
       copySuccess.value = false;
     }, 3000);

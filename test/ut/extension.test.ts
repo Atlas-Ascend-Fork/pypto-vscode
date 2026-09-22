@@ -55,7 +55,7 @@ const {
 
 mockSQLiteCache.getInstance.mockReturnValue(mockSQLiteCacheInstance);
 
-// 注意：extension.ts 通过 require('i18next') 获取实例，vitest 的 vi.mock 无法拦截
+// 注意：extension.ts 通过 require('i18next') 获取实例，vitest 的 vi.mock 无法阻止
 // require 调用（rolldown 环境下 require 走原生解析），因此 i18next.init/t 为真实调用。
 // 相关断言已与 t 的返回值解耦（见 showWarningMessage 的按钮参数回传法）。
 
