@@ -2,7 +2,7 @@
   "name": "pypto-toolkit",
   "displayName": "PyPTO Toolkit",
   "description": "PyPTO 效率提升插件",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "license": "Apache-2.0",
   "icon": "media/images/logo.png",
   "engines": {
