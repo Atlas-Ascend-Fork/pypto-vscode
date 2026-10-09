@@ -138,4 +138,3 @@ cd docs && make html
 - **GM内存浏览器测试**: 运行`npx playwright install chromium`后使用`npm run test:gm-e2e`
 - **GM内存扩展测试**: 修改命令、View Server或Webview接线后运行`npm run test:gm-smoke`
 - **完整测试**: 在项目根目录运行`npm test`，依次执行Vitest、Playwright和VS Code Extension Host测试
-- **依赖安装**: 项目不提交npm lockfile，使用`npm install`而不是`npm ci`

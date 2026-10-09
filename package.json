@@ -289,6 +289,9 @@
     "diff": "^8.0.3",
     "mocha": {
       "glob": "^10.5.0"
+    },
+    "minimatch@^10.2.6": {
+      "brace-expansion": "^5.0.12"
     }
   },
   "extensionDependencies": [],
