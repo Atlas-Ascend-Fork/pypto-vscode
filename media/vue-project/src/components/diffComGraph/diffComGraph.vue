@@ -140,11 +140,12 @@ const renderGraph = (e: SelectFileChangeEventParam) => {
   realAfterFileName.value = e.fileName;
   showSelectFile.value = false;
   afterJsonContent.value = e.fileContent;
-  const { diffList: list, diffDetail: detail, showDiffList: showDiff } = compareJsonData(props.beforeJson!, e.fileContent);
+  const beforeJsonValue = JSON.parse(JSON.stringify(props.beforeJson));
+  const afterJsonValue = JSON.parse(JSON.stringify(e.fileContent));
+  const { diffList: list, diffDetail: detail, showDiffList: showDiff } = compareJsonData(beforeJsonValue!, afterJsonValue);
   diffDetail.value = detail;
   diffList.value = list as any;
   showDiffList.value = showDiff;
-  const jsonValue = JSON.parse(JSON.stringify(props.beforeJson));
   if (beforeIns) {
     beforeIns.removeEventListeners?.()
     beforeIns.resetModelSource();
@@ -157,9 +158,9 @@ const renderGraph = (e: SelectFileChangeEventParam) => {
   loadingText.value = t(LoadingStatusMap.rendering);
   loadedType.value.clear();
   beforeIns = useSprottyLoad(`sprotty-before`, 'before');
-  beforeIns.initComDocText(jsonValue, isDarkTheme.value);
+  beforeIns.initComDocText(beforeJsonValue, isDarkTheme.value);
   afterIns = useSprottyLoad(`sprotty-after`, 'after');
-  afterIns.initComDocText(e.fileContent, isDarkTheme.value);
+  afterIns.initComDocText(afterJsonValue, isDarkTheme.value);
 };
 
 const onExpandChange = () => {
@@ -200,28 +201,28 @@ watch(
 );
 
 watch([() => props.afterJson, () => props.beforeJson], () => {
+  const beforeJsonValue = props.beforeJson ? JSON.parse(JSON.stringify(props.beforeJson)) : null;
+  const afterJsonValue = props.afterJson ? JSON.parse(JSON.stringify(props.afterJson)): null;
   if (props.beforeJson && props.afterJson) {
-    const { diffList: list, diffDetail: detail, showDiffList: showDiff } = compareJsonData(props.beforeJson, props.afterJson);
+    const { diffList: list, diffDetail: detail, showDiffList: showDiff } = compareJsonData(beforeJsonValue, afterJsonValue);
     diffDetail.value = detail;
     diffList.value = list as any;
     showDiffList.value = showDiff;
   }
-  if (props.beforeJson) {
+  if (beforeJsonValue) {
     if(beforeIns){
       beforeIns.removeEventListeners()
     }
-    const jsonValue = JSON.parse(JSON.stringify(props.beforeJson));
     beforeIns = useSprottyLoad(`sprotty-before`, 'before');
-    beforeIns.initComDocText(jsonValue, isDarkTheme.value);
+    beforeIns.initComDocText(beforeJsonValue, isDarkTheme.value);
   }
-  if (props.afterJson) {
+  if (afterJsonValue) {
     if(afterIns){
       afterIns.removeEventListeners()
     }
-    const jsonValue = JSON.parse(JSON.stringify(props.afterJson));
     realAfterFileName.value = props.afterFileName || '';
     afterIns = useSprottyLoad(`sprotty-after`, 'after');
-    afterIns.initComDocText(jsonValue, isDarkTheme.value);
+    afterIns.initComDocText(afterJsonValue, isDarkTheme.value);
   }
   showSelectFile.value = !realAfterFileName.value;
 });
