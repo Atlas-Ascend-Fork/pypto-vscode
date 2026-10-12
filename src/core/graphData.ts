@@ -13,9 +13,8 @@
  * limitations under the License.
  */
 import { createReadStream } from 'fs';
-const { parser } = require('stream-json');
-const { streamValues } = require('stream-json/streamers/stream-values.js');
 import * as fs from 'fs/promises';
+import { loadStreamJsonToolkit } from '../utils/stream-json-loader';
 
 import { SQLiteCache, getMTime } from './sqliteCache';
 const DATA_LENGTH_LIMIT = 62000000;
@@ -81,6 +80,7 @@ export abstract class GraphData {
   }
 
   private async readWithStream(fsPath: string): Promise<void> {
+    const { parser, streamValues } = await loadStreamJsonToolkit();
     const fileStream = createReadStream(fsPath);
     const jsonParser = parser.asStream();
     const valuesStreamer = streamValues.asStream();
@@ -114,6 +114,7 @@ export abstract class GraphData {
   }
 
   async getCompleteData(fsPath) {
+    const { parser, streamValues } = await loadStreamJsonToolkit();
     const fileStream = createReadStream(fsPath);
     const pipeline = fileStream.pipe(parser.asStream()).pipe(streamValues.asStream());
     let result: any;

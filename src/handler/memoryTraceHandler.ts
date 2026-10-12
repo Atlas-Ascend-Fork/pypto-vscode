@@ -13,9 +13,8 @@
  * limitations under the License.
  */
 import { createReadStream } from 'fs';
-import { parser } from 'stream-json';
-import { streamValues } from 'stream-json/streamers/stream-values.js';
 import * as fs from 'fs/promises';
+import { loadStreamJsonToolkit } from '../utils/stream-json-loader';
 import { getMemoryTraceCacheStore, getMemoryTraceEventStore, MemoryTraceEvent, BufferState } from '../core/sqlInit';
 
 export interface MemoryTraceMetadata {
@@ -129,6 +128,7 @@ export class MemoryTraceHandler {
   }
 
   private static async readWithStream(fsPath: string): Promise<any> {
+    const { parser, streamValues } = await loadStreamJsonToolkit();
     const fileStream = createReadStream(fsPath);
     const jsonParser = parser.asStream();
     const valuesStreamer = streamValues.asStream();

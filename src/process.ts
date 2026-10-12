@@ -17,11 +17,7 @@ import { dirname, join, extname, resolve } from 'path';
 import { createReadStream,  createWriteStream, existsSync, mkdirSync, readFileSync, statSync } from 'fs';
 import { getSwimGraphParsedInfoStore } from './core/swimSqlInit';
 import { hismartliteEx } from './hismarliteEx';
-import { parser } from 'stream-json';
-import chain from 'stream-chain';
-import { streamValues } from 'stream-json/streamers/stream-values.js';
-import { streamArray } from 'stream-json/streamers/stream-array.js';
-import {streamObject} from 'stream-json/streamers/stream-object.js';
+import { loadStreamJsonToolkit } from './utils/stream-json-loader';
 
 import { t } from 'i18next';
 
@@ -974,6 +970,7 @@ export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo:
      if (statSync(swimPath).size < SWIM_JSON_STREAM_THRESHOLD) {
        return readJsonFileWithoutBom(swimPath);
      }
+     const { parser, streamValues } = await loadStreamJsonToolkit();
      return new Promise((resolve, reject) => {
        try {
          console.log(`开始流式读取 perf_swimlane.json 文件: ${swimPath}`);
@@ -1023,6 +1020,7 @@ export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo:
        const parsed = readJsonFileWithoutBom(swimPath);
        return Array.isArray(parsed) ? parsed : parsed.traceEvents;
      }
+     const { parser, streamObject, streamArray } = await loadStreamJsonToolkit();
      return new Promise((resolve, reject) => {
        try {
          console.log(`开始流式读取 merged_swimlane.json 文件: ${swimPath}`);
@@ -1189,6 +1187,7 @@ export async function parseSwimLaneInfo(traceData: any, pmuInfo: any, task2topo:
   }
 
 export async function getSavedSwimDataFileStreamAll(swimPath: string): Promise<any> {
+  const { chain, parser, streamObject } = await loadStreamJsonToolkit();
   return new Promise((resolve, reject) => {
       console.log(`开始流式解析整个对象 ${swimPath}`);
 
