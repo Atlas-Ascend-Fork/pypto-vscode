@@ -239,5 +239,6 @@
   "pypto.remoteTool.exitCode5": "配置错误（读取 token 失败）",
   "pypto.remoteTool.exitCode6": "参数无效",
   "pypto.remoteTool.exitCode7": "远程命令执行失败",
-  "pypto.remoteTool.exitCode10": "未知错误"
+  "pypto.remoteTool.exitCode10": "未知错误",
+  "pypto.OpenWaveform": "PyPTO Toolkit: 打开波形图"
 }

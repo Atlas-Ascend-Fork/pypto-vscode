@@ -424,6 +424,17 @@ export interface IOpCheckViewServer extends ViewServer<IOpCheckApis, IOpCheckRef
   }) => Promise<void>;
 }
 
+export type IWaveformApis = 'loadWaveformData' | 'getSignalChanges';
+export type IWaveformRefs = {
+  WaveformData: unknown;
+  ErrorMessage: unknown;
+};
+
+export interface IWaveformServer extends ViewServer<IWaveformApis, IWaveformRefs> {
+  loadWaveformData: () => Promise<void>;
+  getSignalChanges: (message: { signalIds: string[]; startTime: number; endTime: number }) => Promise<any>;
+}
+
 export type ITaskCheckApis =
   | 'getTaskCheckList'
   | 'getTaskDetail'

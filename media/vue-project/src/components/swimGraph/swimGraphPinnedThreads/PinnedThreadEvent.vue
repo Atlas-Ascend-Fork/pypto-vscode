@@ -51,7 +51,7 @@ import { devicePixelRatio, getThreadHeight, getDevicePixelRatio,
           formatTimeWithUnit, COLOR_CFG, eventTextSize, getFontStyle, nodeSpaceMin, 
           clearWholeProcess, SNAP_THRESHOLD, NARROW_WIDTH_THRESHOLD, findVisibleEventRange} from '../swimGraphUtils';
 import { EventRender, ARROW_WIDTH } from '../swimGraphProcesses/render/eventRender';
-import { getEventColor, getNoZoomX } from '../swimGraphProcesses/render/utils';
+import { getEventColor, getNoZoomX, isAicpuHatchEvent } from '../swimGraphProcesses/render/utils';
 import { MeatureRender, altClickData, measureState } from '../swimGraphProcesses/render/meatureRender';
 import { swimDataManager } from '../swimData';
 
@@ -78,7 +78,8 @@ const {
   timeLineX,
   detailsPanelExpanded,
   focusedWrapId,
-  pathLockedWrapId
+  pathLockedWrapId,
+  isDeviceView
 } = swimGraphState;
 
 const { 
@@ -588,6 +589,7 @@ const highlightPinnedEvent = (event, stroke=true, highlight=true, isTemp=false) 
     fontColor,
     show: true,
     duration: event.duration ?? (event.endTime - event.startTime),
+    isAicpu: isAicpuHatchEvent(swimDataManager.getProcess(processKey)?.type, event, isDeviceView),
   };
   eventRenderer.drawEvent([drawData], ctx, false, true);
   ctx.font = getFontStyle(eventTextSize);
@@ -702,6 +704,7 @@ const highlightEvent = (ctx, event, stroke=true, highlight=true) => {
     rectColor: fillColor, strokeColor: '', text: '', textX: 0, textY: 0,
     fontColor, show: true,
     duration: event.duration ?? (event.endTime - event.startTime),
+    isAicpu: isAicpuHatchEvent(swimDataManager.getProcess(processKey)?.type, event, isDeviceView),
   };
   eventRenderer.drawEvent([drawData], ctx);
   ctx.font = getFontStyle(eventTextSize);
@@ -970,23 +973,24 @@ const drawHoverHighlight = (event, ctx) => {
   }
   
   const drawData = {
-    rectX: renderInfo.x, 
+    rectX: renderInfo.x,
     rectY: pinnedEventY,
     pinnedEventY,
-    rectPixelX: renderInfo.x * devicePixelRatio, 
+    rectPixelX: renderInfo.x * devicePixelRatio,
     rectPixelY: pinnedEventY * devicePixelRatio,
-    eventWidth: width, 
+    eventWidth: width,
     height: renderInfo.height,
-    rectColor: fillColor, 
-    strokeColor: '', 
-    text: '', 
-    textX: 0, 
+    rectColor: fillColor,
+    strokeColor: '',
+    text: '',
+    textX: 0,
     textY: 0,
-    fontColor, 
+    fontColor,
     show: true,
     duration: event.duration ?? (event.endTime - event.startTime),
+    isAicpu: isAicpuHatchEvent(swimDataManager.getProcess(processKey)?.type, event, isDeviceView),
   };
-  
+
   eventRenderer.drawEvent([drawData], ctx, false, true);
   
   const { scale, offsetX, canvasCssWidth } = viewState;

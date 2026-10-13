@@ -105,7 +105,7 @@ describe('RegisterCommand.getCommands', () => {
     vi.clearAllMocks();
   });
 
-  it('registers all 12 commands with correct command IDs', () => {
+  it('registers all 13 commands with correct command IDs', () => {
     const { context } = createRegisterCommand();
     const expectedIds = [
       'PyPTO.readCsv',
@@ -120,8 +120,9 @@ describe('RegisterCommand.getCommands', () => {
       'PyPTO.Open.CloseAllToolPages',
       'PyPto.Open.postLayoutData',
       'PyPTO.ExecuteRemoteCommand',
+      'PyPTO.Open.OpenWaveform',
     ];
-    expect(context.subscriptions).toHaveLength(12);
+    expect(context.subscriptions).toHaveLength(13);
     expectedIds.forEach((id) => {
       expect(commands.registerCommand).toHaveBeenCalledWith(id, expect.any(Function));
     });

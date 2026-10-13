@@ -28,20 +28,21 @@ vi.mock(import('../../../src/view/servers/welcom-server'), () => ({ WelcomeViewS
 vi.mock(import('../../../src/view/servers/memory-trace-server'), () => ({ MemoryTraceServer: class {} }));
 vi.mock(import('../../../src/view/servers/opcheck-server'), () => ({ OpCheckViewServer: class {} }));
 vi.mock(import('../../../src/view/servers/taskcheck-server'), () => ({ TaskCheckViewServer: class {} }));
+vi.mock(import('../../../src/view/servers/waveform-server'), () => ({ WaveformServer: class {} }));
 
 import { routes } from '../../../src/view/routes';
 
 describe('routes', () => {
-  it('contains all 11 view types', () => {
+  it('contains all 12 view types', () => {
     const expectedKeys = [
       'controlFlow', 'computeGraph', 'diffGraph', 'threeColumnGraph',
       'swimGraph', 'gmMemoryVisual', 'editRunConfig', 'welcome',
-      'memoryTrace', 'opCheck', 'taskCheck',
+      'memoryTrace', 'opCheck', 'taskCheck', 'waveform',
     ];
     for (const key of expectedKeys) {
       expect(routes).toHaveProperty(key);
     }
-    expect(Object.keys(routes)).toHaveLength(11);
+    expect(Object.keys(routes)).toHaveLength(12);
   });
 
   it('each entry has title and viewServer', () => {
@@ -82,6 +83,10 @@ describe('routes', () => {
 
   it('taskCheck has string title', () => {
     expect(routes.taskCheck.title).toBe('TaskCheck');
+  });
+
+  it('waveform has string title', () => {
+    expect(routes.waveform.title).toBe('Waveform');
   });
 
   it('controlFlow has function title', () => {

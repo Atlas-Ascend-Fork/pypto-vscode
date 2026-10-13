@@ -33,6 +33,46 @@ export interface Dependencies {
   colorRending: any;
   tsScale: any;
   isMsProf: any;
+  isDeviceView?: any;
+}
+
+export function isAicpuHatchEvent(processType: string, event: any, isDeviceView: any): boolean {
+  return !!isDeviceView?.value && (processType === 'aicpu' || !!event?.originalThreadName);
+}
+
+let cachedHatchCanvas: HTMLCanvasElement | null = null;
+let cachedHatchThemeKey = '';
+
+export function getHatchPatternCanvas(isDark: boolean, hatchColor: string): HTMLCanvasElement {
+  const themeKey = `${isDark ? 'dark' : 'light'}-${hatchColor}`;
+  if (cachedHatchCanvas && cachedHatchThemeKey === themeKey) {
+    return cachedHatchCanvas;
+  }
+  const dpr = window.devicePixelRatio || 1;
+  const size = 6 * dpr;
+  const patternCanvas = document.createElement('canvas');
+  patternCanvas.width = size;
+  patternCanvas.height = size;
+  const patternCtx = patternCanvas.getContext('2d');
+  if (patternCtx) {
+    patternCtx.strokeStyle = hatchColor;
+    patternCtx.lineWidth = 1 * dpr;
+    patternCtx.beginPath();
+    patternCtx.moveTo(0, size);
+    patternCtx.lineTo(size, 0);
+    patternCtx.moveTo(-size * 0.5, size * 0.5);
+    patternCtx.lineTo(size * 0.5, -size * 0.5);
+    patternCtx.moveTo(size * 0.5, size * 1.5);
+    patternCtx.lineTo(size * 1.5, size * 0.5);
+    patternCtx.stroke();
+  }
+  cachedHatchCanvas = patternCanvas;
+  cachedHatchThemeKey = themeKey;
+  return patternCanvas;
+}
+
+export function createHatchFill(ctx: CanvasRenderingContext2D, isDark: boolean, hatchColor: string): CanvasPattern | null {
+  return ctx.createPattern(getHatchPatternCanvas(isDark, hatchColor), 'repeat');
 }
 
 export function selectNoNodeWarm(): any {

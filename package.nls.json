@@ -239,5 +239,6 @@
   "pypto.remoteTool.exitCode5": "Configuration error (token read failed)",
   "pypto.remoteTool.exitCode6": "Invalid parameters",
   "pypto.remoteTool.exitCode7": "Remote command execution failed",
-  "pypto.remoteTool.exitCode10": "Unknown error"
+  "pypto.remoteTool.exitCode10": "Unknown error",
+  "pypto.OpenWaveform": "PyPTO Toolkit: Open Waveform Viewer"
 }

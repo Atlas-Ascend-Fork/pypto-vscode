@@ -82,6 +82,7 @@ import gradientDashedLine from './gradientDashedLine.vue';
 import { COLOR_CFG, setupHighDPICanvas, NARROW_WIDTH_THRESHOLD, SNAP_THRESHOLD, getEventDisplayName } from '../swimGraphUtils';
 import { getBaseColor } from '../swimGraphProcesses/processInfo';
 import { swimDataManager } from '../swimData';
+import { isAicpuHatchEvent, createHatchFill } from '../swimGraphProcesses/render/utils';
 const { t } = useI18n();
 const {
     aicpuCoreDetailsExpanded,
@@ -99,7 +100,8 @@ const {
     performanceVisible,
     selectedEvent,
     kernelThreadData,
-    lastSelected
+    lastSelected,
+    isDeviceView
 } = inject('swimGraphState');
 
 const {
@@ -275,6 +277,13 @@ const renderCoreDetailAicpu = () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = rectColor;
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  if (isAicpuHatchEvent('aicpu', event, isDeviceView)) {
+    const pattern = createHatchFill(ctx, isDarkTheme.value, colorCfg.aicpuHatchColor);
+    if (pattern) {
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    }
+  }
   ctx.font = '12px Arial'; 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

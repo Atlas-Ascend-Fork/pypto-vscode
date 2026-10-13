@@ -658,4 +658,8 @@ export default {
     'chartView': 'Chart view',
     'listView': 'List view',
     'memoryShowAdjacentTensors': 'Show adjacent tensors',
+    waveform: {
+        zoomMaxIn: 'Maximum zoom level reached',
+        zoomMaxOut: 'Minimum zoom level reached',
+    },
 }

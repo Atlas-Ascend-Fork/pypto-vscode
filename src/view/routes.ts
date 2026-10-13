@@ -29,6 +29,7 @@ import { MemoryTraceServer } from './servers/memory-trace-server';
 import { GmMemoryVisualServer } from './servers/gm-memory-visual-server';
 import { OpCheckViewServer } from './servers/opcheck-server';
 import { TaskCheckViewServer } from './servers/taskcheck-server';
+import { WaveformServer } from './servers/waveform-server';
 export type EditorViewRoutes = Record<string, Omit<EditorViewRaw, 'viewType'>>;
 export const routes: EditorViewRoutes = {
   // 控制流
@@ -89,5 +90,11 @@ export const routes: EditorViewRoutes = {
   taskCheck: {
     title: 'TaskCheck',
     viewServer: TaskCheckViewServer,
+  },
+
+  // 波形图
+  waveform: {
+    title: 'Waveform',
+    viewServer: WaveformServer,
   },
 };

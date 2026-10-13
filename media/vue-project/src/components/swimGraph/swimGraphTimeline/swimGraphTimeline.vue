@@ -217,6 +217,7 @@ const fixedMouseEvent = (e) => {
 };
 
 const timelineMouseDown = (e) => {
+  e.preventDefault();
   hoverLineErase();
   if (!fixedtimelineCtx.value || !fixedtimelineCanvas.value) return;
   const rect = fixedtimelineCanvas.value.getBoundingClientRect();
@@ -1049,6 +1050,12 @@ defineExpose({
 
 <style scoped lang="scss">
 @import url("../css/swimGraph/Timeline/timeline.css");
+
+.timeline {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .label-input {
   padding-right: 12px;
   :deep() {

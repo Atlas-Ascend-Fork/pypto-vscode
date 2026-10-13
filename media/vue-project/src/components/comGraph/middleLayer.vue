@@ -26,6 +26,7 @@ import { comGraphStore } from '../../service/com-graph-store';
 import { useViewServer } from '../../core/use-view-server';
 import SwimGraph from '../../components/swimGraph/swimGraphComplete.vue';
 import GmMemoryGraph from '../../components/comGraph/gmMemoryGraph.vue';
+import WaveformView from '../../components/waveform/WaveformView.vue';
 import { pushState, pullState } from '../../core/state';
 import NoDataFile from '../../components/comGraph/noDataFile.vue';
 import { ICommonViewServer } from 'ext:/view/servers/view-server-interface';
@@ -500,6 +501,7 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
       @searchMode="modeSearchModeSet" />
     <SwimGraph v-if="graphType === 'swimGraph'" :is-three-column="false" />
     <GmMemoryGraph v-if="graphType === 'gmMemoryVisual'" />
+    <WaveformView v-if="graphType === 'waveform'" />
   </template>
   <template>
     <d-modal v-model="modalVisible" :title="$t('confirm')" class="modal-containner" :close-on-click-overlay="false">

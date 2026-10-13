@@ -2,7 +2,7 @@
   "name": "pypto-toolkit",
   "displayName": "PyPTO Toolkit",
   "description": "PyPTO 效率提升插件",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "license": "Apache-2.0",
   "icon": "media/images/logo.png",
   "engines": {
@@ -87,6 +87,11 @@
         "command": "PyPTO.ExecuteRemoteCommand",
         "title": "%pypto.remoteTool.executeCommand%",
         "category": "PyPTO.RemoteTool"
+      },
+      {
+        "command": "PyPTO.Open.OpenWaveform",
+        "title": "%pypto.OpenWaveform%",
+        "category": "PyPTO.OpenWaveform"
       }
     ],
     "menus": {
@@ -105,6 +110,11 @@
           "command": "PyPTO.Open.OpenLinkageMode",
           "when": "resourceExtname == .py || resourceExtname == .cpp",
           "group": "navigation"
+        },
+        {
+          "command": "PyPTO.Open.OpenWaveform",
+          "when": "resourceExtname == .vcd",
+          "group": "navigation@3"
         }
       ],
       "pypto.graph.advanOpen": [
