@@ -557,18 +557,11 @@ const validateDurationEvent = (event: any): string | null => {
 };
 
 const validateCounterValue = (args: any, name: string): string | null => {
-  const hasSize = 'size' in args;
-  const hasValue = 'value' in args;
-  const hasByte = '/byte' in args;
-
-  if (!hasSize && !hasByte && !hasValue) {
+  if (typeof args !== 'object' || args === null || Object.keys(args).length === 0) {
     return t('pypto.swimGraph.validate.cntEvent', { name });
   }
-  if ((args.size || args.value) && !(typeof args.size === 'number' || typeof args.value === 'number')) {
-    return t('pypto.swimGraph.validate.cntEvent', { name });
-  }
-  if (args['/byte'] && typeof args['/byte'] !== 'number') {
-    return t('pypto.swimGraph.validate.cntEvent', { name });
+  if (!Object.values(args).every((v) => Number.isFinite(v))) {
+    return t('pypto.swimGraph.validate.cntEventValue', { name });
   }
   return null;
 };
@@ -640,11 +633,7 @@ function normalizeEventTimestamps(event: any, minThresh: number): void {
 }
 
 function isCounterEvent(event: any): boolean {
-  return event.ph === 'C' && (
-    typeof(event.args.size) === 'number' ||
-    typeof(event.args['/byte']) === 'number' ||
-    typeof(event.args.value) === 'number'
-  );
+  return event.ph === 'C' && typeof event.args === 'object' && event.args !== null;
 }
 
 interface TraceMetadata {
