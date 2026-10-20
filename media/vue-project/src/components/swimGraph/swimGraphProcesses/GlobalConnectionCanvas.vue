@@ -77,8 +77,9 @@ const eventRenderer = new EventRender({...swimGraphState, colorCfg, userConfig})
 const processDomCache = new Map();
 
 const getProcessDomElement = (processKey) => {
-  if (processDomCache.has(processKey)) {
-    return processDomCache.get(processKey);
+  const cached = processDomCache.get(processKey);
+  if (cached?.isConnected) {
+    return cached;
   }
   const element = document.querySelector(`[data-process-key="${processKey}"]`);
   if (element) {

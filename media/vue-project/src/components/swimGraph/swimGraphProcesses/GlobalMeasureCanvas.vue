@@ -92,8 +92,9 @@ const lessThan0usMsg = 'less than 1ns';
 let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 
 const getProcessDomElement = (processKey) => {
-  if (processDomCache.has(processKey)) {
-    return processDomCache.get(processKey);
+  const cached = processDomCache.get(processKey);
+  if (cached?.isConnected) {
+    return cached;
   }
   const element = document.querySelector(`[data-process-key="${processKey}"]`);
   if (element) {

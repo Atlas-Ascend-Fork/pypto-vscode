@@ -72,7 +72,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { inject, onMounted, onUnmounted, watch, ref, provide, reactive } from 'vue';
-import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, getWrapLabelCache, 
+import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, getDevicePixelRatio, formatTimeWithUnit, getFontStyle, updateProcessSize, getCanvasCSSHeight, getWrapLabelCache, 
   getThreadHeight, getThreadStartY, getVisibleYRange, isThreadInViewport, eventTextSize, nodeSpaceMin, clearWholeProcess,
   renderWrapLabel, renderMixDependenciesAll, renderWrapContainerBox, drawBezierDashedLine, renderWrapLabelRow, collectSubEventDependencyPathNodesWithControl,
   findVisibleEventRange,
@@ -582,10 +582,34 @@ const handleMountedKeyup = (e) => {
   onKeyUp(e);
   e.stopPropagation();
 };
+// HMR/组件重挂载会重建canvas DOM，模块级ctxs仍指向已卸载的旧canvas：旧canvas位图仍在，拷贝到新canvas并重绑
+const remountRebind = () => {
+  const stale = ctxs[props.processKey];
+  if (!stale?.eventCtx || stale.eventCtx.isConnected) { return; }
+  const root = containerRef.value;
+  if (!root) { return; }
+  const rebound = {};
+  for (const [key, oldCtx] of Object.entries(stale)) {
+    const oldCanvas = oldCtx?.canvas;
+    const attr = oldCanvas?.getAttributeNames().find((name) => name.endsWith('process-key'));
+    const newCanvas = attr ? root.querySelector(`[${attr}]`) : null;
+    if (!newCanvas) { continue; }
+    newCanvas.style.width = oldCanvas.style.width;
+    newCanvas.style.height = oldCanvas.style.height;
+    newCanvas.width = oldCanvas.width;
+    newCanvas.height = oldCanvas.height;
+    const ctx = newCanvas.getContext('2d');
+    ctx.drawImage(oldCanvas, 0, 0);
+    ctx.setTransform(viewState.pixelScale, 0, 0, getDevicePixelRatio(), viewState.pixelOffsetX, 0);
+    rebound[key] = ctx;
+  }
+  ctxs[props.processKey] = rebound;
+};
 onMounted(() => {
   listenExtensionMessage();
   listenExtensionClearMessage();
   window.addEventListener('keyup', onWindowKeyUp);
+  remountRebind();
 });
 
 onUnmounted(() => {
