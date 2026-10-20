@@ -60,7 +60,7 @@
 
     |参数|说明|
     |--|--|
-    |名称|节点名称包含任务名称以及语义标签，例如0-4-0-25-0(MatMul)。</br>前三个数字0-4-0为该任务编号，也是该任务的唯一标识。三个数字分别表示：seqNo、task's rootFunction part、task's opIndex part。</br>后两个数字25-0标识该任务执行的内容，即rootIndex和psglD in this root。</br>MatMul为语义标签名称，当PyPTO程序代码中使用pypto.set_semantic_label接口设置自定义语义标签时展示。|
+    |名称|节点名称包含任务名称以及语义标签，例如0-4-25-0-0(MatMul)。<br/>第1、2、4位数字0-4-0为该任务编号，也是该任务的唯一标识。三个数字分别表示：seqNo、task's rootFunction part、task's opIndex part。<br/>第3、5位数字25-0标识该任务执行的内容，即rootIndex和psgId in this root。<br/>MatMul为语义标签名称，当PyPTO程序代码中使用pypto.set_semantic_label接口设置自定义语义标签时展示。|
     |Leaf 编号|节点所在的同构子图的ID，不同任务节点可能归属统一个同构子图。|
     |Start|开始时间|
     |Duration|持续时间|
