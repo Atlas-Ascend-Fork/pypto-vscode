@@ -80,6 +80,7 @@ main() {
     echo "Start run c++ testcase"
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs
+    sudo npm install -g npm@11
     npm install --save-dev vitest
     # Only run UT tests on the master branch
     if [[ "${TARGET_BRANCH}" != "master" ]]; then
