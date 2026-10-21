@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 import SwimDataManager from "../swimData";
+import { getThreadStartY, getThreadHeight } from "../swimGraphUtils";
 
 export interface MeasureEventSearchOptions {
   lineRange: [number, number];
@@ -25,6 +26,8 @@ export interface MeasureEventSearchOptions {
   pinnedthreadsComponent: any;
   swimDataManager: SwimDataManager;
   isMixMode: { value: boolean};
+  layout: any;
+  lane2line: Map<string, number>;
 }
 
 export interface IntelligentSearchOptions {
@@ -44,6 +47,8 @@ export interface IntelligentSearchOptions {
   renderTimeline: () => void;
   swimDataManager: SwimDataManager;
   isMixMode: { value: boolean};
+  layout: any;
+  lane2line: Map<string, number>;
 }
 
 const getEventY = (event: any, isPinnedArea: boolean): number => {
@@ -172,6 +177,74 @@ const resolvePinnedArea = (pinnedthreadsComponent: any, mouseY: number): { pinne
   return { pinnedHeight, yLayer };
 };
 
+/*根据鼠标在 process 容器内的 y 坐标，定位鼠标所在的具体线程（泳道）*/
+const findThreadByY = (
+  process: any,
+  processKey: string,
+  realY: number,
+  lane2line: Map<string, number>,
+  layout: any,
+  swimDataManager: SwimDataManager
+): any | null => {
+  const swimLaneOrder = swimDataManager.getSwimLaneOrder();
+  if (swimLaneOrder && swimLaneOrder.length > 0) {
+    for (const lane of swimLaneOrder) {
+      if (lane.type !== 'thread') {
+        continue;
+      }
+      const laneEnd = lane.y + lane.height;
+      if (realY >= lane.y && realY < laneEnd) {
+        for (const [, thread] of process.threads.entries()) {
+          if (thread.tid === lane.thread?.tid) {
+            return thread;
+          }
+        }
+        return null;
+      }
+    }
+  }
+
+  for (const [, thread] of process.threads.entries()) {
+    const key = thread.isCounter ? thread.threadName : thread.tid;
+    const threadY = getThreadStartY(process, processKey, key, lane2line, layout);
+    const threadHeight = getThreadHeight(processKey, key, lane2line, layout, thread.isCounter);
+    if (realY >= threadY && realY < threadY + threadHeight) {
+      return thread;
+    }
+  }
+  return null;
+};
+
+const pickTimeInThreadRange = (
+  thread: any,
+  type: 'start' | 'end',
+  lineRange: [number, number],
+  swimDataManager: SwimDataManager,
+  isMixMode: boolean
+): number | null => {
+  const [rangeStart, rangeEnd] = lineRange;
+  for (const eventId of thread.eventIds) {
+    const event = swimDataManager.getEventById(eventId);
+    if (!event) {
+      continue;
+    }
+    const candidates = isMixMode
+      ? (swimDataManager.getSubEvents(event.id).length > 0 ? swimDataManager.getSubEvents(event.id) : [event])
+      : [event];
+    for (const candidate of candidates) {
+      const targetTime = type === 'start' ? candidate.startTime : candidate.endTime;
+      const otherTime = type === 'start' ? candidate.endTime : candidate.startTime;
+      if (targetTime > rangeStart && targetTime < rangeEnd) {
+        return targetTime;
+      }
+      if (otherTime > rangeStart && otherTime < rangeEnd) {
+        return otherTime;
+      }
+    }
+  }
+  return null;
+};
+
 export const measureEventSearch = (options: MeasureEventSearchOptions): number | null => {
   const {
     lineRange,
@@ -183,7 +256,9 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
     pinnedThreads,
     pinnedthreadsComponent,
     swimDataManager,
-    isMixMode
+    isMixMode,
+    layout,
+    lane2line
   } = options;
 
   const [lineRangeStart, lineRangeEnd] = lineRange;
@@ -200,6 +275,19 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
   } else {
     const result = realCoordinateY(mouseY);
     yLayer = result.realY;
+
+    // 优先吸附：定位鼠标 Y 所在的具体泳道（线程），仅在该泳道内查找命中时间窗口的起/止事件
+    const process = result.processkey ? swimDataManager.getProcess(result.processkey) : undefined;
+    if (process) {
+      const currentThread = findThreadByY(process, result.processkey, result.realY, lane2line, layout, swimDataManager);
+      if (currentThread) {
+        const threadHitTime = pickTimeInThreadRange(currentThread, type, lineRange, swimDataManager, isMixMode.value);
+        if (threadHitTime !== null) {
+          return threadHitTime;
+        }
+      }
+    }
+
     matchingEvents = collectProcessEvents(
       processExpanded, result.processkey,
       lineRangeStart, lineRangeEnd, isMixMode.value, swimDataManager
@@ -247,7 +335,9 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     renderFixedTimeline,
     renderTimeline,
     swimDataManager,
-    isMixMode
+    isMixMode,
+    layout,
+    lane2line
   } = options;
 
   let start = measureDragStartX.value;
@@ -266,7 +356,9 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     pinnedThreads,
     pinnedthreadsComponent,
     swimDataManager,
-    isMixMode
+    isMixMode,
+    layout,
+    lane2line
   });
   const foundEndTime = measureEventSearch({
     lineRange: endlineRange,
@@ -278,7 +370,9 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     pinnedThreads,
     pinnedthreadsComponent,
     swimDataManager,
-    isMixMode
+    isMixMode,
+    layout,
+    lane2line
   });
 
   if (foundStartTime !== null) {

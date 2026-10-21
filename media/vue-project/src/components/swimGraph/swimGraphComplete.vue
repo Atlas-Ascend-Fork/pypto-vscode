@@ -3590,7 +3590,9 @@ const intelligentSearch = () => {
     renderFixedTimeline,
     renderTimeline,
     swimDataManager,
-    isMixMode
+    isMixMode,
+    layout,
+    lane2line
   });
 };
 
