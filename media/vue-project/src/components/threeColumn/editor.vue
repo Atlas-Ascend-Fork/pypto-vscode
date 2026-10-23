@@ -56,6 +56,7 @@ import { ref, onMounted, onUnmounted, nextTick, watch, inject, Ref } from 'vue';
 import * as monaco from 'monaco-editor';
 import { generateColorList, getColorByString } from '../../utils/color-list';
 import { mkSemanticLabel, parseSemanticLabels, labels } from './parser';
+import { renderBlockHighlights, clearBlockHighlights, rerenderBlockHighlights, renderGutterBars } from './monaco';
 import { useI18n } from 'vue-i18n';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
@@ -83,8 +84,6 @@ let lastSentLabel = '';
 let lastMoveLabel = null;
 let lockedLabel = null;
 let isMouseLeaved = false;
-let semanticDecorations = []; // gutter装饰条
-let currentHoverDecoration = null; // 悬停的背景装饰
 let labelInfoDecorations = []; // 存储标签信息装饰
 let initCodePath = '';
 let initTotalLine = 0;
@@ -119,48 +118,13 @@ const applySemanticDecorations = () => {
   if (!editor) {
     return;
   }
-
-  // 清除之前的装饰
-  semanticDecorations.forEach(decoration => {
-    editor.removeDecorations(decoration);
-  });
-  semanticDecorations = [];
-
-  // 为每个语义标签区域添加装饰
-  labels.forEach((label, index) => {
-    const baseColorList = isDarkTheme.value ? darkThemeBaseColors : lightThemeBaseColors;
-    const lightColorList = isDarkTheme.value ? darkThemeLightColors : lightThemeLightColors;
-    const { baseColor } = getColorByString(label.name, baseColorList, lightColorList);
-    
-    // 左侧 gutter 颜色条装饰
-    const gutterDecoration = {
-      range: new monaco.Range(label.startLine, 1, label.endLine, 1),
-      options: {
-        isWholeLine: false,
-        linesDecorationsClassName: `semantic-gutter-${index}`,
-        marginClassName: `semantic-margin-${index}`
-      }
-    };
-    
-    // 添加 CSS 样式
-    const style = document.createElement('style');
-    style.textContent = `
-      .semantic-gutter-${index} {
-        width: 4px !important;
-        background-color: ${baseColor} !important;
-        margin-left: 4px;
-      }
-      .semantic-margin-${index} {
-        background-color: ${baseColor} !important;
-        opacity: 0.3;
-        width: 4px !important;
-      }
-    `;
-    document.head.appendChild(style);
-    
-    const decorations = editor.deltaDecorations([], [gutterDecoration]);
-    semanticDecorations.push(decorations);
-  });
+  const baseColorList = isDarkTheme.value ? darkThemeBaseColors : lightThemeBaseColors;
+  const lightColorList = isDarkTheme.value ? darkThemeLightColors : lightThemeLightColors;
+  renderGutterBars(editor, labels.map((label) => ({
+    startLine: label.startLine,
+    endLine: label.endLine,
+    color: getColorByString(label.name, baseColorList, lightColorList).baseColor,
+  })));
 };
 
 // 查找光标所在的语义标签区域
@@ -306,18 +270,18 @@ const deactivateLock = () => {
   sendMsg('deactivateLock','');
 };
 
+const getBlockStyle = (isLock: boolean) => {
+  return {
+    strokeWidth: isLock ? 1.5 : 1,
+  };
+};
+
 const updateBkDecoration = (lockedLabel: any, isLock: boolean) => {
-  if (currentHoverDecoration) {
-    editor.deltaDecorations(currentHoverDecoration, []);
-    currentHoverDecoration = null;
+  if (!lockedLabel || !editor) {
+    clearBlockHighlights(editor);
+    return;
   }
-  let decorations = [];
-  if (isLock) {
-    decorations = createLockedDecorations(lockedLabel.startLine, lockedLabel.endLine);
-  } else {
-    decorations = createHoverDecorations(lockedLabel.startLine, lockedLabel.endLine);
-  }
-  currentHoverDecoration = editor.deltaDecorations([], decorations);
+  renderBlockHighlights(editor, [[lockedLabel.startLine, lockedLabel.endLine]], getBlockStyle(isLock));
 };
 
 const lockClick = (e) => {
@@ -334,77 +298,16 @@ const unLockClick = (e) => {
   deactivateLock();
 };
 
-const createLockedDecorations = (startLine, endLine) => {
-  const decorations = [];
-
-  if (startLine === endLine) {
-    // 单行情况，直接应用完整边框
-    decorations.push({
-      range: new monaco.Range(startLine, 1, endLine, 1),
-      options: {
-        isWholeLine: true,
-        className: 'semantic-hover-full'
-      }
-    });
-  } else {
-    // 首行
-    decorations.push({
-      range: new monaco.Range(startLine, 1, startLine, 1),
-      options: {
-        isWholeLine: true,
-        className: 'semantic-hover-top'
-      }
-    });
-
-    // 中间行（如果有）
-    for (let line = startLine + 1; line < endLine; line++) {
-      decorations.push({
-        range: new monaco.Range(line, 1, line, 1),
-        options: {
-          isWholeLine: true,
-          className: 'semantic-hover-middle'
-        }
-      });
-    }
-
-    // 末行
-    decorations.push({
-      range: new monaco.Range(endLine, 1, endLine, 1),
-      options: {
-        isWholeLine: true,
-        className: 'semantic-hover-bottom'
-      }
-    });
-  }
-
-  return decorations;
-};
-
-const createHoverDecorations = (startLine, endLine) => {
-  const decorations = [];
-  decorations.push({
-    range: new monaco.Range(startLine, 1, endLine, 1),
-    options: {
-      isWholeLine: true,
-      className: 'semantic-hover-highlight'
-    }
-  });
-  return decorations;
-};
-
 // 更新悬停装饰
 const updateHoverDecoration = (position, emit = true) => {
   // 如果处于锁定状态，不更新悬停装饰
   if (isLocked.value) {
     return;
   }
-  
-  // 清除之前的悬停装饰
-  if (currentHoverDecoration) {
-    editor.deltaDecorations(currentHoverDecoration, []);
-    currentHoverDecoration = null;
-  }
-  
+
+  // 清除之前的悬停块
+  clearBlockHighlights(editor);
+
   if (!position) {
     lockPosition.value = null;
     if (lastSentLabel && emit) {
@@ -413,13 +316,12 @@ const updateHoverDecoration = (position, emit = true) => {
     }
     return;
   }
-  
+
   const currentLabel = findSemanticLabelAtPosition(position);
-  
-  // 如果当前在语义标签区域内，添加悬停效果
+
+  // 如果当前在语义标签区域内，渲染块状悬停效果
   if (currentLabel) {
-    const decorations = createHoverDecorations(currentLabel.startLine, currentLabel.endLine);
-    currentHoverDecoration = editor.deltaDecorations([], decorations);
+    renderBlockHighlights(editor, [[currentLabel.startLine, currentLabel.endLine]], getBlockStyle(false));
     if (emit && lastSentLabel !== currentLabel.name && !isMouseLeaved) {
       lastSentLabel = currentLabel.name;
       sendMsg('returnSemanticLabelFromCode', { label: currentLabel.name });
@@ -557,34 +459,8 @@ const handleMouseEnter = () => {
 // 添加悬停效果的 CSS
 const setupHoverStyles = () => {
   const style = document.createElement('style');
-  const bkColor = isDarkTheme.value ? 'rgba(49,122,247,0.2)' : 'rgba(10,89,247,0.2)';
-  const borderColor = isDarkTheme.value ? 'rgba(49,122,247,1)' : 'rgba(10,89,247,1)';
-  
+
   style.textContent = `
-    .semantic-hover-highlight {
-      background-color: ${bkColor} !important;
-    }
-    .semantic-hover-full {
-      background-color: ${bkColor} !important;
-      border: 1.5px solid ${borderColor} !important;
-    }
-    .semantic-hover-top {
-      background-color: ${bkColor} !important;
-      border-top: 1.5px solid ${borderColor} !important;
-      border-left: 1.5px solid ${borderColor} !important;
-      border-right: 1.5px solid ${borderColor} !important;
-    }
-    .semantic-hover-middle {
-      background-color: ${bkColor} !important;
-      border-left: 1.5px solid ${borderColor} !important;
-      border-right: 1.5px solid ${borderColor} !important;
-    }
-    .semantic-hover-bottom {
-      background-color: ${bkColor} !important;
-      border-bottom: 1.5px solid ${borderColor} !important;
-      border-left: 1.5px solid ${borderColor} !important;
-      border-right: 1.5px solid ${borderColor} !important;
-    }
     .lock-indicator {
       position: absolute;
       z-index: 100;
@@ -657,9 +533,14 @@ const initEditor = (code) => {
   
   // 设置悬停样式
   setupHoverStyles();
-  
+
   setupHoverListeners();
-  
+
+  // CompleteData 早于 PyCode 到达时补算语义标签
+  if (pendingLabelRefresh) {
+    pendingLabelRefresh = !refreshSemanticLabels();
+  }
+
   // 添加键盘事件监听
   editor.addCommand(monaco.KeyCode.Escape, () => {
     deactivateLock();
@@ -679,6 +560,7 @@ const updateTheme = () => {
     monaco.editor.setTheme(theme);
     setupHoverStyles();
     applySemanticDecorations();
+    rerenderBlockHighlights(editor, getBlockStyle(isLocked.value));
   }
 };
 
@@ -738,10 +620,23 @@ const sendMsg = (command, param) => {
   });
 };
 
-watch(threeColumnServer.CompleteData, (newValue) => {
-  mkSemanticLabel(newValue.semanticObj, initCodePath);
+// 语义标签解析（CompleteData 与 PyCode 到达顺序不确定，前置未齐时返回 false 挂起）
+const refreshSemanticLabels = (): boolean => {
+  const complete: any = threeColumnServer.CompleteData?.value;
+  if (!complete?.semanticObj || !initCodePath || !initTotalLine || !editor) {
+    return false;
+  }
+  mkSemanticLabel(complete.semanticObj, initCodePath);
   parseSemanticLabels(initTotalLine);
   applySemanticDecorations();
+  return true;
+};
+
+// CompleteData 早于 PyCode/编辑器就绪到达时置位，待 initEditor 补算（setup 时已有值的情况同样置位）
+let pendingLabelRefresh = !!threeColumnServer.CompleteData?.value;
+
+watch(threeColumnServer.CompleteData, () => {
+  pendingLabelRefresh = !refreshSemanticLabels();
 });
 watch(threeColumnServer.PyCode, (newValue) => {
   const { codePath, code } = newValue.data;
@@ -767,7 +662,6 @@ onUnmounted(() => {
     editor.dispose();
   }
   // 清理所有语义标签装饰
-  semanticDecorations = [];
   labelInfoDecorations = [];
   if (saveTimeout) {
     clearTimeout(saveTimeout);
