@@ -19,7 +19,7 @@ import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { Fider } from '../threeColumnEntry';
 import { Util } from '../../util';
-import { readFileSync, writeFileSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync } from 'fs';
 import { isAbsolute, resolve, dirname, extname } from 'path';
 import { SingleGraphData } from '../../core/graphData';
 import { GetOutputRecordParams } from '../../services/run-data/api';
@@ -65,6 +65,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'FuncHashFileList',
   'CompleteData',
   'PyCode',
+  'FileExistenceResult',
   'SaveSuccess',
   'SaveError',
   'CalleeMap',
@@ -173,6 +174,25 @@ export class ThreeColumnServer
   @viewApi()
   public getPyCode = async () => {
     await codeMsgHandler.getPyCode(this);
+  };
+  @viewApi()
+  public switchPyFile = async (message: any) => {
+    const { path } = message.paramObj;
+    if (!path || !existsSync(path)) {
+      return;
+    }
+    this.codePath = path;
+    const code = readFileSync(path, 'utf8');
+    this.setRef('PyCode', { data: { code, codePath: path } });
+  };
+  @viewApi()
+  public checkFileExistence = async (message: any) => {
+    const paths: string[] = message.paramObj?.paths ?? [];
+    const result: Record<string, boolean> = {};
+    for (const p of paths) {
+      result[p] = existsSync(p);
+    }
+    this.setRef('FileExistenceResult', { data: result });
   };
   @viewApi()
   public savePyCode = async (message) => {

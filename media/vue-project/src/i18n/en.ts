@@ -212,6 +212,7 @@ export default {
     noDataMatched: 'No data matched',
     jumpCodeTips: 'Jump to source code, under design, please look forward to.',
     threeColumnTips: 'Three vertical layout, under design, please look forward to.',
+    fileNotExist: 'File does not exist',
     directRelative: 'Direct relative',
     notDirectRelative: 'Non-direct relative',
     pleaseSelect: 'Please select',

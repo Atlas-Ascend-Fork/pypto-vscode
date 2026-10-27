@@ -52,7 +52,13 @@
       >
         <div class="three-column-block editor-block">
           <div class="sticky-block">
-            <fileSelect :file-name="editorFileName" />
+            <fileSelect
+              :file-name="editorFileName"
+              :show-dropdown="true"
+              :file-list="pyFileList"
+              :current-path="editorFilePath"
+              @file-select="onPyFileSwitch"
+            />
             <DragIcon />
             <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
           </div>
@@ -106,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, provide, ref, toRef } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, provide, ref, toRef, watch } from 'vue';
 import type { Ref } from 'vue';
 import editor from './editor.vue';
 import { ThreeColumnProvideKey } from './types';
@@ -127,6 +133,22 @@ const columnBarLeft = ref('');
 const leftRowBarTop = ref('');
 const rightRowBarTop = ref('');
 const editorFileName = ref('');
+const editorFilePath = ref('');
+const pyFileList = ref<Array<{ path: string; name: string; exists: boolean }>>([]);
+
+watch(threeColumnServer.PyCode, (newValue: any) => {
+  const codePath = newValue?.data?.codePath;
+  if (codePath) {
+    editorFilePath.value = codePath;
+  }
+});
+
+const onPyFileSwitch = (path: string) => {
+  editorFilePath.value = path;
+  editorFileName.value = path.split(/[\/\\]/).pop() ?? path;
+  (window as any).ascEventBus.emit('deactivateLock');
+  threeColumnServer.switchPyFile({ paramObj: { path } });
+};
 const editorRef = ref();
 const columnBarOffset = ref('1px');
 const leftRowBarOffset = ref('1px');
@@ -352,7 +374,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', updateContainerRect);
 });
 
-provide('threeColumnState', { isDarkTheme, editorFileName });
+provide('threeColumnState', { isDarkTheme, editorFileName, pyFileList });
 </script>
 
 <style scoped lang="scss">
@@ -446,12 +468,15 @@ provide('threeColumnState', { isDarkTheme, editorFileName });
     }
 
     .editor-block {
+      padding-top: 40px;
+      box-sizing: border-box;
+
       .sticky-block {
         position: absolute;
         top: 0;
         left: 0;
         z-index: 15;
-        display: none;
+        display: flex;
         align-items: center;
         justify-content: space-between;
         width: 100%;
@@ -481,10 +506,6 @@ provide('threeColumnState', { isDarkTheme, editorFileName });
       &.active {
         .sticky-block {
           display: flex;
-        }
-        .editor-block {
-          padding-top: 40px;
-          box-sizing: border-box;
         }
       }
     }

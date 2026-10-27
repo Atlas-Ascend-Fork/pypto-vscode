@@ -173,6 +173,66 @@ export function clearGutterBars(editor: monaco.editor.ICodeEditor | null): void 
   }
 }
 
+// ==================== 整行背景条 ====================
+
+interface LineBandState {
+  collection: monaco.editor.IEditorDecorationsCollection | null;
+  styleEl: HTMLStyleElement | null;
+  editorId: number;
+}
+
+let lineBandEditorSeq = 0;
+const lineBandStates = new WeakMap<monaco.editor.ICodeEditor, LineBandState>();
+
+/**
+ * 为指定行添加整行蓝色背景条（重复调用整体替换）
+ * @param editor monaco editor 实例
+ * @param lines 行号列表
+ * @param isDark 深色主题（浅色 #0A59F7 / 深色 #317AF7）
+ */
+export function renderLineBands(editor: monaco.editor.ICodeEditor | null, lines: number[], isDark: boolean): void {
+  if (!editor) {
+    return;
+  }
+  let state = lineBandStates.get(editor);
+  if (!state) {
+    const editorId = ++lineBandEditorSeq;
+    const styleEl = document.createElement('style');
+    document.head.appendChild(styleEl);
+    state = { collection: editor.createDecorationsCollection([]), styleEl, editorId };
+    lineBandStates.set(editor, state);
+    editor.onDidDispose(() => {
+      state?.styleEl?.remove();
+      lineBandStates.delete(editor);
+    });
+  }
+  const color = isDark ? '#317AF7' : '#0A59F7';
+  const className = `pypto-line-band-${state.editorId}`;
+  state.styleEl!.textContent = `
+    .${className} {
+      background-color: ${color} !important;
+    }
+  `;
+  state.collection!.set(lines.map((line) => ({
+    range: new monaco.Range(line, 1, line, 1),
+    options: {
+      isWholeLine: true,
+      className,
+    },
+  })));
+}
+
+/**
+ * 清除整行背景条装饰
+ */
+export function clearLineBands(editor: monaco.editor.ICodeEditor | null): void {
+  const state = editor ? lineBandStates.get(editor) : null;
+  if (!state) {
+    return;
+  }
+  state.collection?.set([]);
+}
+
 function redraw(editor: monaco.editor.ICodeEditor): void {
   const state = states.get(editor);
   if (!state) {
@@ -305,7 +365,7 @@ function drawBlock(
     ctx.lineTo(pts[i].x, pts[i].y);
   }
   ctx.closePath();
-  // 对角渐变：块包围盒左上 → 右下，背景半透明、描边不透明
+  // 水平渐变：块包围盒左 → 右，背景半透明、描边不透明
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -316,12 +376,13 @@ function drawBlock(
     if (p.y < minY) { minY = p.y; }
     if (p.y > maxY) { maxY = p.y; }
   }
-  const fillGradient = ctx.createLinearGradient(minX, minY, maxX, maxY);
+  const midY = (minY + maxY) / 2;
+  const fillGradient = ctx.createLinearGradient(minX, midY, maxX, midY);
   fillGradient.addColorStop(0, `${GRADIENT_START}33`);
   fillGradient.addColorStop(1, `${GRADIENT_END}33`);
   ctx.fillStyle = fillGradient;
   ctx.fill();
-  const strokeGradient = ctx.createLinearGradient(minX, minY, maxX, maxY);
+  const strokeGradient = ctx.createLinearGradient(minX, midY, maxX, midY);
   strokeGradient.addColorStop(0, `${GRADIENT_START}99`);
   strokeGradient.addColorStop(1, `${GRADIENT_END}99`);
   ctx.strokeStyle = strokeGradient;

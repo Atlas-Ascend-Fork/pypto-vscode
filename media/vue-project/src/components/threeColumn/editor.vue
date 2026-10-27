@@ -56,7 +56,7 @@ import { ref, onMounted, onUnmounted, nextTick, watch, inject, Ref } from 'vue';
 import * as monaco from 'monaco-editor';
 import { generateColorList, getColorByString } from '../../utils/color-list';
 import { mkSemanticLabel, parseSemanticLabels, labels } from './parser';
-import { renderBlockHighlights, clearBlockHighlights, rerenderBlockHighlights, renderGutterBars } from './monaco';
+import { renderBlockHighlights, clearBlockHighlights, rerenderBlockHighlights, renderGutterBars, renderLineBands, clearLineBands } from './monaco';
 import { useI18n } from 'vue-i18n';
 import Loading from '../comGraph/loading.vue';
 import { throttle } from 'lodash-es';
@@ -66,7 +66,7 @@ const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t: $t } = useI18n();
 const { isDarkTheme } = inject('threeColumnState') as {isDarkTheme:Ref<boolean>};
-const { editorFileName } = inject('threeColumnState');
+const { editorFileName, pyFileList } = inject('threeColumnState') as { editorFileName: Ref<string>; pyFileList: Ref<Array<{ path: string; name: string; exists: boolean }>> };
 
 const darkThemeColors = generateColorList(360);
 const lithtThemeColors = generateColorList(360, false);
@@ -206,51 +206,55 @@ const getLineDomElement = (lineNumber) => {
   return sortedElements[viewLineIndex] || sortedElements[0];
 };
 
-// 更新锁图标位置
+// 更新锁图标位置（锁定态下标签滚出视口时，锁吸附在编辑器上/下边缘保持可见）
 const updateLockPosition = (label) => {
   if (!editor || !label) {
     return;
   }
-  
-  // 获取要显示锁的行号（标签首行或视口首行）
   const visibleRanges = editor.getVisibleRanges();
   if (!visibleRanges || !visibleRanges[0]) {
     return;
   }
   const [{ startLineNumber, endLineNumber }] = visibleRanges;
-  if (label.startLine < startLineNumber || label.startLine > endLineNumber) {
-    lockPosition.value = null;
+  const domNode = editor.getDomNode();
+  const locked = isLocked.value;
+  const snapTop = { top: 4, left: 63 };
+  const snapBottom = { top: domNode ? domNode.clientHeight - 32 : 0, left: 63 };
+
+  // 标签起始行在视口上方 → 锁定态吸附顶部，未锁定隐藏
+  if (label.startLine < startLineNumber) {
+    lockPosition.value = locked ? snapTop : null;
     return;
   }
-  const displayLine = label.startLine;
-  
-  // 获取对应的DOM元素
-  const domElement = getLineDomElement(displayLine) as HTMLElement;
-  if (domElement) {
-    const rect = domElement.getBoundingClientRect();
-    const stickyBlocks = document.querySelectorAll('.sticky-block');
-    let hasOverlap = false;
+  // 标签起始行在视口下方 → 锁定态吸附底部，未锁定隐藏
+  if (label.startLine > endLineNumber) {
+    lockPosition.value = locked ? snapBottom : null;
+    return;
+  }
 
-    for (const block of stickyBlocks) {
-      const blockRect = block.getBoundingClientRect();
-      // 判断垂直方向是否重叠
-      const isOverlapping = rect.bottom > blockRect.top && rect.top < blockRect.bottom;
-      if (isOverlapping) {
-        hasOverlap = true;
-        break;
-      }
-    }
-    if (hasOverlap) {
-      lockPosition.value = null;
+  // 起始行在视口内：跟随起始行位置
+  const domElement = getLineDomElement(label.startLine) as HTMLElement;
+  if (!domElement) {
+    lockPosition.value = locked ? snapTop : null;
+    return;
+  }
+  const rect = domElement.getBoundingClientRect();
+
+  // 与 sticky-block 重叠 → 锁定态吸附顶部，未锁定隐藏
+  const stickyBlocks = document.querySelectorAll('.sticky-block');
+  for (const block of stickyBlocks) {
+    const blockRect = block.getBoundingClientRect();
+    if (rect.bottom > blockRect.top && rect.top < blockRect.bottom) {
+      lockPosition.value = locked ? snapTop : null;
       return;
     }
-    const editorRect = editor.getDomNode().getBoundingClientRect();
-    
-    lockPosition.value = {
-      top: rect.top - editorRect.top + 20,
-      left: 63,
-    };
   }
+
+  const editorRect = domNode.getBoundingClientRect();
+  lockPosition.value = {
+    top: rect.top - editorRect.top + 20,
+    left: 63,
+  };
 };
 
 // 支持锁定
@@ -281,6 +285,11 @@ const updateBkDecoration = (lockedLabel: any, isLock: boolean) => {
     clearBlockHighlights(editor);
     return;
   }
+  // 无 label 的合成锁定目标（name 为空）不显示渐变背景
+  if (!lockedLabel.name) {
+    clearBlockHighlights(editor);
+    return;
+  }
   renderBlockHighlights(editor, [[lockedLabel.startLine, lockedLabel.endLine]], getBlockStyle(isLock));
 };
 
@@ -305,16 +314,24 @@ const updateHoverDecoration = (position, emit = true) => {
     return;
   }
 
-  // 清除之前的悬停块
+  // 清除之前的悬停块和蓝条
   clearBlockHighlights(editor);
+  clearLineBands(editor);
 
   if (!position) {
     lockPosition.value = null;
     if (lastSentLabel && emit) {
       sendMsg('returnSemanticLabelFromCode', { label: '' });
+      sendMsg('returnFileLineFromCode', { file: '', line: 0 });
       lastSentLabel = null;
     }
     return;
+  }
+
+  // 悬停行在 PyOpmagicMap 中有 hash+opmagic 对时，添加整行蓝色背景条
+  const opmagicLine = findLineInPyOpmagicMap(position.lineNumber);
+  if (opmagicLine) {
+    renderLineBands(editor, [position.lineNumber], isDarkTheme.value);
   }
 
   const currentLabel = findSemanticLabelAtPosition(position);
@@ -325,31 +342,82 @@ const updateHoverDecoration = (position, emit = true) => {
     if (emit && lastSentLabel !== currentLabel.name && !isMouseLeaved) {
       lastSentLabel = currentLabel.name;
       sendMsg('returnSemanticLabelFromCode', { label: currentLabel.name });
+      sendMsg('returnFileLineFromCode', { file: initCodePath, line: position.lineNumber });
     }
+  } else if (opmagicLine && emit && !isMouseLeaved) {
+    // 无语义标签但该行有 hash+opmagic 对，也发送 file+line
+    sendMsg('returnSemanticLabelFromCode', { label: '' });
+    sendMsg('returnFileLineFromCode', { file: initCodePath, line: position.lineNumber });
+    lastSentLabel = '';
+  } else if (emit && !isMouseLeaved && lastSentLabel !== null) {
+    // 无标签也无 opmagic：清空之前发送的状态
+    sendMsg('returnSemanticLabelFromCode', { label: '' });
+    sendMsg('returnFileLineFromCode', { file: '', line: 0 });
+    lastSentLabel = null;
   }
 };
 
+// 查找当前文件中某行是否在 PyOpmagicMap 中有 hash+opmagic 对（O(1)）
+const findLineInPyOpmagicMap = (lineNumber: number): boolean => {
+  return pyOpmagicLineSet.has(lineNumber);
+};
+
+// 计算图精确过滤后的 opmagic 渲染：根据 hash+opmagic 从 pyOpmagicMap 查行号，只渲染这些行
+const highlightOpmagicLines = (hash: string | null, ops: number[]) => {
+  if (!editor || isLocked.value) {
+    return;
+  }
+  if (!hash || !ops?.length) {
+    clearBlockHighlights(editor);
+    return;
+  }
+  const fileMap = pyOpmagicMap?.[initCodePath];
+  if (!fileMap?.[hash]) {
+    return;
+  }
+  const hashOps = fileMap[hash];
+  const lines = ops
+    .map((opmagic) => hashOps[String(opmagic)])
+    .filter((line) => line != null) as number[];
+  if (!lines.length) {
+    return;
+  }
+  const sorted = Array.from(new Set(lines)).sort((a, b) => a - b);
+  const opmagicRanges: Array<[number, number]> = [];
+  for (const line of sorted) {
+    const last = opmagicRanges[opmagicRanges.length - 1];
+    if (last && line === last[1] + 1) {
+      last[1] = line;
+    } else {
+      opmagicRanges.push([line, line]);
+    }
+  }
+  renderBlockHighlights(editor, opmagicRanges, getBlockStyle(false));
+  editor.revealPositionInCenter({ lineNumber: sorted[0], column: 1 });
+};
+
 // 通过泳道图/计算图发送的语义标签，更新悬停装饰
-const updateHoverDecorationBySemanticLabel = (label) => {
+// renderGradient=true 按 label 范围渲染渐变块（计算图悬停）；false 只滚动定位（泳道图悬停，渐变由 returnOpsFromCom 渲染）
+const updateHoverDecorationBySemanticLabel = (label, renderGradient = true) => {
   if (isLocked.value) {
     return;
   }
   const targetLabel = labels.find(l => l.name === label);
-  
+
   if (!targetLabel) {
-    updateHoverDecoration(null, false);
+    clearBlockHighlights(editor);
+    clearLineBands(editor);
     lockPosition.value = null;
     lastMoveLabel = null;
     return;
   }
 
-  const position = {
-    lineNumber: targetLabel.startLine,
-    column: 1
-  };
-  
-  updateHoverDecoration(position, false);
-  
+  lastMoveLabel = targetLabel;
+  if (renderGradient) {
+    renderBlockHighlights(editor, [[targetLabel.startLine, targetLabel.endLine]], getBlockStyle(false));
+  } else {
+    clearBlockHighlights(editor);
+  }
   const startPosition = { lineNumber: targetLabel.startLine, column: 1 };
   editor.revealPositionInCenter(startPosition);
   editor.setPosition(startPosition);
@@ -385,24 +453,27 @@ const handleMouseMove = throttle((e) => {
 
 const simulateMouseMove = (position) => {
   const currentLabel = findSemanticLabelAtPosition(position);
-  if (currentLabel && (!lastMoveLabel || currentLabel.name !== lastMoveLabel.name)) {
-    updateHoverDecoration(position);
-    if (isLocked.value) {
-      enableLock(lockedLabel);
-    } else {
-      enableLock(currentLabel);
-      lastMoveLabel = currentLabel;
+  const hasOpmagic = findLineInPyOpmagicMap(position.lineNumber);
+
+  if (currentLabel) {
+    // 有 label：label 优先，同 label 内不重复触发
+    if (!lastMoveLabel || currentLabel.name !== lastMoveLabel.name) {
+      enableLock(isLocked.value ? lockedLabel : currentLabel);
+      if (!isLocked.value) {
+        lastMoveLabel = currentLabel;
+      }
     }
-  } else if (!currentLabel && !isLocked.value) {
-    if (lastSentLabel) {
-      lastSentLabel = null;
-      sendMsg('returnSemanticLabelFromCode', { label: '' });
-    }
+  } else if (hasOpmagic && !isLocked.value) {
+    // 无 label 有 opmagic：以单行为锁定目标
+    const syntheticLabel = { name: '', startLine: position.lineNumber, endLine: position.lineNumber };
+    enableLock(syntheticLabel);
+    lastMoveLabel = syntheticLabel;
+  } else if (!isLocked.value) {
+    // 既无 label 也无 opmagic：清除锁
     lastMoveLabel = null;
     lockPosition.value = null;
-    updateHoverDecoration(null);
-    return;
   }
+  updateHoverDecoration(position);
 };
 // 添加鼠标悬停事件监听
 const setupHoverListeners = () => {
@@ -422,11 +493,30 @@ const setupHoverListeners = () => {
       // 清除之前的标签信息装饰
       clearLabelInfo();
       const currentLabel = findSemanticLabelAtPosition(position);
-      if (!currentLabel) {
+      const hasOpmagic = findLineInPyOpmagicMap(position.lineNumber);
+      if (!currentLabel && !hasOpmagic) {
         return;
       }
-      showLabelInfo(position, currentLabel);
-      sendMsg('returnSemanticLabelFromCodeClick', { label: currentLabel.name });
+      const lockTarget = currentLabel || { name: '', startLine: position.lineNumber, endLine: position.lineNumber };
+      if (currentLabel) {
+        showLabelInfo(position, currentLabel);
+        sendMsg('returnSemanticLabelFromCodeClick', { label: currentLabel.name });
+      }
+      // 锁定或切换锁定目标（已锁定时点击另一行切换到新行）
+      lockedLabel = lockTarget;
+      lastMoveLabel = lockTarget;
+      isLocked.value = true;
+      updateBkDecoration(lockedLabel, true);
+      clearLineBands(editor);
+      if (hasOpmagic) {
+        renderLineBands(editor, [position.lineNumber], isDarkTheme.value);
+      }
+      updateLockPosition(lockedLabel);
+      sendMsg('activeLockFromPy', {
+        label: lockTarget.name,
+        file: initCodePath,
+        line: position.lineNumber,
+      });
     }
   });
 
@@ -564,11 +654,20 @@ const updateTheme = () => {
   }
 };
 
+// 悬停来源：由 returnOpsFromCom.source 指定
 (window as any).ascEventBus.on('returnSemanticLabelFromCom', (args) => {
-  updateHoverDecorationBySemanticLabel(args.label);
+  updateHoverDecorationBySemanticLabel(args.label, true);
 });
 (window as any).ascEventBus.on('returnSemanticLabelFromSwim', (args) => {
-  updateHoverDecorationBySemanticLabel(args.label);
+  updateHoverDecorationBySemanticLabel(args.label, false);
+});
+// 计算图精确过滤后的 opmagic 列表
+// source='swim'（泳道图悬停）→ 按 opmagic 行渲染渐变块
+// source='com'（计算图悬停）→ 保持 label 渐变，不覆盖
+(window as any).ascEventBus.on('returnOpsFromCom', (args) => {
+  if (args.source === 'swim') {
+    highlightOpmagicLines(args.hash, args.ops);
+  }
 });
 (window as any).ascEventBus.on('activeLock', ({ label }) => {
   if (lastMoveLabel !== label) {
@@ -638,9 +737,53 @@ let pendingLabelRefresh = !!threeColumnServer.CompleteData?.value;
 watch(threeColumnServer.CompleteData, () => {
   pendingLabelRefresh = !refreshSemanticLabels();
 });
+
+// 计算图提供的 filename → calleehash → opmagic → lineno 映射
+let pyOpmagicMap: Record<string, Record<string, Record<string, number>>> = {};
+let pyOpmagicLineSet: Set<number> = new Set();
+
+const rebuildPyOpmagicLineSet = () => {
+  pyOpmagicLineSet = new Set();
+  if (!pyOpmagicMap || !initCodePath) {
+    return;
+  }
+  const fileMap = pyOpmagicMap[initCodePath];
+  if (!fileMap) {
+    return;
+  }
+  for (const hashKey of Object.keys(fileMap)) {
+    for (const magicKey of Object.keys(fileMap[hashKey])) {
+      pyOpmagicLineSet.add(fileMap[hashKey][magicKey]);
+    }
+  }
+};
+
+watch(threeColumnServer.PyOpmagicMap, (newValue: any) => {
+  pyOpmagicMap = newValue?.pyOpmagicMap ?? {};
+  const paths = Object.keys(pyOpmagicMap);
+  pyFileList.value = paths.map((filePath) => ({
+    path: filePath,
+    name: filePath.split(/[\/\\]/).pop() ?? filePath,
+    exists: true,
+  }));
+  rebuildPyOpmagicLineSet();
+  if (paths.length) {
+    threeColumnServer.checkFileExistence({ paramObj: { paths } });
+  }
+});
+
+watch(threeColumnServer.FileExistenceResult, (newValue: any) => {
+  const result: Record<string, boolean> = newValue?.data ?? {};
+  for (const item of pyFileList.value) {
+    if (item.path in result) {
+      item.exists = result[item.path];
+    }
+  }
+});
 watch(threeColumnServer.PyCode, (newValue) => {
   const { codePath, code } = newValue.data;
   initCodePath = codePath;
+  rebuildPyOpmagicLineSet();
   editorFileName.value = initCodePath.split(/[\/\\]/).pop();
   initTotalLine = code.split('\n').length;
   loading.value = false;

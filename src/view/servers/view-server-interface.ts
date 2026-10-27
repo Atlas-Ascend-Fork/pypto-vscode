@@ -141,6 +141,8 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
 export type IThreeApis =
   | 'getPyCode'
   | 'savePyCode'
+  | 'switchPyFile'
+  | 'checkFileExistence'
   | 'getInitialData'
   | 'askLayout'
   | 'renderLayout'
@@ -167,6 +169,7 @@ export type IThreeRefs = {
   FuncHashFileList: unknown;
   CompleteData: unknown;
   PyCode: unknown;
+  FileExistenceResult: unknown;
   SaveSuccess: unknown;
   SaveError: unknown;
   CalleeMap: unknown;
