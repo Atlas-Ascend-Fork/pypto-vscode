@@ -15,7 +15,8 @@
 1. 下载PyPTO仓代码。
 
    ```bash
-   git clone https://gitcode.com/cann/pypto-tools.git
+   git clone https://gitcode.com/cann/pypto-vscode.git
+   cd pypto-vscode
    ```
 
 2. 进入docs目录并安装该目录下`requirements.txt`所需依赖。
