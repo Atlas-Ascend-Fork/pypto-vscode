@@ -16,60 +16,91 @@
 <template>
   <ThreeColumnHeader />
   <div ref="containerEl" :class="['three-column-content', currentLayoutMode, resizing && 'resizing']" :style="{width: sharedSwimData.performanceVisible ? `calc(100% - ${sharedSwimData.performanceWidth}px)` : '100%' }">
-    <ItemBlock
-      block-name="left"
-      :width="currentWidth"
-      :height="currentHeight"
-      :has-border-right="showRight"
-      :has-border-bottom="showBottom"
-      :is-fullscreen="currentFullscreenBlock === 'left'"
-    >
-      <div class="three-column-block editor-block">
-        <div class="sticky-block">
-          <fileSelect  :file-name="editorFileName" />
+    <div class="three-column-column" :style="{ width: currentWidth }">
+      <ItemBlock
+        block-name="left"
+        width="100%"
+        :height="currentHeight"
+        :has-border-right="showRight"
+        :has-border-bottom="showBottomLeft"
+        :is-fullscreen="currentFullscreenBlock === 'left'"
+      >
+        <div class="block-drag-handle">
           <DragIcon />
-          <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
         </div>
-        <editor  ref="editorRef"/>
-      </div>
-    </ItemBlock>
-    <ItemBlock
-      block-name="right"
-      :width="`calc(100% - ${currentWidth})`"
-      :height="currentHeight"
-      :has-border-left="showLeft"
-      :has-border-bottom="showBottom"
-      :is-fullscreen="currentFullscreenBlock === 'right'"
-    >
-      <div class="three-column-block">
-        <slot name="comGraph" />
-      </div>
-    </ItemBlock>
-    <ItemBlock
-      block-name="bottom"
-      :height="`calc(100% - ${currentHeight})`"
-      :has-border-top="showLeft || showRight"
-      :is-fullscreen="currentFullscreenBlock === 'bottom'"
-    >
-      <div class="three-column-block swim-block">
-        <slot name="swimGraph" />
-      </div>
-    </ItemBlock>
+        <div class="three-column-block extra-block">
+          <slot name="extra">
+            <div class="extra-placeholder">Under Development</div>
+          </slot>
+        </div>
+      </ItemBlock>
+      <div
+        v-show="showLeftRowResizeBar"
+        class="row-resize-bar"
+        :style="{ top: leftRowBarTop, '--offset': leftRowBarOffset }"
+        @mousedown="onLeftRowResizeMousedown"
+        @mouseover="() => (leftRowBarOffset = '2px')"
+        @mouseleave="() => (leftRowBarOffset = '1px')"
+      ></div>
+      <ItemBlock
+        block-name="bottomLeft"
+        width="100%"
+        :height="`calc(100% - ${currentHeight})`"
+        :has-border-right="showRight"
+        :has-border-top="showLeft"
+        :is-fullscreen="currentFullscreenBlock === 'bottomLeft'"
+      >
+        <div class="three-column-block editor-block">
+          <div class="sticky-block">
+            <fileSelect :file-name="editorFileName" />
+            <DragIcon />
+            <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
+          </div>
+          <editor ref="editorRef" />
+        </div>
+      </ItemBlock>
+    </div>
+    <div class="three-column-column" :style="{ width: `calc(100% - ${currentWidth})` }">
+      <ItemBlock
+        block-name="right"
+        width="100%"
+        :height="currentHeightRight"
+        :has-border-left="showLeft"
+        :has-border-bottom="showBottomRight"
+        :is-fullscreen="currentFullscreenBlock === 'right'"
+      >
+        <div class="three-column-block">
+          <slot name="comGraph" />
+        </div>
+      </ItemBlock>
+      <div
+        v-show="showRightRowResizeBar"
+        class="row-resize-bar"
+        :style="{ top: rightRowBarTop, '--offset': rightRowBarOffset }"
+        @mousedown="onRightRowResizeMousedown"
+        @mouseover="() => (rightRowBarOffset = '2px')"
+        @mouseleave="() => (rightRowBarOffset = '1px')"
+      ></div>
+      <ItemBlock
+        block-name="bottomRight"
+        width="100%"
+        :height="`calc(100% - ${currentHeightRight})`"
+        :has-border-left="showLeft"
+        :has-border-top="showRight"
+        :is-fullscreen="currentFullscreenBlock === 'bottomRight'"
+      >
+        <div class="three-column-block swim-block">
+          <slot name="swimGraph" />
+        </div>
+      </ItemBlock>
+    </div>
     <div
-      v-show="showHResizeBar"
-      class="horizontal-resize-bar"
-      :style="{ left: HResizeBarLeft, height: currentHeight, '--offset': HResizeBarOffset }"
-      @mousedown="onHResizeMousedown"
-      @mouseover="() => (HResizeBarOffset = '2px')"
-      @mouseleave="() => (HResizeBarOffset = '1px')"
-    ></div>
-    <div
-      v-show="showVResizeBar"
-      class="vertical-resize-bar"
-      :style="{ top: VResizeBarTop, '--offset': VResizeBarOffset }"
-      @mousedown="onVResizeMousedown"
-      @mouseover="() => (VResizeBarOffset = '2px')"
-      @mouseleave="() => (VResizeBarOffset = '1px')"
+      v-show="showColumnResizeBar"
+      class="column-resize-bar"
+      :style="{ left: columnBarLeft, '--offset': columnBarOffset }"
+      @mousedown="onColumnResizeMousedown"
+      @mouseover="() => (columnBarOffset = '2px')"
+      @mouseleave="() => (columnBarOffset = '1px')"
     ></div>
   </div>
 </template>
@@ -79,7 +110,7 @@ import { computed, inject, onBeforeUnmount, onMounted, provide, ref, toRef } fro
 import type { Ref } from 'vue';
 import editor from './editor.vue';
 import { ThreeColumnProvideKey } from './types';
-import type { ILayoutInfo, BlockType, LayoutMode, IBlockToGraphMap, IShowBlockMap } from './types';
+import type { ILayoutInfo, BlockType, GraphType, LayoutMode, IBlockToGraphMap, IShowBlockMap } from './types';
 import ItemBlock from './itemBlock.vue';
 import ThreeColumnHeader from './threeColumnHeader.vue';
 import DragIcon from './drag-icon.vue';
@@ -92,18 +123,22 @@ const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };
 
 const currentLayoutMode = ref<LayoutMode>('triangular');
-const HResizeBarLeft = ref('');
-const VResizeBarTop = ref('');
+const columnBarLeft = ref('');
+const leftRowBarTop = ref('');
+const rightRowBarTop = ref('');
 const editorFileName = ref('');
 const editorRef = ref();
-const HResizeBarOffset = ref('1px');
-const VResizeBarOffset = ref('1px');
+const columnBarOffset = ref('1px');
+const leftRowBarOffset = ref('1px');
+const rightRowBarOffset = ref('1px');
 const currentWidth = ref('50%');
 const currentHeight = ref('50%');
+const currentHeightRight = ref('50%');
 const resizing = ref(false);
 const showLeft = ref(true);
 const showRight = ref(true);
-const showBottom = ref(true);
+const showBottomLeft = ref(true);
+const showBottomRight = ref(true);
 const containerEl = ref<HTMLElement>();
 const isEditorFullscreen = ref(false);
 const isComGraphFullscreen = ref(false);
@@ -111,8 +146,9 @@ const isSwimFullscreen = ref(false);
 const currentActiveBlock = ref<BlockType>('');
 const currentFullscreenBlock = ref<BlockType>('');
 const dragStartBlock = ref<BlockType>('');
-const showHResizeBar = computed(() => showLeft.value && showRight.value);
-const showVResizeBar = computed(() => (showLeft.value || showLeft.value) && showBottom.value);
+const showColumnResizeBar = computed(() => showLeft.value && showRight.value);
+const showLeftRowResizeBar = computed(() => showLeft.value && showBottomLeft.value);
+const showRightRowResizeBar = computed(() => showRight.value && showBottomRight.value);
 const props = defineProps({
   sharedSwimData: {
     type: Object,
@@ -120,17 +156,21 @@ const props = defineProps({
 });
 const sharedSwimData = toRef(props, 'sharedSwimData');
 const BlockToGraphMap: IBlockToGraphMap = {
-  left: 'editor',
+  left: 'extra',
   right: 'comGraph',
-  bottom: 'swimGraph',
+  bottomLeft: 'editor',
+  bottomRight: 'swimGraph',
 };
 const ShowBlockMap: IShowBlockMap = {
   left: showLeft,
   right: showRight,
-  bottom: showBottom,
+  bottomLeft: showBottomLeft,
+  bottomRight: showBottomRight,
 };
 let containerWidth = 0;
 let containerHeight = 0;
+let containerLeft = 0;
+let containerTop = 0;
 let prevLayoutInfo: ILayoutInfo = {};
 provide(ThreeColumnProvideKey, {
   resizing,
@@ -146,78 +186,68 @@ provide(ThreeColumnProvideKey, {
   resetLayout,
 });
 
-function zoomInLeft() {
-  prevLayoutInfo = {
-    showRight: showRight.value,
-    showBottom: showBottom.value,
-  };
-  showRight.value = false;
-  showBottom.value = false;
-}
-function resetLeft() {
-  showRight.value = prevLayoutInfo.showRight;
-  showBottom.value = prevLayoutInfo.showBottom;
-}
-function zoomInRight() {
-  prevLayoutInfo = {
-    showLeft: showLeft.value,
-    showBottom: showBottom.value,
-  };
-  showLeft.value = false;
-  showBottom.value = false;
-}
-function resetRight() {
-  showLeft.value = prevLayoutInfo.showLeft;
-  showBottom.value = prevLayoutInfo.showBottom;
-}
-function zoomInBottom() {
+const BLOCKS: Exclude<BlockType, ''>[] = ['left', 'right', 'bottomLeft', 'bottomRight'];
+
+function zoomInBlock(block: Exclude<BlockType, ''>) {
   prevLayoutInfo = {
     showLeft: showLeft.value,
     showRight: showRight.value,
+    showBottomLeft: showBottomLeft.value,
+    showBottomRight: showBottomRight.value,
+    currentWidth: currentWidth.value,
+    currentHeight: currentHeight.value,
+    currentHeightRight: currentHeightRight.value,
   };
-  showLeft.value = false;
-  showRight.value = false;
+  BLOCKS.forEach((key) => {
+    ShowBlockMap[key].value = key === block;
+  });
 }
-function resetBottom() {
-  showLeft.value = prevLayoutInfo.showLeft;
-  showRight.value = prevLayoutInfo.showRight;
+
+function restoreBlocks() {
+  showLeft.value = prevLayoutInfo.showLeft ?? true;
+  showRight.value = prevLayoutInfo.showRight ?? true;
+  showBottomLeft.value = prevLayoutInfo.showBottomLeft ?? true;
+  showBottomRight.value = prevLayoutInfo.showBottomRight ?? true;
+  currentWidth.value = prevLayoutInfo.currentWidth ?? currentWidth.value;
+  currentHeight.value = prevLayoutInfo.currentHeight ?? currentHeight.value;
+  currentHeightRight.value = prevLayoutInfo.currentHeightRight ?? currentHeightRight.value;
 }
-const ZoomInMap: Record<Exclude<BlockType, ''>, () => void> = {
-  left: zoomInLeft,
-  right: zoomInRight,
-  bottom: zoomInBottom,
-};
-const ResetMap: Record<Exclude<BlockType, ''>, () => void> = {
-  left: resetLeft,
-  right: resetRight,
-  bottom: resetBottom,
-};
+
 function toggleFullscreen(isFullscreen: boolean) {
+  const block = currentActiveBlock.value;
+  if (block === '') {
+    return;
+  }
   if (isFullscreen) {
-    ResetMap[currentActiveBlock.value]();
+    restoreBlocks();
     currentFullscreenBlock.value = '';
   } else {
-    ZoomInMap[currentActiveBlock.value]();
-    currentFullscreenBlock.value = currentActiveBlock.value;
+    zoomInBlock(block);
+    currentFullscreenBlock.value = block;
   }
 }
 
-function onToggleEditorFullscreen() {
-  toggleFullscreen(isEditorFullscreen.value);
-  isEditorFullscreen.value = !isEditorFullscreen.value;
+function toggleBlockFullscreen(flag: Ref<boolean>, graphType: GraphType) {
+  const block = findKeyByValue(BlockToGraphMap, graphType);
+  if (!block) {
+    return;
+  }
+  currentActiveBlock.value = block as BlockType;
+  toggleFullscreen(flag.value);
+  flag.value = !flag.value;
   emitSizeChange();
+}
+
+function onToggleEditorFullscreen() {
+  toggleBlockFullscreen(isEditorFullscreen, 'editor');
 }
 
 function onToggleComGraphFullscreen() {
-  toggleFullscreen(isComGraphFullscreen.value);
-  isComGraphFullscreen.value = !isComGraphFullscreen.value;
-  emitSizeChange();
+  toggleBlockFullscreen(isComGraphFullscreen, 'comGraph');
 }
 
 function onToggleSwimFullscreen() {
-  toggleFullscreen(isSwimFullscreen.value);
-  isSwimFullscreen.value = !isSwimFullscreen.value;
-  emitSizeChange();
+  toggleBlockFullscreen(isSwimFullscreen, 'swimGraph');
 }
 
 function emitSizeChange() {
@@ -225,59 +255,72 @@ function emitSizeChange() {
     editorVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'editor')].value,
     comGraphVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'comGraph')].value,
     swimVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'swimGraph')].value,
+    extraVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'extra')].value,
   });
 }
 
-function onHMousemove(e: MouseEvent) {
-  const percent = (Math.min(Math.max(e.pageX, 0), containerWidth - 2) / containerWidth) * 100;
-  HResizeBarLeft.value = percent === 0 ? `calc(0%)` : `calc(${percent}% - var(--offset))`;
+function onColumnResizeMousemove(e: MouseEvent) {
+  const offsetX = Math.min(Math.max(e.clientX - containerLeft, 0), containerWidth - 2);
+  columnBarLeft.value = `calc(${(offsetX / containerWidth) * 100}% - var(--offset))`;
 }
 
-function onHMouseup(e: MouseEvent) {
+function onColumnResizeMouseup(e: MouseEvent) {
   resizing.value = false;
-  const finalWidth = Math.min(Math.max(e.pageX, 0), containerWidth);
-  currentWidth.value = `${(finalWidth / containerWidth) * 100}%`;
-  showLeft.value = finalWidth !== 0;
-  showRight.value = finalWidth !== containerWidth - 1 && finalWidth !== containerWidth;
-  document.removeEventListener('mousemove', onHMousemove);
-  document.removeEventListener('mouseup', onHMouseup);
+  const offsetX = Math.min(Math.max(e.clientX - containerLeft, 0), containerWidth);
+  currentWidth.value = `${(offsetX / containerWidth) * 100}%`;
+  const leftVisible = offsetX !== 0;
+  const rightVisible = offsetX !== containerWidth - 1 && offsetX !== containerWidth;
+  showLeft.value = leftVisible;
+  showBottomLeft.value = leftVisible;
+  showRight.value = rightVisible;
+  showBottomRight.value = rightVisible;
+  document.removeEventListener('mousemove', onColumnResizeMousemove);
+  document.removeEventListener('mouseup', onColumnResizeMouseup);
   emitSizeChange();
 }
 
-function onHResizeMousedown() {
+function onColumnResizeMousedown() {
   resizing.value = true;
-  document.addEventListener('mousemove', onHMousemove);
-  document.addEventListener('mouseup', onHMouseup);
+  updateContainerRect();
+  document.addEventListener('mousemove', onColumnResizeMousemove);
+  document.addEventListener('mouseup', onColumnResizeMouseup);
 }
 
-function onVMousemove(e: MouseEvent) {
-  const percent = (Math.min(Math.max(e.pageY - 40, 0), containerHeight - 2) / containerHeight) * 100;
-  VResizeBarTop.value = percent === 0 ? `calc(0%)` : `calc(${percent}% - var(--offset))`;
+function createRowResize(barTop: Ref<string>, height: Ref<string>, showTop: Ref<boolean>, showBottom: Ref<boolean>) {
+  function onMove(e: MouseEvent) {
+    const offsetY = Math.min(Math.max(e.clientY - containerTop, 0), containerHeight - 2);
+    barTop.value = `calc(${(offsetY / containerHeight) * 100}% - var(--offset))`;
+  }
+
+  function onUp(e: MouseEvent) {
+    resizing.value = false;
+    const offsetY = Math.min(Math.max(e.clientY - containerTop, 0), containerHeight);
+    height.value = `${(offsetY / containerHeight) * 100}%`;
+    showTop.value = offsetY !== 0;
+    showBottom.value = offsetY !== containerHeight - 1 && offsetY !== containerHeight;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    emitSizeChange();
+  }
+
+  return function onDown() {
+    resizing.value = true;
+    updateContainerRect();
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
 }
 
-function onVMouseup(e: MouseEvent) {
-  resizing.value = false;
-  const finalHeight = Math.min(Math.max(e.pageY - 40, 0), containerHeight);
-  currentHeight.value = `${(finalHeight / containerHeight) * 100}%`;
-  showLeft.value = finalHeight !== 0;
-  showRight.value = finalHeight !== 0;
-  showBottom.value = finalHeight !== containerHeight;
-  document.removeEventListener('mousemove', onVMousemove);
-  document.removeEventListener('mouseup', onVMouseup);
-  emitSizeChange();
-}
-
-function onVResizeMousedown() {
-  resizing.value = true;
-  document.addEventListener('mousemove', onVMousemove);
-  document.addEventListener('mouseup', onVMouseup);
-}
+const onLeftRowResizeMousedown = createRowResize(leftRowBarTop, currentHeight, showLeft, showBottomLeft);
+const onRightRowResizeMousedown = createRowResize(rightRowBarTop, currentHeightRight, showRight, showBottomRight);
 
 function updateContainerRect() {
   if (containerEl.value) {
-    const { width, height } = containerEl.value.getBoundingClientRect();
+    const { width, height, left, top } = containerEl.value.getBoundingClientRect();
     containerWidth = width;
     containerHeight = height;
+    containerLeft = left;
+    containerTop = top;
   }
 }
 
@@ -285,18 +328,22 @@ function resetLayout() {
   if (isEditorFullscreen.value || isComGraphFullscreen.value || isSwimFullscreen.value) {
     return;
   }
-  HResizeBarLeft.value = `calc(50% - var(--offset))`;
-  VResizeBarTop.value = `calc(50% - var(--offset))`;
+  columnBarLeft.value = `calc(50% - var(--offset))`;
+  leftRowBarTop.value = `calc(50% - var(--offset))`;
+  rightRowBarTop.value = `calc(50% - var(--offset))`;
   currentWidth.value = '50%';
   currentHeight.value = '50%';
+  currentHeightRight.value = '50%';
   showLeft.value = true;
   showRight.value = true;
-  showBottom.value = true;
+  showBottomLeft.value = true;
+  showBottomRight.value = true;
   emitSizeChange();
 }
 onMounted(() => {
-  HResizeBarLeft.value = `calc(50% - var(--offset))`;
-  VResizeBarTop.value = `calc(50% - var(--offset))`;
+  columnBarLeft.value = `calc(50% - var(--offset))`;
+  leftRowBarTop.value = `calc(50% - var(--offset))`;
+  rightRowBarTop.value = `calc(50% - var(--offset))`;
   updateContainerRect();
   window.addEventListener('resize', updateContainerRect);
 });
@@ -319,12 +366,23 @@ provide('threeColumnState', { isDarkTheme, editorFileName });
     user-select: none;
   }
 
-  .horizontal-resize-bar {
+  .block-drag-handle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 16;
+    display: flex;
+    align-items: center;
+    height: 40px;
+    transform: translateX(-50%);
+  }
+
+  .column-resize-bar {
     position: absolute;
     top: 0;
     z-index: 20;
     width: 2px;
-    height: calc(50% - 1px);
+    height: 100%;
     background-color: var(--devui-border-line-deep);
 
     &:hover {
@@ -334,7 +392,7 @@ provide('threeColumnState', { isDarkTheme, editorFileName });
     }
   }
 
-  .vertical-resize-bar {
+  .row-resize-bar {
     position: absolute;
     left: 0;
     z-index: 20;
@@ -349,12 +407,42 @@ provide('threeColumnState', { isDarkTheme, editorFileName });
     }
   }
 
-  &.triangular {
-    flex-wrap: wrap;
+  .three-column-column {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
 
+    &:has(> .three-column-item.is-fullscreen) {
+      position: static;
+    }
+  }
+
+  &.triangular {
     .three-column-block {
       width: 100%;
       height: 100%;
+    }
+
+    .extra-block {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+
+      .extra-placeholder {
+        flex: 1;
+        min-height: 0;
+      }
+    }
+
+    .extra-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--devui-aide-text);
+      background-color: var(--devui-global-bg);
     }
 
     .editor-block {
@@ -389,7 +477,7 @@ provide('threeColumnState', { isDarkTheme, editorFileName });
       }
     }
 
-    & > .three-column-item {
+    .three-column-item {
       &.active {
         .sticky-block {
           display: flex;

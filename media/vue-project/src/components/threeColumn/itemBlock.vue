@@ -162,8 +162,5 @@ function onMouseenter() {
   &.has-border-bottom {
     border-bottom: 1px solid var(--devui-border-line-deep);
   }
-  &.three-column-item-bottom {
-    flex-grow: 1;
-  }
 }
 </style>

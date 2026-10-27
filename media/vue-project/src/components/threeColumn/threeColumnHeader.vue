@@ -21,6 +21,7 @@
         <span></span>
         <span></span>
         <span></span>
+        <span></span>
       </div>
       <d-tooltip :content="t('threeColumnTips')" position="bottom-start" overlay-class="three-column-design-tips">
         <div :class="['three-column', 'disabled', currentLayoutMode === 'threeColumn' && 'active']">
@@ -117,9 +118,6 @@ const { currentLayoutMode, resetLayout } = inject(ThreeColumnProvideKey) as IThr
 
     span {
       width: calc(50% - 0.5px);
-    }
-    span:nth-of-type(3) {
-      flex-grow: 1;
     }
   }
 

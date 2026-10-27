@@ -17,13 +17,15 @@ import { InjectionKey, Ref } from 'vue';
 export interface ILayoutInfo {
   showLeft?: boolean;
   showRight?: boolean;
-  showBottom?: boolean;
+  showBottomLeft?: boolean;
+  showBottomRight?: boolean;
   currentWidth?: string;
   currentHeight?: string;
+  currentHeightRight?: string;
 }
 export type LayoutMode = 'triangular' | 'threeColumn';
-export type BlockType = 'left' | 'right' | 'bottom' | '';
-export type GraphType = 'editor' | 'comGraph' | 'swimGraph';
+export type BlockType = 'left' | 'right' | 'bottomLeft' | 'bottomRight' | '';
+export type GraphType = 'editor' | 'comGraph' | 'swimGraph' | 'extra';
 export interface IBlockToGraphMap extends Record<Exclude<BlockType, ''>, GraphType> {}
 export interface IShowBlockMap extends Record<Exclude<BlockType, ''>, Ref<boolean>> {}
 
