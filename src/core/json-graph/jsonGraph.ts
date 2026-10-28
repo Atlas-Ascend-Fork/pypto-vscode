@@ -1175,6 +1175,10 @@ export class AscppDagBuilder {
             tensorName = `${tensorName} (${rawTensor!.rawmagic})`
             const graphId = tensor?.subgraphid ?? -1;
             let nodeId = `tensor-${tensorMagic}-${graphId}`;
+            if (this.nodeSet.has(nodeId)) {
+                continue;
+            }
+
             const portId = `tensor-${tensorMagic}-${graphId}-out`;
             const portIdIn = `tensor-${tensorMagic}-${graphId}-in`;
 
