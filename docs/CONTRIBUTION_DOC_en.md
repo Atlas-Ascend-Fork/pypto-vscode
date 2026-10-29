@@ -19,7 +19,7 @@ After completing the above operations, submit a PR to contribute.
 
 ## Local Build
 
-After submitting a PR, you can use Sphinx to generate the documentation locally. For details, refer to [Documentation Build](./README.md#documentation-build).
+After submitting a PR, you can use Sphinx to generate the documentation locally. For details, refer to [Documentation Build](./README_en.md#documentation-build).
 
 ## Remote Build
 

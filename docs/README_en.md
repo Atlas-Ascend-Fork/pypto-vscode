@@ -6,7 +6,7 @@ This directory provides source files for the [PyPTO Toolkit Documentation Center
 
 ## Contribution
 
-Contributions to the documentation are welcome. For details, refer to the [Document Contribution Guide](../docs/CONTRIBUTION_DOC.md). Ensure that you follow the documentation writing specifications and submit according to the process rules. After approval, the content will appear in the docs directory of this project and on the Documentation Center website. If you have any comments or suggestions about the documentation, submit them in Issues.
+Contributions to the documentation are welcome. For details, refer to the [Document Contribution Guide](./CONTRIBUTION_DOC_en.md). Ensure that you follow the documentation writing specifications and submit according to the process rules. After approval, the content will appear in the docs directory of this project and on the Documentation Center website. If you have any comments or suggestions about the documentation, submit them in Issues.
 
 ## Documentation Build
 
