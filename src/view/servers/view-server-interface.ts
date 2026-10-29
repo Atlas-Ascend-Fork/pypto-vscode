@@ -143,6 +143,7 @@ export type IThreeApis =
   | 'savePyCode'
   | 'switchPyFile'
   | 'checkFileExistence'
+  | 'getCceCode'
   | 'getInitialData'
   | 'askLayout'
   | 'renderLayout'
@@ -166,10 +167,13 @@ export type IThreeApis =
 export type IThreeRefs = {
   InitFlag: unknown;
   SetThreeColumnMode: unknown;
+  ColumnMode: unknown;
   FuncHashFileList: unknown;
   CompleteData: unknown;
   PyCode: unknown;
   FileExistenceResult: unknown;
+  CceCode: unknown;
+  CceFileList: unknown;
   SaveSuccess: unknown;
   SaveError: unknown;
   CalleeMap: unknown;

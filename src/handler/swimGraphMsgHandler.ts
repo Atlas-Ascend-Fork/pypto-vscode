@@ -127,7 +127,7 @@ export abstract class SwimGraphMsgHandler {
       const cfgCache = Util.readSwim2ComGraphMap(this.cacheCfgPath);
       const comGraphPath = swim2com[swimPath];
       const colorRendingMode = cfgCache['colorRending'] ?? 'subGraph';
-      const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
+      const isThreeServer = (server?.columnMode ?? 3) >= 3;
       const colorRending = isThreeServer ? 'label' : server.query?.isMsProf ? 'name' : colorRendingMode;
       const textRending = cfgCache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cfgCache['textRending'] ?? ['taskName', 'taskLabel'];
       const aicpuColorRending = cfgCache['aicpuColorRending'] || 'name';
@@ -476,7 +476,7 @@ export abstract class SwimGraphMsgHandler {
         this.cacheCfgPath = Util.getCachePath('swimRenderingCfg.json');
         const cache = Util.readSwim2ComGraphMap(this.cacheCfgPath);
         const colorRendingMode = cache['colorRending'] ?? 'subGraph';
-        const isThreeServer = server && server.constructor && server.constructor.name.includes('Three');
+        const isThreeServer = (server?.columnMode ?? 3) >= 3;
         const colorRending = isThreeServer ? 'label' : colorRendingMode;
         const textRending = cache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cache['textRending'] ?? ['taskName', 'taskLabel'];
         const config = Util.getSwimGraphCustomCfg();

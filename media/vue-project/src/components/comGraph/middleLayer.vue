@@ -21,6 +21,7 @@ import SearchEntry from '../../components/comGraph/searchEntry.vue';
 import SearchMode from '../../components/comGraph/searchMode.vue';
 import SimpleComGraph from '../../components/comGraph/simpleComGraph.vue';
 import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
+import CceColumn from '../../components/threeColumn/cceColumn.vue';
 import RundataModal from '../../components/threeColumn/rundataModal.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { useViewServer } from '../../core/use-view-server';
@@ -476,6 +477,9 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
   </template>
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'" :shared-swim-data="sharedSwimData">
+      <template #extra>
+        <CceColumn />
+      </template>
       <template #comGraph>
         <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog" />
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep"

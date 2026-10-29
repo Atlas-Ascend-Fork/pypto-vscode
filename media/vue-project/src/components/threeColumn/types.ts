@@ -25,7 +25,7 @@ export interface ILayoutInfo {
 }
 export type LayoutMode = 'triangular' | 'threeColumn';
 export type BlockType = 'left' | 'right' | 'bottomLeft' | 'bottomRight' | '';
-export type GraphType = 'editor' | 'comGraph' | 'swimGraph' | 'extra';
+export type GraphType = 'editor' | 'comGraph' | 'swimGraph' | 'extra' | 'cce';
 export interface IBlockToGraphMap extends Record<Exclude<BlockType, ''>, GraphType> {}
 export interface IShowBlockMap extends Record<Exclude<BlockType, ''>, Ref<boolean>> {}
 

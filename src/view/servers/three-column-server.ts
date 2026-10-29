@@ -20,7 +20,7 @@ import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { Fider } from '../threeColumnEntry';
 import { Util } from '../../util';
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'fs';
-import { isAbsolute, resolve, dirname, extname } from 'path';
+import { isAbsolute, resolve, dirname, extname, basename, join } from 'path';
 import { SingleGraphData } from '../../core/graphData';
 import { GetOutputRecordParams } from '../../services/run-data/api';
 import { getRunDataList } from '../../services/run-data/api';
@@ -44,6 +44,7 @@ import {
   ISwimRefs,
 } from './view-server-interface';
 import { readFirstNLines } from '../../utils/file-system';
+import { detectColumnMode } from '../../services/cce-index';
 
 export class SwimData {
   public uri: Uri;
@@ -62,6 +63,9 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
 @viewRefs([
   'InitFlag',
   'SetThreeColumnMode',
+  'ColumnMode',
+  'CceCode',
+  'CceFileList',
   'FuncHashFileList',
   'CompleteData',
   'PyCode',
@@ -120,6 +124,8 @@ export class ThreeColumnServer
   query?: any;
   cachePath?: any;
   headerTitle?: string
+  columnMode: 3 | 4 = 3;
+  cceDir?: string;
 
   constructor(ctx: ViewServerContext) {
     super(ctx);
@@ -185,6 +191,27 @@ export class ThreeColumnServer
     const code = readFileSync(path, 'utf8');
     this.setRef('PyCode', { data: { code, codePath: path } });
   };
+  @viewApi()
+  public getCceCode = async (message: any) => {
+    const fileName = message.paramObj?.fileName;
+    if (!fileName || !this.cceDir) {
+      return;
+    }
+    const filePath = isAbsolute(fileName) ? fileName : join(this.cceDir, fileName);
+    if (!filePath.startsWith(this.cceDir) || !existsSync(filePath)) {
+      return;
+    }
+    const code = readFileSync(filePath, 'utf8');
+    this.setRef('CceCode', { data: { code, fileName: basename(filePath), filePath } });
+  };
+  async pickCceFile() {
+    const { path } = await new Fider(this.codePath).selectPath('cce');
+    if (!path) {
+      return;
+    }
+    const code = readFileSync(path, 'utf8');
+    this.setRef('CceCode', { data: { code, fileName: basename(path), filePath: path } });
+  }
   @viewApi()
   public checkFileExistence = async (message: any) => {
     const paths: string[] = message.paramObj?.paths ?? [];
@@ -407,6 +434,7 @@ export class ThreeColumnServer
   async initWebViewPanel() {
     try {
       await this.initPaths();
+      this.refreshColumnMode();
       // 如果路径未初始化成功，有缺省页面
       if (!this.swimDataPath || !this.comPath) {
         const pathMsg = { swimPath: this.swimDataPath || "", comPath: this.comPath || "" };
@@ -462,6 +490,35 @@ export class ThreeColumnServer
       fsPath: path,
       _path: this.initPath
     };
+    this.refreshColumnMode();
+  }
+  refreshColumnMode() {
+    const result = detectColumnMode(this.comPath);
+    this.columnMode = result.columnMode;
+    this.cceDir = result.cceDir;
+    this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
+    this.pushDefaultCceCode();
+  }
+  pushDefaultCceCode() {
+    if (this.columnMode !== 4 || !this.cceDir) {
+      this.setRef('CceFileList', { data: { files: [] } });
+      this.setRef('CceCode', { data: { code: '', fileName: '', filePath: '' } });
+      return;
+    }
+    try {
+      const cceDir = this.cceDir;
+      const cppFiles = readdirSync(cceDir).filter((f) => f.endsWith('.cpp')).sort();
+      this.setRef('CceFileList', { data: { files: cppFiles } });
+      const defaultFile = cppFiles.find((f) => f.endsWith('_main.cpp')) ?? cppFiles[0];
+      if (!defaultFile) {
+        this.setRef('CceCode', { data: { code: '', fileName: '', filePath: '' } });
+        return;
+      }
+      const code = readFileSync(join(cceDir, defaultFile), 'utf8');
+      this.setRef('CceCode', { data: { code, fileName: defaultFile, filePath: join(cceDir, defaultFile) } });
+    } catch (error) {
+      console.log('push default cce code failed:', error);
+    }
   }
   @viewApi()
   public selectRunData = async (message: any) => {
@@ -484,6 +541,10 @@ export class ThreeColumnServer
   @viewApi()
   public selectFile = async (message: any) => {
     const graphType = message.graphType;
+    if (graphType === 'cce') {
+      await this.pickCceFile();
+      return;
+    }
     const options = message.options
     const { swimPath, comPath } = await new Fider(this.codePath).handleUserSelect(graphType);
     const handlePaths = (initPath: string, selectPath: string, graphType: string) => {

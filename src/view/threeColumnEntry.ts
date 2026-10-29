@@ -127,7 +127,7 @@ export class Fider {
   }
   async selectPath(graphType: string): Promise<{ path: string | undefined}>  {
     if (graphType === "editor") {
-      const codePath = await this.selectFile(t('pypto.selectCodeFile'), 'cpp');
+      const codePath = await this.selectFile(t('pypto.selectCodeFile'), 'py');
       if (!codePath) {
         window.showWarningMessage(t('pypto.noCodeFileSelect'));
         return {path: undefined };
@@ -147,6 +147,13 @@ export class Fider {
         return { path: undefined };
       }
       return {path: comPath };
+    } else if (graphType === "cce") {
+      const ccePath = await this.selectFile(t('pypto.selectCodeFile'), 'cce');
+      if (!ccePath) {
+        window.showWarningMessage(t('pypto.noCodeFileSelect'));
+        return { path: undefined };
+      }
+      return { path: ccePath };
     }
     return {path: undefined};
   }
@@ -218,7 +225,7 @@ export class Fider {
 
   private async selectFile(
     title: string,
-    filters: 'json' | 'cpp' | 'py' | 'all' = 'json'
+    filters: 'json' | 'cpp' | 'py' | 'all' | 'cce' = 'json'
   ): Promise<string | undefined> {
     const filterCfg = {
       json: {
@@ -227,6 +234,10 @@ export class Fider {
       },
       cpp: {
         [t('pypto.cppFile')]: ['cpp', 'h', 'hpp', 'py'],
+        [t('pypto.allFile')]: ['*']
+      },
+      cce: {
+        [t('pypto.cppFile')]: ['cpp'],
         [t('pypto.allFile')]: ['*']
       },
       py: {

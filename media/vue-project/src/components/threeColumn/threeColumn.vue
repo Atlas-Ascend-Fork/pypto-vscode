@@ -15,104 +15,111 @@
  -->
 <template>
   <ThreeColumnHeader />
-  <div ref="containerEl" :class="['three-column-content', currentLayoutMode, resizing && 'resizing']" :style="{width: sharedSwimData.performanceVisible ? `calc(100% - ${sharedSwimData.performanceWidth}px)` : '100%' }">
-    <div class="three-column-column" :style="{ width: currentWidth }">
-      <ItemBlock
-        block-name="left"
-        width="100%"
-        :height="currentHeight"
-        :has-border-right="showRight"
-        :has-border-bottom="showBottomLeft"
-        :is-fullscreen="currentFullscreenBlock === 'left'"
-      >
-        <div class="block-drag-handle">
+  <div ref="containerEl" :class="['three-column-content', currentLayoutMode, resizing && 'resizing']" :style="[gridStyle, { width: sharedSwimData.performanceVisible ? `calc(100% - ${sharedSwimData.performanceWidth}px)` : '100%' }]">
+    <ItemBlock
+      class="grid-py"
+      block-name="left"
+      width="100%"
+      height="100%"
+      :has-border-right="showRight"
+      :is-fullscreen="currentFullscreenBlock === 'left'"
+    >
+      <div class="three-column-block editor-block">
+        <div class="sticky-block">
+          <fileSelect
+            :file-name="editorFileName"
+            :show-dropdown="true"
+            :file-list="pyFileList"
+            :current-path="editorFilePath"
+            @file-select="onPyFileSwitch"
+          />
           <DragIcon />
+          <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
         </div>
-        <div class="three-column-block extra-block">
-          <slot name="extra">
-            <div class="extra-placeholder">Under Development</div>
-          </slot>
-        </div>
-      </ItemBlock>
-      <div
-        v-show="showLeftRowResizeBar"
-        class="row-resize-bar"
-        :style="{ top: leftRowBarTop, '--offset': leftRowBarOffset }"
-        @mousedown="onLeftRowResizeMousedown"
-        @mouseover="() => (leftRowBarOffset = '2px')"
-        @mouseleave="() => (leftRowBarOffset = '1px')"
-      ></div>
-      <ItemBlock
-        block-name="bottomLeft"
-        width="100%"
-        :height="`calc(100% - ${currentHeight})`"
-        :has-border-right="showRight"
-        :has-border-top="showLeft"
-        :is-fullscreen="currentFullscreenBlock === 'bottomLeft'"
-      >
-        <div class="three-column-block editor-block">
-          <div class="sticky-block">
-            <fileSelect
-              :file-name="editorFileName"
-              :show-dropdown="true"
-              :file-list="pyFileList"
-              :current-path="editorFilePath"
-              @file-select="onPyFileSwitch"
-            />
-            <DragIcon />
-            <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
-          </div>
-          <editor ref="editorRef" />
-        </div>
-      </ItemBlock>
-    </div>
-    <div class="three-column-column" :style="{ width: `calc(100% - ${currentWidth})` }">
-      <ItemBlock
-        block-name="right"
-        width="100%"
-        :height="currentHeightRight"
-        :has-border-left="showLeft"
-        :has-border-bottom="showBottomRight"
-        :is-fullscreen="currentFullscreenBlock === 'right'"
-      >
-        <div class="three-column-block">
-          <slot name="comGraph" />
-        </div>
-      </ItemBlock>
-      <div
-        v-show="showRightRowResizeBar"
-        class="row-resize-bar"
-        :style="{ top: rightRowBarTop, '--offset': rightRowBarOffset }"
-        @mousedown="onRightRowResizeMousedown"
-        @mouseover="() => (rightRowBarOffset = '2px')"
-        @mouseleave="() => (rightRowBarOffset = '1px')"
-      ></div>
-      <ItemBlock
-        block-name="bottomRight"
-        width="100%"
-        :height="`calc(100% - ${currentHeightRight})`"
-        :has-border-left="showLeft"
-        :has-border-top="showRight"
-        :is-fullscreen="currentFullscreenBlock === 'bottomRight'"
-      >
-        <div class="three-column-block swim-block">
-          <slot name="swimGraph" />
-        </div>
-      </ItemBlock>
-    </div>
+        <editor ref="editorRef" />
+      </div>
+    </ItemBlock>
+    <ItemBlock
+      v-if="isFourColumn"
+      class="grid-cce"
+      block-name="bottomLeft"
+      width="100%"
+      height="100%"
+      :has-border-right="showRight"
+      :has-border-top="showLeft"
+      :is-fullscreen="currentFullscreenBlock === 'bottomLeft'"
+    >
+      <div class="block-drag-handle">
+        <DragIcon />
+      </div>
+      <div class="three-column-block extra-block">
+        <slot name="extra">
+          <div class="extra-placeholder">Under Development</div>
+        </slot>
+      </div>
+    </ItemBlock>
+    <ItemBlock
+      class="grid-graph"
+      block-name="right"
+      width="100%"
+      height="100%"
+      :has-border-left="showLeft"
+      :is-fullscreen="currentFullscreenBlock === 'right'"
+    >
+      <div class="three-column-block">
+        <slot name="comGraph" />
+      </div>
+    </ItemBlock>
+    <ItemBlock
+      class="grid-swim"
+      block-name="bottomRight"
+      width="100%"
+      height="100%"
+      :has-border-left="showLeft && isFourColumn"
+      :has-border-top="showRight"
+      :is-fullscreen="currentFullscreenBlock === 'bottomRight'"
+    >
+      <div class="three-column-block swim-block">
+        <slot name="swimGraph" />
+      </div>
+    </ItemBlock>
     <div
       v-show="showColumnResizeBar"
       class="column-resize-bar"
-      :style="{ left: columnBarLeft, '--offset': columnBarOffset }"
+      :style="{ left: columnBarLeft, height: isFourColumn ? '100%' : currentHeight, '--offset': columnBarOffset }"
       @mousedown="onColumnResizeMousedown"
       @mouseover="() => (columnBarOffset = '2px')"
       @mouseleave="() => (columnBarOffset = '1px')"
+    ></div>
+    <div
+      v-show="showLeftRowResizeBar && isFourColumn"
+      class="row-resize-bar"
+      :style="{ top: leftRowBarTop, width: currentWidth, '--offset': leftRowBarOffset }"
+      @mousedown="onLeftRowResizeMousedown"
+      @mouseover="() => (leftRowBarOffset = '2px')"
+      @mouseleave="() => (leftRowBarOffset = '1px')"
+    ></div>
+    <div
+      v-show="showRightRowResizeBar && isFourColumn"
+      class="row-resize-bar"
+      :style="{ top: rightRowBarTop, left: currentWidth, width: `calc(100% - ${currentWidth})`, '--offset': rightRowBarOffset }"
+      @mousedown="onRightRowResizeMousedown"
+      @mouseover="() => (rightRowBarOffset = '2px')"
+      @mouseleave="() => (rightRowBarOffset = '1px')"
+    ></div>
+    <div
+      v-show="!isFourColumn"
+      class="row-resize-bar"
+      :style="{ top: leftRowBarTop, '--offset': leftRowBarOffset }"
+      @mousedown="onFullRowResizeMousedown"
+      @mouseover="() => (leftRowBarOffset = '2px')"
+      @mouseleave="() => (leftRowBarOffset = '1px')"
     ></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, provide, ref, toRef, watch } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, ref, toRef, watch } from 'vue';
 import type { Ref } from 'vue';
 import editor from './editor.vue';
 import { ThreeColumnProvideKey } from './types';
@@ -129,6 +136,12 @@ const { server:threeColumnServer } = useViewServer<ThreeColumnServer>();
 const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };
 
 const currentLayoutMode = ref<LayoutMode>('triangular');
+const columnMode = ref<3 | 4>(3);
+const isFourColumn = computed(() => columnMode.value === 4);
+watch(threeColumnServer.ColumnMode, (newValue: any) => {
+  columnMode.value = newValue?.columnMode === 4 ? 4 : 3;
+  nextTick(() => emitSizeChange());
+}, { immediate: true });
 const columnBarLeft = ref('');
 const leftRowBarTop = ref('');
 const rightRowBarTop = ref('');
@@ -171,6 +184,12 @@ const dragStartBlock = ref<BlockType>('');
 const showColumnResizeBar = computed(() => showLeft.value && showRight.value);
 const showLeftRowResizeBar = computed(() => showLeft.value && showBottomLeft.value);
 const showRightRowResizeBar = computed(() => showRight.value && showBottomRight.value);
+const gridStyle = computed(() => ({
+  display: 'grid',
+  gridTemplateColumns: `${currentWidth.value} calc(100% - ${currentWidth.value})`,
+  gridTemplateRows: `${currentHeight.value} calc(100% - ${currentHeight.value})`,
+  gridTemplateAreas: isFourColumn.value ? '"py graph" "cce swim"' : '"py graph" "swim swim"',
+}));
 const props = defineProps({
   sharedSwimData: {
     type: Object,
@@ -178,9 +197,9 @@ const props = defineProps({
 });
 const sharedSwimData = toRef(props, 'sharedSwimData');
 const BlockToGraphMap: IBlockToGraphMap = {
-  left: 'extra',
+  left: 'editor',
   right: 'comGraph',
-  bottomLeft: 'editor',
+  bottomLeft: 'cce',
   bottomRight: 'swimGraph',
 };
 const ShowBlockMap: IShowBlockMap = {
@@ -277,7 +296,7 @@ function emitSizeChange() {
     editorVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'editor')].value,
     comGraphVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'comGraph')].value,
     swimVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'swimGraph')].value,
-    extraVisible: ShowBlockMap[findKeyByValue(BlockToGraphMap, 'extra')].value,
+    extraVisible: isFourColumn.value && ShowBlockMap[findKeyByValue(BlockToGraphMap, 'cce')].value,
   });
 }
 
@@ -336,6 +355,37 @@ function createRowResize(barTop: Ref<string>, height: Ref<string>, showTop: Ref<
 const onLeftRowResizeMousedown = createRowResize(leftRowBarTop, currentHeight, showLeft, showBottomLeft);
 const onRightRowResizeMousedown = createRowResize(rightRowBarTop, currentHeightRight, showRight, showBottomRight);
 
+function onFullRowResizeMousemove(e: MouseEvent) {
+  const offsetY = Math.min(Math.max(e.clientY - containerTop, 0), containerHeight - 2);
+  const top = `calc(${(offsetY / containerHeight) * 100}% - var(--offset))`;
+  leftRowBarTop.value = top;
+  rightRowBarTop.value = top;
+}
+
+function onFullRowResizeMouseup(e: MouseEvent) {
+  resizing.value = false;
+  const offsetY = Math.min(Math.max(e.clientY - containerTop, 0), containerHeight);
+  const pct = `${(offsetY / containerHeight) * 100}%`;
+  currentHeight.value = pct;
+  currentHeightRight.value = pct;
+  const topVisible = offsetY !== 0;
+  const bottomVisible = offsetY !== containerHeight - 1 && offsetY !== containerHeight;
+  showLeft.value = topVisible;
+  showBottomLeft.value = bottomVisible;
+  showRight.value = topVisible;
+  showBottomRight.value = bottomVisible;
+  document.removeEventListener('mousemove', onFullRowResizeMousemove);
+  document.removeEventListener('mouseup', onFullRowResizeMouseup);
+  emitSizeChange();
+}
+
+function onFullRowResizeMousedown() {
+  resizing.value = true;
+  updateContainerRect();
+  document.addEventListener('mousemove', onFullRowResizeMousemove);
+  document.addEventListener('mouseup', onFullRowResizeMouseup);
+}
+
 function updateContainerRect() {
   if (containerEl.value) {
     const { width, height, left, top } = containerEl.value.getBoundingClientRect();
@@ -386,6 +436,22 @@ provide('threeColumnState', { isDarkTheme, editorFileName, pyFileList });
 
   &.resizing {
     user-select: none;
+  }
+
+  .grid-py {
+    grid-area: py;
+  }
+
+  .grid-cce {
+    grid-area: cce;
+  }
+
+  .grid-graph {
+    grid-area: graph;
+  }
+
+  .grid-swim {
+    grid-area: swim;
   }
 
   .block-drag-handle {
