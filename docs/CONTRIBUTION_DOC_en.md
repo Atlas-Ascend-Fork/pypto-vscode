@@ -4,10 +4,13 @@ Contributions to the PyPTO documentation are welcome. Approved documents will be
 
 This project supports content contributions in Markdown format. You can create documents with the `.md` extension or modify existing documents.
 
-
 ## Update/Add Documents
 
 For document writing requirements, refer to the [Document Writing Specifications](https://gitcode.com/cann/community/blob/master/contributor/docs/document_writing_specs.md).
+
+### Update Documents
+
+If you need to update existing documentation, click the edit button in the upper right corner of the [PyPTO Toolkit Documentation Center](https://pypto-tools.gitcode.com/) page to navigate to the source file. Modify the file and submit a PR to participate in the contribution.
 
 ### Add Documents
 
