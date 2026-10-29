@@ -54,7 +54,11 @@ export class DataFileController<Item extends Data> {
   }
 
   public async clear(): Promise<void> {
+    if (!(await isFileUriExists(this._storeDirUri))) {
+      return;
+    }
     await vscode.workspace.fs.delete(this._storeDirUri, { recursive: true });
+    await vscode.workspace.fs.createDirectory(this._storeDirUri);
     return;
   }
 }

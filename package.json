@@ -92,6 +92,11 @@
         "command": "PyPTO.Open.OpenWaveform",
         "title": "%pypto.OpenWaveform%",
         "category": "PyPTO.OpenWaveform"
+      },
+      {
+        "command": "PyPTO.test4col",
+        "title": "Test 4Col Data Query",
+        "category": "PyPTO.test4col"
       }
     ],
     "menus": {

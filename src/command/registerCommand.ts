@@ -24,6 +24,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { exec } from 'child_process';
 import { SwimGraphMsgHandler } from '../handler/swimGraphMsgHandler';
+import { runFourColTest } from '../services/fourcol/test';
 
 export class RegisterCommand {
   private context: ExtensionContext;
@@ -48,6 +49,7 @@ export class RegisterCommand {
       this.registerPostLayoutData(),
       this.registerExecuteRemoteCommand(),
       this.registerOpenWaveform(),
+      this.registerTest4Col(),
     ];
   }
 
@@ -257,6 +259,22 @@ export class RegisterCommand {
         query: {},
         title: getBasenameWithoutExt(uri.fsPath),
       });
+    });
+  }
+
+  private registerTest4Col() {
+    return commands.registerCommand('PyPTO.test4col', async () => {
+      const fileUri = await vscode.window.showOpenDialog({
+        canSelectMany: false,
+        canSelectFiles: true,
+        canSelectFolders: false,
+        filters: { 'Python Files': ['py']},
+        openLabel: '选择 py 文件',
+        title: '选择四联动测试的 py 文件（需位于 <data>/kernel_src/ 目录下）',
+      });
+      const pyPath = fileUri?.[0].fsPath;
+      if (!pyPath || pyPath.length === 0) return;
+      await runFourColTest(pyPath);
     });
   }
 

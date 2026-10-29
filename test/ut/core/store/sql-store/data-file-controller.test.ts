@@ -122,8 +122,11 @@ describe('DataFileController', () => {
   });
 
   describe('clear', () => {
-    it('should delete store directory recursively', async () => {
+    it('should delete store directory recursively and recreate it when it exists', async () => {
       const controller = new DataFileController<any>('test_store');
+      (isFileUriExists as any).mockResolvedValue(true);
+      vi.mocked(vscode.workspace.fs.delete).mockClear();
+      vi.mocked(vscode.workspace.fs.createDirectory).mockClear();
 
       await controller.clear();
 
@@ -131,6 +134,21 @@ describe('DataFileController', () => {
         expect.any(Object),
         { recursive: true }
       );
+      expect(vscode.workspace.fs.createDirectory).toHaveBeenCalledWith(
+        expect.any(Object)
+      );
+    });
+
+    it('should be a no-op when store directory does not exist', async () => {
+      const controller = new DataFileController<any>('test_store');
+      (isFileUriExists as any).mockResolvedValue(false);
+      vi.mocked(vscode.workspace.fs.delete).mockClear();
+      vi.mocked(vscode.workspace.fs.createDirectory).mockClear();
+
+      await controller.clear();
+
+      expect(vscode.workspace.fs.delete).not.toHaveBeenCalled();
+      expect(vscode.workspace.fs.createDirectory).not.toHaveBeenCalled();
     });
   });
 });

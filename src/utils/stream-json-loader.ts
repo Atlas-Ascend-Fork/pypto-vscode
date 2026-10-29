@@ -32,7 +32,7 @@ export interface StreamJsonToolkit {
   streamValues: typeof import('stream-json/streamers/stream-values.js')['streamValues'];
   streamArray: typeof import('stream-json/streamers/stream-array.js')['streamArray'];
   streamObject: typeof import('stream-json/streamers/stream-object.js')['streamObject'];
-  chain: typeof import('stream-chain')['default'];
+  chain: typeof import('stream-chain');
 }
 
 let toolkitPromise: Promise<StreamJsonToolkit> | undefined;
