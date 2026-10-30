@@ -129,11 +129,11 @@ function setupImageWatchers() {
     watch(server.SaveFileResult, (newValue) => {
         if (newValue.result) {
             const fileNameInfo = newValue.fileName;
-            window.ascEventBus.on('message_notice', onMessageNotice('success', $t('imageExportSuccessInfo', { fileNameInfo })));
+            onMessageNotice('success', $t('imageExportSuccessInfo', { fileNameInfo }));
             modalVisible.value = false;
             saveFileResultMessage.value = null;
         } else {
-            window.ascEventBus.on('message_notice', onMessageNotice('error', newValue.message));
+            onMessageNotice('error', newValue.message);
         }
     });
     watch(server.CheckFilePathResult, (newValue) => {
