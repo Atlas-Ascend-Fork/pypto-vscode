@@ -54,9 +54,10 @@ export class PathLeafAnalyzer {
    * 生成控制流PATH节点
    */
   public makePathFunction(functionNode: FunctionNode): ControlFlowPath {
-    const ownedLeafFunctions = this.findOwnedLeafFunctions(functionNode);
+    const leafOwnerFunction = this.resolveLeafOwnerFunction(functionNode);
+    const ownedLeafFunctions = this.findOwnedLeafFunctions(functionNode, leafOwnerFunction);
     const callerFunction = functionNodeToExecuteFunction(functionNode);
-    const calleeRecords = this.findCalleeRecords(functionNode, callerFunction);
+    const calleeRecords = this.findCalleeRecords(leafOwnerFunction, callerFunction);
     const pathFunction: ControlFlowPath = {
       nodeType: 'PATH',
       ...callerFunction,
@@ -108,11 +109,46 @@ export class PathLeafAnalyzer {
   }
 
   /**
-   * 查找path下属所有leaf function
+   * 解析PATH实际持有leaf信息的函数
+   * 旧版program.json中PATH函数自身持有programs和CALL leaf操作；
+   * 新版program.json中PATH外层函数只包含VIEW/ASSEMBLE及CALL操作，
+   * programs和CALL leaf操作下沉到了CALL指向的root子函数上，需要沿CALL链向下寻找。
+   * @param functionNode 控制流PATH函数
+   * @param visitedHashes 已访问函数hash（防环）
+   * @returns 持有programs的函数，找不到时返回自身（兼容旧格式）
    */
-  private findOwnedLeafFunctions(pathFunction: FunctionNode): ControlFlowPath['meta']['leafFunctions'] {
+  private resolveLeafOwnerFunction(functionNode: FunctionNode, visitedHashes: Set<string> = new Set()): FunctionNode {
+    if (visitedHashes.has(functionNode.hash)) {
+      return functionNode;
+    }
+    visitedHashes.add(functionNode.hash);
+    for (const operation of functionNode.operations ?? []) {
+      const calleeFunction = operation.calleehash ? this.functionHashMap.get(operation.calleehash) : undefined;
+      if (!calleeFunction) {
+        continue;
+      }
+      if (calleeFunction.programs?.length) {
+        return calleeFunction;
+      }
+      const nestedOwnerFunction = this.resolveLeafOwnerFunction(calleeFunction, visitedHashes);
+      if (nestedOwnerFunction !== calleeFunction) {
+        return nestedOwnerFunction;
+      }
+    }
+    return functionNode;
+  }
+
+  /**
+   * 查找path下属所有leaf function
+   * @param pathFunction 控制流PATH函数（leaf命名前缀以此函数名为准，与leaf计算图文件名解码保持一致）
+   * @param leafOwnerFunction 实际持有programs的函数（旧版即PATH自身，新版为CALL链下沉后的root函数）
+   */
+  private findOwnedLeafFunctions(
+    pathFunction: FunctionNode,
+    leafOwnerFunction: FunctionNode,
+  ): ControlFlowPath['meta']['leafFunctions'] {
     return (
-      pathFunction.programs?.map<LeafFunction>((leafFunctionMagic, programIndex) => {
+      leafOwnerFunction.programs?.map<LeafFunction>((leafFunctionMagic, programIndex) => {
         const leafFunctionNode = this.functionMagicMap.get(leafFunctionMagic)!;
         const programId = programIndex.toString().padStart(2, '0');
         if (!this.leafFunctionHashMap.has(leafFunctionNode.hash)) {
@@ -128,14 +164,23 @@ export class PathLeafAnalyzer {
 
   /**
    * 查找path调用的所有leaf function
+   * @param leafOwnerFunction 实际持有CALL leaf操作的函数（旧版即PATH自身，新版为CALL链下沉后的root函数）
+   * @param callerFunction 控制流PATH函数（作为调用方记录）
    */
-  private findCalleeRecords(pathFunction: FunctionNode, callerFunction: ExecuteFunction): ControlFlowPath['meta']['calleeRecords'] {
-    const noCalleeHash = !Reflect.has(pathFunction.operations[0], 'calleehash');
-    if (noCalleeHash) {
+  private findCalleeRecords(
+    leafOwnerFunction: FunctionNode,
+    callerFunction: ExecuteFunction,
+  ): ControlFlowPath['meta']['calleeRecords'] {
+    const operations = leafOwnerFunction.operations ?? [];
+    if (!operations.length || !Reflect.has(operations[0], 'calleehash')) {
       return [];
     }
-    const leafFunctionNodes = pathFunction.operations.map(({ calleehash }) => this.functionHashMap.get(calleehash!)!);
-    return leafFunctionNodes.map((leafFunctionNode) => {
+    const calleeRecords: ControlFlowPath['meta']['calleeRecords'] = [];
+    for (const operation of operations) {
+      const leafFunctionNode = operation.calleehash ? this.functionHashMap.get(operation.calleehash) : undefined;
+      if (!leafFunctionNode) {
+        continue;
+      }
       if (!this.leafFunctionCalledMap.has(leafFunctionNode.hash)) {
         this.leafFunctionCalledMap.set(leafFunctionNode.hash, []);
       }
@@ -144,8 +189,9 @@ export class PathLeafAnalyzer {
       const calleeFunction =
         this.leafFunctionHashMap.get(leafFunctionNode.hash) ?? (functionNodeToExecuteFunction(leafFunctionNode) as LeafFunction);
       this.leafFunctionHashMap.set(leafFunctionNode.hash, calleeFunction);
-      return this.makeCallRecord(callerFunction, calleeFunction);
-    });
+      calleeRecords.push(this.makeCallRecord(callerFunction, calleeFunction));
+    }
+    return calleeRecords;
   }
 
   private makeCallRecord(caller: ExecuteFunction, callee: LeafFunction): CallLeafRecord {

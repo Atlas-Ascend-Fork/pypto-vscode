@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FlowTreeAnalyzer } from '../../../../src/services/control-flow/flow-tree';
 import { FunctionType } from '../../../../src/types/control-flow';
-import type { ProgramOutput, FunctionNode } from '../../../../src/types/control-flow';
+import type { ProgramOutput, FunctionNode, ControlFlowPath } from '../../../../src/types/control-flow';
 import type { PassDirectory } from '../../../../src/types/workspace';
 
 describe('control-flow/flow-tree', () => {
@@ -221,6 +221,80 @@ describe('control-flow/flow-tree', () => {
 
         expect(result).toHaveLength(1);
         expect(result[0].nodeType).toBe('PATH');
+      });
+
+      it('should build PATH stats from root sub-function when wrapper only holds VIEW/ASSEMBLE/CALL ops (new program format)', () => {
+        const leaf0: FunctionNode = {
+          hash: 'leaf0_hash',
+          funcmagic: 14,
+          rawname: 'kernel_PATH0_hiddenfunc_leaf0',
+          functype: 1 as FunctionType,
+          operations: [{ opmagic: 1 }],
+        } as FunctionNode;
+
+        const leaf1: FunctionNode = {
+          hash: 'leaf1_hash',
+          funcmagic: 16,
+          rawname: 'kernel_PATH0_hiddenfunc_leaf2',
+          functype: 1 as FunctionType,
+          operations: [{ opmagic: 2 }],
+        } as FunctionNode;
+
+        const rootFunction: FunctionNode = {
+          hash: 'root_hash',
+          funcmagic: 13,
+          rawname: 'kernel_PATH0_hiddenfunc_root',
+          functype: FunctionType.PATH,
+          operations: [
+            { opmagic: 3, calleehash: 'leaf0_hash' },
+            { opmagic: 4, calleehash: 'leaf0_hash' },
+            { opmagic: 5, calleehash: 'leaf1_hash' },
+          ],
+          programs: [14, 16],
+        } as FunctionNode;
+
+        const pathWrapperFunction: FunctionNode = {
+          hash: 'path_hash',
+          funcmagic: 9,
+          rawname: 'kernel_PATH0',
+          functype: FunctionType.PATH,
+          operations: [
+            { opmagic: 11 },
+            { opmagic: 12, calleehash: 'root_hash' },
+            { opmagic: 13 },
+          ],
+        } as FunctionNode;
+
+        const entryFunction: FunctionNode = {
+          hash: 'entry_hash',
+          funcmagic: 3,
+          rawname: 'kernel',
+          functype: FunctionType.DYNAMIC,
+          operations: [
+            { opmagic: 21, calleehash: 'path_hash' },
+          ],
+        } as FunctionNode;
+
+        program = {
+          version: '2.0',
+          entryhash: 'entry_hash',
+          functions: [entryFunction, pathWrapperFunction, rootFunction, leaf0, leaf1],
+        } as ProgramOutput;
+
+        const analyzer = new FlowTreeAnalyzer(program, passes);
+        const result = analyzer.getControlFlow();
+
+        expect(result).toHaveLength(1);
+        expect(result[0].nodeType).toBe('PATH');
+        const pathNode = result[0] as ControlFlowPath;
+        // PATH节点身份保持为外层包装函数
+        expect(pathNode.hash).toBe('path_hash');
+        // leaf函数个数来自root子函数programs
+        expect(pathNode.meta.leafFunctions).toHaveLength(2);
+        // 调用leaf次数来自root子函数CALL操作
+        expect(pathNode.meta.calleeRecords).toHaveLength(3);
+        // leaf被调用次数由calculateLeafFunctionCalledRecords计算
+        expect(pathNode.meta.calledRecords).toHaveLength(3);
       });
 
       it('should handle PATH function with all dynamic operations', () => {
