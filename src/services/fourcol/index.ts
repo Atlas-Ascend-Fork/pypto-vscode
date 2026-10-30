@@ -63,6 +63,11 @@ export interface CceLocation {
   lines: number[];
 }
 
+export interface CceLabelLines {
+  label: string;
+  lines: number[];
+}
+
 export interface OpByCceTree {
   leafHash: string;
   opmagic: string;
@@ -166,18 +171,26 @@ export async function getCceLocation(leafHash: string, opMagic: string): Promise
 }
 
 /**
- * CCE 行反查（fileName 可传全路径，内部取 basename）；非 op 行返回 null。
+ * CCE 行反查 (leafHash, opMagic)（fileName 可传全路径，内部取 basename）；非 op 行返回 null。
  */
-export async function getOpByCceTree(fileName: string, line: number): Promise<OpByCceTree | null> {
+export async function getOpByCceLine(fileName: string, line: number): Promise<{ leafHash: string; opmagic: string } | null> {
   const cce = path.basename(fileName);
   const rows = await getFourcolCceOpmagicStore().query().filter({ cce, line }).exec();
   const row = rows[0];
-  if (!row) {
+  return row ? { leafHash: row.leafhash, opmagic: row.opmagic } : null;
+}
+
+/**
+ * CCE 行反查（fileName 可传全路径，内部取 basename）；非 op 行返回 null。
+ */
+export async function getOpByCceTree(fileName: string, line: number): Promise<OpByCceTree | null> {
+  const op = await getOpByCceLine(fileName, line);
+  if (!op) {
     return null;
   }
-  const opRows = await getFourcolOpStore().query().filter({ leafhash: row.leafhash, opmagic: row.opmagic }).exec();
-  const label = await findLabelByCceLine(row.leafhash, cce, line);
-  return { leafHash: row.leafhash, opmagic: row.opmagic, pyFile: opRows[0]?.pyFile ?? null, pyLine: opRows[0]?.pyLine ?? null, label };
+  const opRows = await getFourcolOpStore().query().filter({ leafhash: op.leafHash, opmagic: op.opmagic }).exec();
+  const label = await getLabelByCceLine(fileName, line);
+  return { ...op, pyFile: opRows[0]?.pyFile ?? null, pyLine: opRows[0]?.pyLine ?? null, label };
 }
 
 /**
@@ -206,12 +219,37 @@ export async function getLabel(leafHash: string, opMagic: string): Promise<strin
   const rows = await getFourcolCceOpmagicStore().query().filter({ leafhash: leafHash, opmagic: opMagic }).exec();
   const ordered = [...rows].sort((a, b) => Number(a.cce.endsWith('_main.cpp')) - Number(b.cce.endsWith('_main.cpp')));
   for (const row of ordered) {
-    const label = await findLabelByCceLine(row.leafhash, row.cce, row.line);
+    const label = await getLabelByCceLine(row.cce, row.line);
     if (label) {
       return label;
     }
   }
   return null;
+}
+
+/**
+ * CCE 行反查 label（fileName 可传全路径，内部取 basename）。按 label 行区间展开命中，
+ * label 覆盖行即可命中、不要求是 op 行；无覆盖返回 null。
+ */
+export async function getLabelByCceLine(fileName: string, line: number): Promise<string | null> {
+  const cce = path.basename(fileName);
+  const rows = await getFourcolCceLabelStore().query().filter({ cce }).exec();
+  for (const row of rows) {
+    if (expandLines(row.line).includes(line)) {
+      return row.label;
+    }
+  }
+  return null;
+}
+
+/**
+ * 按文件查询全部 label 及其行号（fileName 可传全路径，内部取 basename）。
+ * lines 为区间展开后的行号列表；文件无 label 时返回空数组。
+ */
+export async function getLabelsByCceFile(fileName: string): Promise<CceLabelLines[]> {
+  const cce = path.basename(fileName);
+  const rows = await getFourcolCceLabelStore().query().filter({ cce }).exec();
+  return rows.map((row) => ({ label: row.label, lines: expandLines(row.line) }));
 }
 
 /**
@@ -232,16 +270,6 @@ export function expandLines(line: unknown): number[] {
     }
   }
   return result;
-}
-
-async function findLabelByCceLine(leafHash: string, cce: string, line: number): Promise<string | null> {
-  const rows = await getFourcolCceLabelStore().query().filter({ leafhash: leafHash, cce }).exec();
-  for (const row of rows) {
-    if (expandLines(row.line).includes(line)) {
-      return row.label;
-    }
-  }
-  return null;
 }
 
 function preferNonMainCce<T extends { cce: string }>(rows: T[]): T | undefined {

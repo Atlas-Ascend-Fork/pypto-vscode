@@ -264,6 +264,7 @@ export class RegisterCommand {
 
   private registerTest4Col() {
     return commands.registerCommand('PyPTO.test4col', async () => {
+      console.log('[test4col] 命令已触发，等待选择 py 文件');
       const fileUri = await vscode.window.showOpenDialog({
         canSelectMany: false,
         canSelectFiles: true,
@@ -273,7 +274,10 @@ export class RegisterCommand {
         title: '选择四联动测试的 py 文件（需位于 <data>/kernel_src/ 目录下）',
       });
       const pyPath = fileUri?.[0].fsPath;
-      if (!pyPath || pyPath.length === 0) return;
+      if (!pyPath || pyPath.length === 0) {
+        console.log('[test4col] 未选择 py 文件，命令结束');
+        return;
+      }
       await runFourColTest(pyPath);
     });
   }
