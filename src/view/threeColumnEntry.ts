@@ -148,7 +148,7 @@ export class Fider {
       }
       return {path: comPath };
     } else if (graphType === "cce") {
-      const ccePath = await this.selectFile(t('pypto.selectCodeFile'), 'cce');
+      const ccePath = await this.selectFile(t('pypto.selectCodeFile'), 'cce', true);
       if (!ccePath) {
         window.showWarningMessage(t('pypto.noCodeFileSelect'));
         return { path: undefined };
@@ -225,7 +225,8 @@ export class Fider {
 
   private async selectFile(
     title: string,
-    filters: 'json' | 'cpp' | 'py' | 'all' | 'cce' = 'json'
+    filters: 'json' | 'cpp' | 'py' | 'all' | 'cce' = 'json',
+    canSelectFolders = false
   ): Promise<string | undefined> {
     const filterCfg = {
       json: {
@@ -250,7 +251,7 @@ export class Fider {
     };
     const fileUris = await window.showOpenDialog({
       canSelectFiles: true,
-      canSelectFolders: false,
+      canSelectFolders,
       canSelectMany: false,
       openLabel: `${title}`,
       filters: filterCfg[filters],

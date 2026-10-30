@@ -318,22 +318,6 @@ describe('ThreeColumnServer API methods - handler delegation', () => {
     expect(server.getRef('PyCode')).toBeDefined();
   });
 
-  it('savePyCode delegates to codeMsgHandler', async () => {
-    mocks.fs.writeFileSync.mockImplementation(() => {});
-    const server = createServer();
-    server.codePath = '/test.py';
-    await server.savePyCode('new code');
-    expect(server.getRef('SaveSuccess')).toBeDefined();
-  });
-
-  it('savePyCode handles write error', async () => {
-    mocks.fs.writeFileSync.mockImplementation(() => { throw new Error('EACCES'); });
-    const server = createServer();
-    server.codePath = '/test.py';
-    await server.savePyCode('new code');
-    expect(server.getRef('SaveError')).toBeDefined();
-  });
-
   it('askLayout delegates to ComGraphHandler', async () => {
     const server = createServer();
     await server.askLayout({ data: 'layout' });

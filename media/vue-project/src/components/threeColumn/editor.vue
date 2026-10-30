@@ -562,27 +562,6 @@ const setupHoverStyles = () => {
   document.head.appendChild(style);
 };
 
-// 保存代码到文件
-const saveCodeToFile = () => {
-  if (!editor) {
-    return;
-  }
-  
-  const currentCode = editor.getValue();
-  threeColumnServer.savePyCode(currentCode);
-};
-
-// 防抖保存
-let saveTimeout = null;
-const debouncedSave = () => {
-  if (saveTimeout) {
-    clearTimeout(saveTimeout);
-  }
-  saveTimeout = setTimeout(() => {
-    saveCodeToFile();
-  }, 1000); // 1秒后保存
-};
-
 const initEditor = (code) => {
   if (!containerRef.value) {
     nextTick(() => initEditor(code));
@@ -606,6 +585,7 @@ const initEditor = (code) => {
     value: code,
     language,
     automaticLayout: true,
+    readOnly: true,
     theme: isDarkTheme.value ? 'vs-dark' : 'vs',
     minimap: { enabled: true },
     scrollBeyondLastLine: false,
@@ -639,8 +619,6 @@ const initEditor = (code) => {
   // 监听内容变化，实时更新语义标签
   editor.onDidChangeModelContent(() => {
     applySemanticDecorations();
-    // 触发保存
-    debouncedSave();
   });
 };
 

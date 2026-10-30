@@ -35,10 +35,12 @@ export interface IThreeColumnCtx {
   currentLayoutMode: Ref<LayoutMode>;
   isComGraphFullscreen: Ref<boolean>;
   isSwimFullscreen: Ref<boolean>;
+  isCceFullscreen: Ref<boolean>;
   BlockToGraphMap: IBlockToGraphMap;
   dragStartBlock: Ref<BlockType>;
   onToggleComGraphFullscreen: () => void;
   onToggleSwimFullscreen: () => void;
+  onToggleCceFullscreen: () => void;
   emitSizeChange(): void;
   resetLayout(): void;
 }

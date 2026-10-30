@@ -271,6 +271,7 @@ export default {
     },
    openFile: '打开文件',
    noJsonFile: '插件未识别到相关联的{graphName}',
+   noCceFile: '插件未识别到相关联的 CCE 文件',
    yes: '确认',
    no: '取消',
    confirm: '请确认',

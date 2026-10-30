@@ -212,12 +212,13 @@ function setupThreeWatchers(server: any) {
   watch(server.returnInitPath, async (path) => {
     if (server.returnInitPath.value) {
       let { swimPath, comPath } = path.data;
+      const forceEmpty = path.data?.forceEmpty === true;
       const state = pullState();
       if (!swimPath) {
-        swimPath = state.swimDataPath
+        swimPath = forceEmpty ? '' : state.swimDataPath
       }
       if (!comPath) {
-        comPath = state.comPath
+        comPath = forceEmpty ? '' : state.comPath
       }
       filePaths.value = { swimPath: swimPath || '', comPath: comPath || '' };
       if (swimPath) {

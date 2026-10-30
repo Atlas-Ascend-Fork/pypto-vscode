@@ -26,13 +26,13 @@
     >
       <div class="three-column-block editor-block">
         <div class="sticky-block">
-          <fileSelect
-            :file-name="editorFileName"
-            :show-dropdown="true"
-            :file-list="pyFileList"
-            :current-path="editorFilePath"
-            @file-select="onPyFileSwitch"
-          />
+            <fileSelect
+              :file-name="editorFileName"
+              :show-dropdown="true"
+              :file-list="pyFileList"
+              :current-path="editorFilePath"
+              @file-select="onPyFileSwitch"
+            />
           <DragIcon />
           <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
         </div>
@@ -178,6 +178,7 @@ const containerEl = ref<HTMLElement>();
 const isEditorFullscreen = ref(false);
 const isComGraphFullscreen = ref(false);
 const isSwimFullscreen = ref(false);
+const isCceFullscreen = ref(false);
 const currentActiveBlock = ref<BlockType>('');
 const currentFullscreenBlock = ref<BlockType>('');
 const dragStartBlock = ref<BlockType>('');
@@ -219,10 +220,12 @@ provide(ThreeColumnProvideKey, {
   currentActiveBlock,
   isComGraphFullscreen,
   isSwimFullscreen,
+  isCceFullscreen,
   BlockToGraphMap,
   dragStartBlock,
   onToggleComGraphFullscreen,
   onToggleSwimFullscreen,
+  onToggleCceFullscreen,
   emitSizeChange,
   resetLayout,
 });
@@ -289,6 +292,10 @@ function onToggleComGraphFullscreen() {
 
 function onToggleSwimFullscreen() {
   toggleBlockFullscreen(isSwimFullscreen, 'swimGraph');
+}
+
+function onToggleCceFullscreen() {
+  toggleBlockFullscreen(isCceFullscreen, 'cce');
 }
 
 function emitSizeChange() {
@@ -397,7 +404,7 @@ function updateContainerRect() {
 }
 
 function resetLayout() {
-  if (isEditorFullscreen.value || isComGraphFullscreen.value || isSwimFullscreen.value) {
+  if (isEditorFullscreen.value || isComGraphFullscreen.value || isSwimFullscreen.value || isCceFullscreen.value) {
     return;
   }
   columnBarLeft.value = `calc(50% - var(--offset))`;

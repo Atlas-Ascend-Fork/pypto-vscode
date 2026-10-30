@@ -13,7 +13,7 @@
  * limitations under the License.
  -->
 <template>
-  <div :class="['simple-com-graph-container', isComGraphActive && 'show-sticky-block']">
+  <div class="simple-com-graph-container show-sticky-block">
     <div class="sticky-block">
       <div class="simple-layout">
         <fileSelect :file-name="comFileName" :file-paths="filePaths" />
@@ -25,7 +25,7 @@
           :placeholder="t('comGraph.pleaseSelect')"
           :position="['bottom-start']"
           :class="['simple-com-root-hash-list', isLoading && 'not-allow-expand', 'ml20']"
-          :menu-class="`simple-com-root-hash-list-menu ${!isComGraphActive ? 'hide-root-hash-list' : ''}`"
+          :menu-class="`simple-com-root-hash-list-menu`"
           @value-change="handleHashChange"
         >
         <d-option v-for="(item, index) in rootHashList" :key="index" :value="item.name" :title="item.name">

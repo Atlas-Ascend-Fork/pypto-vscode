@@ -19,7 +19,7 @@ import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { Fider } from '../threeColumnEntry';
 import { Util } from '../../util';
-import { readFileSync, writeFileSync, readdirSync, existsSync } from 'fs';
+import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
 import { isAbsolute, resolve, dirname, extname, basename, join } from 'path';
 import { SingleGraphData } from '../../core/graphData';
 import { GetOutputRecordParams } from '../../services/run-data/api';
@@ -70,8 +70,6 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'CompleteData',
   'PyCode',
   'FileExistenceResult',
-  'SaveSuccess',
-  'SaveError',
   'CalleeMap',
   'CalleeOpAttrMap',
   'ComData',
@@ -190,6 +188,7 @@ export class ThreeColumnServer
     this.codePath = path;
     const code = readFileSync(path, 'utf8');
     this.setRef('PyCode', { data: { code, codePath: path } });
+    this.resetLinkedPanes();
   };
   @viewApi()
   public getCceCode = async (message: any) => {
@@ -204,13 +203,59 @@ export class ThreeColumnServer
     const code = readFileSync(filePath, 'utf8');
     this.setRef('CceCode', { data: { code, fileName: basename(filePath), filePath } });
   };
-  async pickCceFile() {
+  @viewApi()
+  public pickCceFile = async () => {
     const { path } = await new Fider(this.codePath).selectPath('cce');
-    if (!path) {
+    if (!path || !existsSync(path)) {
       return;
     }
-    const code = readFileSync(path, 'utf8');
-    this.setRef('CceCode', { data: { code, fileName: basename(path), filePath: path } });
+    const dir = statSync(path).isDirectory() ? path : dirname(path);
+    this.pushCceDir(dir, statSync(path).isDirectory() ? undefined : path);
+    this.complementPathsFromCceDir(dir);
+    const pathMsg = { swimPath: this.swimDataPath || '', comPath: this.comPath || '' };
+    if (this.swimDataPath || this.comPath) {
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+    }
+    this.setRef('returnSearchPath', { data: pathMsg });
+  };
+  complementPathsFromCceDir(dir: string) {
+    for (const candidate of [dir, dirname(dir)]) {
+      if (!this.comPath) {
+        const comPath = join(candidate, 'program.json');
+        if (existsSync(comPath)) {
+          this.updateComData(comPath);
+        }
+      }
+      if (!this.swimDataPath) {
+        const swimPath = join(candidate, 'merged_swimlane.json');
+        if (existsSync(swimPath)) {
+          this.updateSwimData(swimPath);
+        }
+      }
+      if (this.comPath && this.swimDataPath) {
+        break;
+      }
+    }
+  }
+  pushCceDir(dir: string, selectedFile?: string) {
+    this.cceDir = dir;
+    try {
+      const cppFiles = readdirSync(dir).filter((f) => f.endsWith('.cpp')).sort();
+      const files = cppFiles.map((f) => ({ path: join(dir, f), name: f, exists: true }));
+      this.setRef('CceFileList', { data: { files } });
+      const selectedName = selectedFile ? basename(selectedFile) : undefined;
+      const target = (selectedName && cppFiles.includes(selectedName) ? selectedName : undefined)
+        ?? cppFiles.find((f) => f.endsWith('_main.cpp'))
+        ?? cppFiles[0];
+      if (!target) {
+        this.setRef('CceCode', { data: { code: '', fileName: '', filePath: '' } });
+        return;
+      }
+      const code = readFileSync(join(dir, target), 'utf8');
+      this.setRef('CceCode', { data: { code, fileName: target, filePath: join(dir, target) } });
+    } catch (error) {
+      console.log('push cce dir failed:', error);
+    }
   }
   @viewApi()
   public checkFileExistence = async (message: any) => {
@@ -220,10 +265,6 @@ export class ThreeColumnServer
       result[p] = existsSync(p);
     }
     this.setRef('FileExistenceResult', { data: result });
-  };
-  @viewApi()
-  public savePyCode = async (message) => {
-    await codeMsgHandler.savePyCode(this, message);
   };
   @viewApi()
   public askLayout = async (message) => {
@@ -493,11 +534,26 @@ export class ThreeColumnServer
     this.refreshColumnMode();
   }
   refreshColumnMode() {
+    if (!this.comPath) {
+      this.columnMode = 4;
+      this.cceDir = undefined;
+      this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
+      this.pushDefaultCceCode();
+      return;
+    }
     const result = detectColumnMode(this.comPath);
     this.columnMode = result.columnMode;
     this.cceDir = result.cceDir;
     this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
     this.pushDefaultCceCode();
+  }
+  resetLinkedPanes() {
+    this.swimDataPath = undefined;
+    this.swimData = undefined;
+    this.comPath = undefined;
+    this.refreshColumnMode();
+    this.setRef('SetVscodeState', { codePath: this.codePath, comPath: '', swimDataPath: '' });
+    this.setRef('returnInitPath', { data: { swimPath: '', comPath: '', forceEmpty: true } });
   }
   pushDefaultCceCode() {
     if (this.columnMode !== 4 || !this.cceDir) {
@@ -505,20 +561,7 @@ export class ThreeColumnServer
       this.setRef('CceCode', { data: { code: '', fileName: '', filePath: '' } });
       return;
     }
-    try {
-      const cceDir = this.cceDir;
-      const cppFiles = readdirSync(cceDir).filter((f) => f.endsWith('.cpp')).sort();
-      this.setRef('CceFileList', { data: { files: cppFiles } });
-      const defaultFile = cppFiles.find((f) => f.endsWith('_main.cpp')) ?? cppFiles[0];
-      if (!defaultFile) {
-        this.setRef('CceCode', { data: { code: '', fileName: '', filePath: '' } });
-        return;
-      }
-      const code = readFileSync(join(cceDir, defaultFile), 'utf8');
-      this.setRef('CceCode', { data: { code, fileName: defaultFile, filePath: join(cceDir, defaultFile) } });
-    } catch (error) {
-      console.log('push default cce code failed:', error);
-    }
+    this.pushCceDir(this.cceDir);
   }
   @viewApi()
   public selectRunData = async (message: any) => {
@@ -541,10 +584,6 @@ export class ThreeColumnServer
   @viewApi()
   public selectFile = async (message: any) => {
     const graphType = message.graphType;
-    if (graphType === 'cce') {
-      await this.pickCceFile();
-      return;
-    }
     const options = message.options
     const { swimPath, comPath } = await new Fider(this.codePath).handleUserSelect(graphType);
     const handlePaths = (initPath: string, selectPath: string, graphType: string) => {
@@ -612,11 +651,7 @@ export class ThreeColumnServer
       switch (message.graphType) {
         case 'editor':
           await this.handleCodeGraph(path);
-          const graphData = ComGraphHandler.getGrahpDataExtend(this);
-          if (graphData) {
-            const fullData = await graphData.getCompleteData(graphData.fsPath);
-            ComGraphHandler.getSemanticObj(this, fullData);
-          }
+          this.resetLinkedPanes();
           break;
         case 'swimGraph':
           await this.handleSwimGraph(path);
@@ -742,25 +777,6 @@ class codeMsgHandler {
       console.error(`${codePath}读取 py 文件时发生错误:`, err);
     }
     server.setRef('PyCode', { data: { code, codePath } });
-  }
-
-  static savePyCode(server: any, code: string) {
-    const codePath = server.codePath;
-
-    try {
-      // 保存代码到文件
-      writeFileSync(codePath, code, 'utf8');
-
-      // 通知前端保存成功
-      server.setRef('SaveSuccess', { data: 'Code saved successfully' });
-
-      console.log(`Code saved to: ${codePath}`);
-    } catch (err: any) {
-      console.error(`保存文件时发生错误:`, err);
-
-      // 通知前端保存失败
-      server.setRef('SaveError', { data: err.message });
-    }
   }
 }
 

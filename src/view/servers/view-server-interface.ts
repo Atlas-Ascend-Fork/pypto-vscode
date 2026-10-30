@@ -140,10 +140,10 @@ export interface IComViewServer extends ViewServer<IComApis, IComRefs> {
 
 export type IThreeApis =
   | 'getPyCode'
-  | 'savePyCode'
   | 'switchPyFile'
   | 'checkFileExistence'
   | 'getCceCode'
+  | 'pickCceFile'
   | 'getInitialData'
   | 'askLayout'
   | 'renderLayout'
@@ -174,8 +174,6 @@ export type IThreeRefs = {
   FileExistenceResult: unknown;
   CceCode: unknown;
   CceFileList: unknown;
-  SaveSuccess: unknown;
-  SaveError: unknown;
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;
   ComData: unknown;
@@ -290,7 +288,6 @@ export interface ICommonViewServer extends ViewServer<ICommonApis, ICommonRefs> 
 export type IControlFlowApis =
   | 'getAccurancyResult'
   | 'getPathPassResult'
-  | 'savePyCode'
   | 'getInitialData'
   | 'fetchVscodeState'
   | 'setCurAccuFilePathApi'

@@ -126,6 +126,7 @@ function onMouseenter() {
     z-index: 2;
     width: unset !important;
     height: unset !important;
+    grid-area: auto !important;
   }
 
   &.active {

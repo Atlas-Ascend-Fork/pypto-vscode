@@ -15,56 +15,54 @@
  -->
 <template>
   <div class="cce-column">
-    <div class="cce-header">
-      <div class="cce-layout">
-        <fileSelect :file-name="fileName" :file-paths="filePaths" />
-        <d-select
-          v-if="cceFiles.length > 0"
-          ref="cceSelectEl"
-          v-model="fileName"
-          :position="['bottom-start']"
-          class="cce-file-select"
-          @value-change="onCceFileChange"
-        >
-          <d-option v-for="item in cceFiles" :key="item" :value="item" :title="item">
-            <span class="option-name">{{ item }}</span>
-          </d-option>
-        </d-select>
+    <template v-if="fileName">
+      <div class="cce-header">
+        <fileSelect
+          :file-name="fileName"
+          :show-dropdown="true"
+          :show-file-explorer="false"
+          :file-list="cceFileList"
+          :current-path="currentPath"
+          :file-paths="filePaths"
+          @file-select="onCceFileSwitch"
+        />
+        <i :class="[isCceFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleCceFullscreen"></i>
       </div>
+      <div ref="containerRef" class="cce-container"></div>
+    </template>
+    <div v-else class="no-file-container">
+      <div><img :src="iconPath" alt="" class="no-file-icon" /></div>
+      <div class="no-file-title">{{ $t('noCceFile') }}</div>
+      <d-button variant="solid" class="mt10 no-file-back" @click="onPickCceFile">{{ $t('openFile') }}</d-button>
     </div>
-    <div ref="containerRef" class="cce-container"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 import * as monaco from 'monaco-editor';
 import fileSelect from './file-select.vue';
+import type { FileSelectItem } from './file-select.vue';
+import { ThreeColumnProvideKey } from './types';
+import type { IThreeColumnCtx } from './types';
 import { useViewServer } from '../../core/use-view-server';
 import { ThreeColumnServer } from 'ext:/view/servers/three-column-server';
 
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 const { isDarkTheme } = inject('threeColumnState') as { isDarkTheme: Ref<boolean> };
+const { isCceFullscreen, onToggleCceFullscreen } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
 
 const props = defineProps({
   filePaths: { type: Object, default: () => ({}) },
 });
 
 const containerRef = ref<HTMLElement>();
-const cceSelectEl = ref();
 const fileName = ref('');
-const cceFiles = ref<string[]>([]);
+const currentPath = ref('');
+const cceFileList = ref<FileSelectItem[]>([]);
+const iconPath = computed(() => `${(window as any).staticPath}/static-assets/noFile${isDarkTheme.value ? 'Dark' : ''}.png`);
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
 let lastCode = '';
-
-watch(fileName, () => {
-  nextTick(() => {
-    const inputDom = cceSelectEl.value?.$el?.querySelector('input') as HTMLInputElement | null;
-    if (inputDom) {
-      inputDom.setAttribute('title', inputDom.value);
-    }
-  });
-});
 
 const createEditor = (code: string) => {
   if (!containerRef.value || editor) {
@@ -91,12 +89,26 @@ const createEditor = (code: string) => {
   });
 };
 
-const onCceFileChange = (name: string) => {
-  threeColumnServer.getCceCode({ paramObj: { fileName: name } });
+const onCceFileSwitch = (path: string) => {
+  (window as any).ascEventBus.emit('deactivateLock');
+  threeColumnServer.getCceCode({ paramObj: { fileName: path } });
 };
 
+const onPickCceFile = () => {
+  threeColumnServer.pickCceFile();
+};
+
+watch(fileName, (val) => {
+  if (val) {
+    nextTick(() => createEditor(lastCode));
+  } else if (editor) {
+    editor.dispose();
+    editor = null;
+  }
+});
+
 watch(threeColumnServer.CceFileList, (newValue: any) => {
-  cceFiles.value = (newValue?.data?.files ?? []) as string[];
+  cceFileList.value = (newValue?.data?.files ?? []) as FileSelectItem[];
 });
 
 watch(
@@ -105,6 +117,7 @@ watch(
     const data = newValue?.data ?? { code: '', fileName: '', filePath: '' };
     lastCode = data.code ?? '';
     fileName.value = data.fileName ?? '';
+    currentPath.value = data.filePath ?? '';
     if (editor) {
       editor.setValue(lastCode);
     }
@@ -142,37 +155,11 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid var(--devui-split-line);
   background-color: var(--devui-card-bg);
   box-sizing: border-box;
-}
 
-.cce-layout {
-  display: flex;
-  align-items: center;
-
-  :deep(.file-select-wrapper) {
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-}
-
-.cce-file-select {
-  flex-shrink: 0;
-  width: 140px;
-  min-width: 100px;
-  margin-left: 20px;
-
-  .devui-select__input {
-    height: 28px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .option-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: inline-block;
-    max-width: 320px;
+  i {
+    margin-left: 8px;
+    font-size: 14px;
+    cursor: pointer;
   }
 }
 

@@ -270,6 +270,7 @@ export default {
     },
     openFile: 'Open file',
     noJsonFile: 'The plugin did not detect an associated {graphName}.',
+    noCceFile: 'The plugin did not detect an associated CCE file.',
     yes: 'Confirm',
     no: 'Cancel',
     confirm: 'Please confirm',
