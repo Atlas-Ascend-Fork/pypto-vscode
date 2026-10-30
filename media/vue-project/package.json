@@ -37,7 +37,7 @@
     "sprotty-protocol": "^1.4.0",
     "vue": "^3.5.43",
     "vue-devui": "^1.6.37",
-    "vue-i18n": "11.1.10"
+    "vue-i18n": "11.4.14"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.2",
