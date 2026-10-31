@@ -324,6 +324,7 @@ export class SmartLogExtractor {
       const result: string[] = [];
       let isRecording = false;
       let isFinished = false;
+      let isSettled = false;
 
       if (!fs.existsSync(filePath)) {
         reject(new Error(`文件不存在: ${filePath}`));
@@ -355,17 +356,26 @@ export class SmartLogExtractor {
       });
 
       rl.on('close', () => {
-        resolve(result);
+        if (!isSettled) {
+          isSettled = true;
+          resolve(result);
+        }
       });
 
-      stream.on('error', (err) => {
+      const handleError = (err: Error) => {
+        if (isSettled) return;
+        isSettled = true;
         // 如果是主动 destroy() 导致的 error，可以忽略，或者直接 resolve
         if (isFinished) {
           resolve(result);
         } else {
           reject(err);
         }
-      });
+        rl.close();
+        stream.destroy();
+      };
+      stream.on('error', handleError);
+      rl.on('error', handleError);
     });
   }
 }
