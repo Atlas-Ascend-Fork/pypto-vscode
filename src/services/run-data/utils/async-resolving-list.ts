@@ -41,8 +41,8 @@ export class AsyncListResolverImpl<T, R> implements AsyncListResolver<T, R> {
   /** 等待一定数量解析完成（waitFor） */
   private _partialResolvers: Map<number, ((list: R[]) => void)[]> = new Map();
 
-  /** 等待取消解析 */
-  private _cancelResolver: (() => void) | null = null;
+  /** 当前解析任务是否收到停止请求 */
+  private _cancelRequested = false;
 
   /**
    * @param listItemHandler 解析元素
@@ -58,21 +58,19 @@ export class AsyncListResolverImpl<T, R> implements AsyncListResolver<T, R> {
       return this._resolvingTask;
     }
     this._resolvedList = [];
-    this._resolvingTask = new Promise<R[]>(async (resolve) => {
+    this._cancelRequested = false;
+    this._resolvingTask = Promise.resolve().then(async () => {
       for (const listItem of targetList) {
         const { skip, data } = await this.listItemHandler(listItem);
-        if (skip) {
-          continue;
+        if (!skip) {
+          this._resolvedList.push(data);
+          this.triggerPartialResolvers(this._resolvedList.length);
         }
-        this._resolvedList.push(data);
-
-        this.triggerPartialResolvers(this._resolvedList.length);
-        if (this._cancelResolver) {
-          this._cancelResolver();
+        if (this._cancelRequested) {
           break;
         }
       }
-      resolve(this._resolvedList);
+      return this._resolvedList;
     }).then((res) => {
       // 异步执行，避免targetList为空时，_resolvingTask赋值顺序错误
       this._resolvingTask = null;
@@ -96,12 +94,8 @@ export class AsyncListResolverImpl<T, R> implements AsyncListResolver<T, R> {
     if (!this._resolvingTask) {
       return Promise.resolve(this._resolvedList);
     }
-    return new Promise((resolve) => {
-      this._cancelResolver = () => {
-        this._cancelResolver = null;
-        resolve(this._resolvedList);
-      };
-    });
+    this._cancelRequested = true;
+    return this._resolvingTask;
   }
 
   /**
