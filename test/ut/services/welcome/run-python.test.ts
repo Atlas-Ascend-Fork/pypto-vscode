@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as vscode from 'vscode';
 import { EventEmitter } from 'node:events';
+import * as path from 'node:path';
 
 const { mockExtensionContext, mockExec, mockSpawn, mockFs } = vi.hoisted(() => {
   const mockExtensionContext = {
@@ -163,6 +164,37 @@ describe('welcome/run-python', () => {
       });
     }
 
+    function getPythonRunCalls() {
+      return mockExec.mock.calls.filter(([command]) => !String(command).includes('pip show'));
+    }
+
+    it('runs the workspace copy with the workspace as cwd', async () => {
+      mockExecBranchByCommand(null, null);
+      const workspaceRoot = path.join(path.sep, 'workspace with spaces');
+      vi.mocked(vscode.workspace).workspaceFolders = [{ uri: { fsPath: workspaceRoot } }] as any;
+
+      const result = await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
+
+      const copiedPath = path.join(workspaceRoot, 'hello_world.py');
+      expect(result).toBe(true);
+      expect(mockFs.promises.copyFile).toHaveBeenCalledWith('/test/file.py', copiedPath);
+      expect(getPythonRunCalls()).toHaveLength(1);
+      const [command, options] = getPythonRunCalls()[0];
+      expect(command).toContain(`"${copiedPath}"`);
+      expect(options.cwd).toBe(workspaceRoot);
+    });
+
+    it('does not run python without a workspace', async () => {
+      mockExecBranchByCommand(null, null);
+      vi.mocked(vscode.workspace).workspaceFolders = undefined;
+
+      const result = await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
+
+      expect(result).toBe(false);
+      expect(mockFs.promises.copyFile).not.toHaveBeenCalled();
+      expect(getPythonRunCalls()).toHaveLength(0);
+    });
+
     it('should run python script and log output', async () => {
       mockExec.mockImplementation((cmd: string, optsOrCb: any, cb?: any) => {
         const callback = typeof optsOrCb === 'function' ? optsOrCb : cb;
@@ -172,7 +204,7 @@ describe('welcome/run-python', () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.promises.copyFile.mockResolvedValue(undefined);
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
       expect(mockChannel.appendLine).toHaveBeenCalled();
     });
 
@@ -182,7 +214,7 @@ describe('welcome/run-python', () => {
         if (callback) callback(new Error('fail'), '', 'error');
       });
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
       expect(mockChannel.appendLine).toHaveBeenCalled();
     });
 
@@ -199,7 +231,7 @@ describe('welcome/run-python', () => {
         return fakeChild;
       });
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
 
       expect(mockSpawn).toHaveBeenCalled();
       const logged = mockChannel.appendLine.mock.calls.map((args: any[]) => args[0]).join('\n');
@@ -220,7 +252,7 @@ describe('welcome/run-python', () => {
         return fakeChild;
       });
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
 
       const logged = mockChannel.appendLine.mock.calls.map((args: any[]) => args[0]).join('\n');
       expect(logged).toContain('[PyPTOToolkit.welcome.runPython.Installation.error] ERROR: could not find a version');
@@ -236,7 +268,7 @@ describe('welcome/run-python', () => {
         return fakeChild;
       });
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
 
       const logged = mockChannel.appendLine.mock.calls.map((args: any[]) => args[0]).join('\n');
       expect(logged).toContain('install err(1)');
@@ -251,7 +283,7 @@ describe('welcome/run-python', () => {
         return fakeChild;
       });
 
-      const runPromise = runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      const runPromise = runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
       await vi.advanceTimersByTimeAsync(120001);
       await runPromise;
 
@@ -269,7 +301,7 @@ describe('welcome/run-python', () => {
         return fakeChild;
       });
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
 
       const logged = mockChannel.appendLine.mock.calls.map((args: any[]) => args[0]).join('\n');
       expect(logged).toContain('PyPTOToolkit.welcome.runPython.Installation.variables');
@@ -280,9 +312,13 @@ describe('welcome/run-python', () => {
       vi.mocked(vscode.workspace).workspaceFolders = [{ uri: { fsPath: '/ws' } }] as any;
       mockFs.existsSync.mockImplementation((p: any) => String(p).endsWith('hello_world.py'));
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      const result = await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
 
       expect(mockFs.promises.copyFile).toHaveBeenCalledWith('/test/file.py', expect.stringContaining('hello_world(1).py'));
+      expect(result).toBe(true);
+      const [command, options] = getPythonRunCalls()[0];
+      expect(command).toContain(`"${path.join('/ws', 'hello_world(1).py')}"`);
+      expect(options.cwd).toBe(path.dirname(path.join('/ws', 'hello_world(1).py')));
       const logged = mockChannel.appendLine.mock.calls.map((args: any[]) => args[0]).join('\n');
       expect(logged).toContain('/ws');
     });
@@ -294,9 +330,11 @@ describe('welcome/run-python', () => {
         { uri: { fsPath: '/ws2' } },
       ] as any;
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      const result = await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
 
+      expect(result).toBe(false);
       expect(mockFs.promises.copyFile).not.toHaveBeenCalled();
+      expect(getPythonRunCalls()).toHaveLength(0);
     });
 
     it('shows error message when copying fails', async () => {
@@ -304,8 +342,10 @@ describe('welcome/run-python', () => {
       vi.mocked(vscode.workspace).workspaceFolders = [{ uri: { fsPath: '/ws' } }] as any;
       mockFs.promises.copyFile.mockRejectedValue(new Error('EACCES: permission denied'));
 
-      await runPythonScript(mockChannel, '/test/file.py', '/test', 'https://pypi.org/simple');
+      const result = await runPythonScript(mockChannel, '/test/file.py', 'https://pypi.org/simple');
 
+      expect(result).toBe(false);
+      expect(getPythonRunCalls()).toHaveLength(0);
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('EACCES'));
     });
   });

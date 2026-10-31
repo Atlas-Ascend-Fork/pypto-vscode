@@ -279,10 +279,9 @@ async function copyPyToWorkspace(sourcePyPath: string, outputChannel: vscode.Out
  * 执行 Python 文件并处理输出结果
  * @param outputChannel 输出面板单例
  * @param pythonFilePath 需要执行的Python文件地址（插件内的源文件）
- * @param extensionRoot 插件地址
  * @param address 镜像源
  */
-export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, extensionRoot: string, address: string) {
+export async function runPythonScript(outputChannel: vscode.OutputChannel, pythonFilePath: string, address: string) {
   try {
     // 步骤1：检查依赖
     outputChannel.appendLine(`[start check] ${new Date().toLocaleString()}`);
@@ -290,11 +289,14 @@ export async function runPythonScript(outputChannel: vscode.OutputChannel, pytho
 
     // 步骤2：复制Python文件到工作区
     outputChannel.appendLine(`[start copy file] ${new Date().toLocaleString()}`);
-    await copyPyToWorkspace(pythonFilePath, outputChannel);
+    const workspacePythonPath = await copyPyToWorkspace(pythonFilePath, outputChannel);
+    if (!workspacePythonPath) {
+      return false;
+    }
 
     // 步骤3：执行【工作区的副本文件】而非插件内的源文件
     outputChannel.appendLine(`[start run python file] ${new Date().toLocaleString()}`);
-    const result = await executePythonFile(pythonFilePath, extensionRoot);
+    const result = await executePythonFile(workspacePythonPath, path.dirname(workspacePythonPath));
 
     // 步骤4：处理执行结果
     if (result.success) {

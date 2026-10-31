@@ -53,7 +53,7 @@ export async function getInitPythonProject(address = 'https://pypi.tuna.tsinghua
     vscode.window.showErrorMessage(errorMsg);
     return;
   }
-  return await runPythonScript(outputChannel, pythonFilePath, extensionRoot, address);
+  return await runPythonScript(outputChannel, pythonFilePath, address);
 }
 
 /**

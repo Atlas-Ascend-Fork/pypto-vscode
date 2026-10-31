@@ -14,6 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as vscode from 'vscode';
+import * as path from 'node:path';
 
 const { mockExtensionContext, mockSampleManager, mockGetExtensionMode, mockGetPythonOutputChannel, mockRunPythonScript, mockReadWholeFileByTextDocument, mockWelcomeViewServer } = vi.hoisted(() => {
   const mockExtensionContext = {
@@ -94,7 +95,11 @@ describe('welcome/index', () => {
       mockRunPythonScript.mockResolvedValue(true);
 
       await getInitPythonProject();
-      expect(mockRunPythonScript).toHaveBeenCalled();
+      expect(mockRunPythonScript).toHaveBeenCalledWith(
+        expect.any(Object),
+        path.join('/test/extension', 'src', 'python-file', 'test_hello_world.py'),
+        'https://pypi.tuna.tsinghua.edu.cn/simple',
+      );
     });
 
     it('should run python script in production mode', async () => {
@@ -102,7 +107,11 @@ describe('welcome/index', () => {
       mockRunPythonScript.mockResolvedValue(true);
 
       await getInitPythonProject();
-      expect(mockRunPythonScript).toHaveBeenCalled();
+      expect(mockRunPythonScript).toHaveBeenCalledWith(
+        expect.any(Object),
+        path.join('/test/extension', 'webview-dist', 'python-file', 'test_hello_world.py'),
+        'https://pypi.tuna.tsinghua.edu.cn/simple',
+      );
     });
 
     it('should return early when extensionContext is null', async () => {
