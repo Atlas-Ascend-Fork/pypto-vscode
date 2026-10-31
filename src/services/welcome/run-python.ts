@@ -230,8 +230,11 @@ async function checkDependencies(outputChannel: vscode.OutputChannel, address: s
   await installPythonDependencies(dependencies, outputChannel, address);
 }
 
+/** 工作区内的示例目录，与项目源码隔离，避免同名模块遮蔽 */
+const WELCOME_DEMO_DIR = path.join('.pypto', 'welcome');
+
 /**
- * 复制Python文件到当前工作区根目录，存在则追加(n)
+ * 复制Python文件到工作区的示例目录（.pypto/welcome），存在则追加(n)
  * @param sourcePyPath 插件内Python源文件路径
  * @param outputChannel 输出面板
  * @returns 复制后的目标文件路径 | null（失败）
@@ -240,11 +243,13 @@ async function copyPyToWorkspace(sourcePyPath: string, outputChannel: vscode.Out
   // 步骤1：校验是否打开了工作区
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders || workspaceFolders.length === 0) {
+    vscode.window.showWarningMessage('未打开工作区，示例将在插件临时目录中运行');
     return null;
   }
 
   // 仅单个工作区根目录执行复制，多工作区直接终止操作，不进行复制
   if (workspaceFolders.length > 1) {
+    vscode.window.showWarningMessage('检测到多个工作区，示例将在插件临时目录中运行');
     return null;
   }
 
@@ -252,14 +257,21 @@ async function copyPyToWorkspace(sourcePyPath: string, outputChannel: vscode.Out
   const workspaceRoot = workspaceFolders[0].uri.fsPath;
   outputChannel.appendLine(`[info] ${t('PyPTOToolkit.welcome.runPython.workspaceRoot')}: ${workspaceRoot}`);
 
-  // 步骤2：构建基础目标路径（工作区根/hello_world.py）
-  const baseFileName = 'hello_world.py';
-  let targetPyPath = path.join(workspaceRoot, baseFileName);
+  // 步骤2：示例统一放到 .pypto/welcome 子目录，不污染工作区根目录
+  const demoDir = path.join(workspaceRoot, WELCOME_DEMO_DIR);
+  try {
+    await fs.promises.mkdir(demoDir, { recursive: true });
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`创建示例目录失败（${demoDir}）: ${errMsg}`);
+    return null;
+  }
 
   // 步骤3：文件已存在则生成hello_world(1).py/hello_world(2).py
+  let targetPyPath = path.join(demoDir, 'hello_world.py');
   let index = 1;
   while (fs.existsSync(targetPyPath)) {
-    targetPyPath = path.join(workspaceRoot, `hello_world(${index}).py`);
+    targetPyPath = path.join(demoDir, `hello_world(${index}).py`);
     index++;
   }
 
@@ -287,16 +299,19 @@ export async function runPythonScript(outputChannel: vscode.OutputChannel, pytho
     outputChannel.appendLine(`[start check] ${new Date().toLocaleString()}`);
     await checkDependencies(outputChannel, address);
 
-    // 步骤2：复制Python文件到工作区
+    // 步骤2：复制Python文件到工作区示例目录
     outputChannel.appendLine(`[start copy file] ${new Date().toLocaleString()}`);
     const workspacePythonPath = await copyPyToWorkspace(pythonFilePath, outputChannel);
+
+    // 步骤3：优先执行工作区副本；复制失败时降级执行插件内源文件，保证示例仍可运行
+    const scriptPath = workspacePythonPath ?? pythonFilePath;
+    const cwd = workspacePythonPath ? path.dirname(workspacePythonPath) : os.tmpdir();
     if (!workspacePythonPath) {
-      return false;
+      outputChannel.appendLine(`[warn] 示例未复制到工作区，降级执行插件内文件: ${scriptPath}`);
     }
 
-    // 步骤3：执行【工作区的副本文件】而非插件内的源文件
     outputChannel.appendLine(`[start run python file] ${new Date().toLocaleString()}`);
-    const result = await executePythonFile(workspacePythonPath, path.dirname(workspacePythonPath));
+    const result = await executePythonFile(scriptPath, cwd);
 
     // 步骤4：处理执行结果
     if (result.success) {
