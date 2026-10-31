@@ -1,0 +1,66 @@
+name: build-vsix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+
+env:
+  HUSKY: 0
+
+jobs:
+  build_vsix:
+    name: Build VSIX
+    runs-on: [self-hosted, arch=x64, spec=small]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/ci_cann/ubuntu20.04.05_x86:k8s_v1.1006
+    steps:
+      - name: Checkout
+        uses: checkout
+        with:
+          token: ${{ secrets.GIT_TOKEN }}
+
+      - name: Install git-lfs
+        run: |
+          if ! git lfs version; then
+            (sudo apt-get update -y && sudo apt-get install -y git-lfs) || (apt-get update -y && apt-get install -y git-lfs)
+          fi
+          git lfs install --skip-repo
+          git lfs version
+
+      - name: Pull LFS objects
+        env:
+          LFS_TOKEN: ${{ secrets.GIT_TOKEN }}
+        run: |
+          git config --global credential.helper 'store --file=/tmp/.git-creds'
+          printf 'https://oauth2:%s@gitcode.com\n' "$LFS_TOKEN" > /tmp/.git-creds
+          git lfs pull
+
+      - name: Setup Node.js
+        uses: setup-node
+        with:
+          node-version: "22"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install webview dependencies
+        run: cd media/vue-project && npm ci
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce --ignore-scripts
+
+      - name: Package vsix
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          STAMP=$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)
+          vsce package --out "pypto-toolkit-${VERSION}-${STAMP}.vsix"
+
+      - name: Upload artifact
+        uses: upload-artifact
+        with:
+          name: pypto-toolkit-${{ atomgit.ref_name }}
+          path: '*.vsix'
