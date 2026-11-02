@@ -219,7 +219,7 @@ import fileSelect from '../threeColumn/file-select.vue';
 import { useViewServer } from '../../core/use-view-server';
 import { pushState, pullState } from '../../core/state';
 import { swimConfig } from '../welcome/guideStepsConfig';
-import { intelligentSearchHelper } from './swimGrapMeasurehDetail/helper';
+import { intelligentSearchHelper, realCoordinateY } from './swimGrapMeasurehDetail/helper';
 import { globalKeyEvent } from './eventHandler';
 import { getKernalEventColor } from './swimGraphProcesses/render/utils';
 import { getPositionByTime, getWidthByDuration } from './swimGraphProcesses/processInfo';
@@ -331,6 +331,8 @@ const measureDragStartTime = ref(0);
 const measureDragEndTime = ref(0);
 const measureDragStartY = ref(0);
 const measureDragEndY = ref(0);
+// mousedown 时预解析的起点容器内坐标，避免拖拽过程中 DOM 位移导致二次换算失效
+const measureDragStartResolved = ref(null);
 const measureDragHeight = ref(0);
 const measureDragCtrl = ref(false);
 const measureDragCtrlX = ref(0);
@@ -2804,6 +2806,10 @@ const measureMouseDown = (e) => {
   measureDragStartY.value = e.clientY;
   measureDragEndX.value = e.clientX;
   measureDragEndY.value = e.clientY;
+  // 在 mousedown 瞬间解析起点所在的 process 容器及容器内相对 Y，避免拖拽过程中
+  // 滚动/平移/reflow 导致 measureDragStartY 与当前 DOM 位置脱节，进而使起点
+  // 的泳道精确吸附分支被跳过
+  measureDragStartResolved.value = realCoordinateY(e.clientY);
   if (measureDragStartX.value - layout.processLabelWidth < 0) {
     measureDragStartX.value = layout.processLabelWidth;
   }
@@ -3592,7 +3598,8 @@ const intelligentSearch = () => {
     swimDataManager,
     isMixMode,
     layout,
-    lane2line
+    lane2line,
+    preResolvedStart: measureDragStartResolved.value
   });
 };
 
@@ -4167,6 +4174,7 @@ const clearMeasureDetailSearch = () => {
   measureDetailsExpanded.value = false;
   measureDragStartX.value = 0;
   measureDragEndX.value = 0;
+  measureDragStartResolved.value = null;
   isMeasureDragging.value = false;
   showDragAreaBorders.value = false;
   isMeasureModel.value = false;

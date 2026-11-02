@@ -28,6 +28,8 @@ export interface MeasureEventSearchOptions {
   isMixMode: { value: boolean};
   layout: any;
   lane2line: Map<string, number>;
+  /* 预解析的起点坐标（mousedown 时解析），用于避免拖拽过程中 DOM 位移导致二次换算失败 */
+  preResolvedStart?: { realY: number; processkey: string } | null;
 }
 
 export interface IntelligentSearchOptions {
@@ -49,6 +51,8 @@ export interface IntelligentSearchOptions {
   isMixMode: { value: boolean};
   layout: any;
   lane2line: Map<string, number>;
+  /* mousedown 时预解析的起点容器内坐标，用于稳定起点泳道精确吸附 */
+  preResolvedStart?: { realY: number; processkey: string } | null;
 }
 
 const getEventY = (event: any, isPinnedArea: boolean): number => {
@@ -103,7 +107,7 @@ export const measureTimeSearch = (
  * @param y 鼠标所在y坐标
  * @returns processKey: 鼠标所在画布所属的processKey, realY: 画布内的相对y坐标
  */
-const realCoordinateY = (y: number) => {
+export const realCoordinateY = (y: number) => {
   const processContainers = document.querySelectorAll('[data-process-container]');
   
   for (let i = 0; i < processContainers.length; i++) {
@@ -118,7 +122,7 @@ const realCoordinateY = (y: number) => {
   }
   
   return { realY: 0, processkey: '' };
-}
+};
 
 const isEventInRange = (event: any, lineRangeStart: number, lineRangeEnd: number): boolean => {
   return (
@@ -258,7 +262,8 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
     swimDataManager,
     isMixMode,
     layout,
-    lane2line
+    lane2line,
+    preResolvedStart
   } = options;
 
   const [lineRangeStart, lineRangeEnd] = lineRange;
@@ -273,7 +278,13 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
     matchingEvents = collectPinnedEvents(pinnedThreads, lineRangeStart, lineRangeEnd);
     yLayer = pinnedYLayer;
   } else {
-    const result = realCoordinateY(mouseY);
+    // 起点优先使用 mousedown 时预解析的容器内相对坐标，避免拖拽过程中
+    // 滚动/平移/reflow 导致 measureDragStartY 与当前所在 DOM 位置脱节，
+    // 进而使 realCoordinateY 命中失败、跳过泳道精确吸附分支。
+    const usePreResolved = type === 'start' && !!preResolvedStart;
+    const result = usePreResolved
+      ? preResolvedStart
+      : realCoordinateY(mouseY);
     yLayer = result.realY;
 
     // 优先吸附：定位鼠标 Y 所在的具体泳道（线程），仅在该泳道内查找命中时间窗口的起/止事件
@@ -300,7 +311,8 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
     );
   }
 
-  return measureTimeSearch(matchingEvents, lineRange, yLayer, type, isPinnedArea);
+  const crossLaneResult = measureTimeSearch(matchingEvents, lineRange, yLayer, type, isPinnedArea);
+  return crossLaneResult;
 };
 
 const collectEventsFromThread = (thread, lineRangeStart, lineRangeEnd, isMixMode, swimDataManager) => {
@@ -337,7 +349,8 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     swimDataManager,
     isMixMode,
     layout,
-    lane2line
+    lane2line,
+    preResolvedStart
   } = options;
 
   let start = measureDragStartX.value;
@@ -358,7 +371,8 @@ export const intelligentSearchHelper = (options: IntelligentSearchOptions) => {
     swimDataManager,
     isMixMode,
     layout,
-    lane2line
+    lane2line,
+    preResolvedStart
   });
   const foundEndTime = measureEventSearch({
     lineRange: endlineRange,
