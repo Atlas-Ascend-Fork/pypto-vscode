@@ -3602,7 +3602,8 @@ const setPageState = (message) => {
     performanceVisible.value = message.config.showPerformancePanel && !props.isThreeColumn && !isGuidePage.value;
   }
 
-  modeOption.value = userConfig.value.kernelColorRending;
+  // 三栏模式：实际着色固定 label， 面板选择的 kernelColorRending 作为无 label 时的回退源
+  modeOption.value = props.isThreeColumn ? 'label' : userConfig.value.kernelColorRending;
   hashOrderRending.value = userConfig.value.hashOrderRending;
   configComponent.value.connectionLevel = userConfig.value.connectionLevel;
   detailComponent.value.connectionLevel = userConfig.value.connectionLevel;

@@ -198,11 +198,6 @@ const aicpuModeOption = ref('name');
 const perfModeOption = ref('perfName');
 
 const kernelModeOptions = computed(() => {
-  if (isThreeColumn) {
-    return [
-        {name: $t('label'), value: 'label'},
-    ];
-  }
   if (isMsProf.value) {
     return [
         {name: $t('name'), value: 'name'},
@@ -217,7 +212,16 @@ const kernelModeOptions = computed(() => {
   ];
 });
 
-const kernelModeOption = ref(isThreeColumn ? 'label' : (isMsProf.value ? 'name' : 'subGraph'));
+const kernelModeOption = ref(isMsProf.value ? 'name' : 'subGraph');
+
+// 三栏模式下面板选择的着色模式作为 label 缺失时的回退，起步默认为 label
+const labelFallbackMode = computed(() => {
+    if (!isThreeColumn) {
+        return '';
+    }
+    const selected = kernelModeOption.value;
+    return selected && selected !== 'label' ? selected : 'subGraph';
+});
 
 const HashOrderOptions = computed(() => {
   return [
@@ -246,8 +250,8 @@ function changeUserCfgConnection(connectionLevelInfo) {
     server.changeUserCfgConnection({paramObj: {level: connectionLevelInfo}});
 };
 
-const configGetEventColor = (colorEvent, mode, hashOrderType='') => {
-    const color = getEventColorByMode(colorEvent, mode, '', hashOrderType);
+const configGetEventColor = (colorEvent, mode, hashOrderType='', fallbackMode='') => {
+    const color = getEventColorByMode(colorEvent, mode, '', hashOrderType, fallbackMode);
     colorEvent.color = color;
     const eventColor = isDarkTheme.value ? colorEvent.color.dark : colorEvent.color.light;
     let fillColor = eventColor ? eventColor.base : '';
@@ -321,6 +325,9 @@ function savePerfRendingMode(colorRenderMode) {
 };
 
 const updateKernelEvents = (mode, hashOrderOption) => {
+    // 三栏模式：主着色固定label，面板选择的 mode 作为无 label 的回退
+    const renderMode = isThreeColumn ? 'label' : mode;
+    const fallback = isThreeColumn ? (mode && mode !== 'label' ? mode : 'subGraph') : '';
     const updateEventColors = (event) => {
         if (event.originalThreadName) {
             return;
@@ -328,10 +335,10 @@ const updateKernelEvents = (mode, hashOrderOption) => {
         if (event.isCounter) {
             return;
         }
-        const color = getEventColorByMode(event, mode, 'kernel', hashOrderOption);
+        const color = getEventColorByMode(event, renderMode, 'kernel', hashOrderOption, fallback);
         event.color = color;
         if (event.drawData) {
-            const { fillColor, fontColor, strokeColor } = configGetEventColor(event, mode, hashOrderOption);
+            const { fillColor, fontColor, strokeColor } = configGetEventColor(event, renderMode, hashOrderOption, fallback);
             event.drawData.rectColor = fillColor;
             event.drawData.strokeColor = strokeColor;
             event.drawData.fontColor = fontColor;
@@ -342,7 +349,7 @@ const updateKernelEvents = (mode, hashOrderOption) => {
         const subEvents = swimDataManager.getSubEvents(parentEvent.id);
         for (const subEvent of subEvents) {
             if (subEvent.drawData) {
-                const { fillColor, fontColor, strokeColor } = configGetEventColor(parentEvent, mode, hashOrderOption);
+                const { fillColor, fontColor, strokeColor } = configGetEventColor(parentEvent, renderMode, hashOrderOption, fallback);
                 subEvent.drawData.rectColor = fillColor;
                 subEvent.drawData.fontColor = fontColor;
             }

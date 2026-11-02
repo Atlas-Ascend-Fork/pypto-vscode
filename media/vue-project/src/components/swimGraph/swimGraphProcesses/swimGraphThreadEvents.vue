@@ -79,11 +79,12 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, getDevicePixelR
   FAKE_CORE_KEYWORD
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
-import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getLeafHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
 import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
 import { ThreeRender, spaceInThreeCol, isAnimation } from './render/threeRender';
+import { createLeafHashHighlight } from './render/leafHashHighlight';
 import { getIsCompleteBoot } from '@/apis/welcome';
 import { swimConfig } from '../../welcome/guideStepsConfig';
 import swimGraphThreadLockMenu from './swimGraphThreadLockMenu.vue';
@@ -108,6 +109,8 @@ let preLabel = '';
 let lockedLabel = '';
 let drawColorDatas = {};
 let isHoverLockStatus = ref(false);
+// 计算图驱动的 leafHash 高亮：命中 hash 集合的事件高亮，其余置灰；为空表示未激活
+let leafHashHighlightSet = ref(new Set());
 let pinnedStatus = ref(false);
 let preFocusWrapState = null;
 let preHoverMixWrapId = null;
@@ -301,9 +304,8 @@ const handleCanvasClick = (e) => {
   if (!isClick.value) {
     return;
   }
-  if (isLockStatus.value) {
-    return;
-  }
+  // 三栏锁定状态下仍允许点击选中事件更新详情面板，但跳过会破坏锁定高亮/联动状态的操作
+  const locked = isLockStatus.value;
   switchLockInformationFlag.value = false;
   const canvasRef = getActiveEventCanvas(props.processKey);
   if (!canvasRef) {
@@ -314,7 +316,7 @@ const handleCanvasClick = (e) => {
     // 拖动画布中
     return;
   }
-  if (!isDragging.value) {
+  if (!isDragging.value && !locked) {
     clearAllSelectionCanvas('data-selection-process-key');
   } 
   const rect = canvasRef.getBoundingClientRect();
@@ -329,7 +331,7 @@ const handleCanvasClick = (e) => {
     handlePathLockClick(clickedEvent, e);
     return;
   }
-  if (isThreeColumn) {
+  if (isThreeColumn && !locked) {
     const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
     if (isPointInPolygon) {
       if (!clickedEvent) {
@@ -339,7 +341,7 @@ const handleCanvasClick = (e) => {
     } else {
       isHoverLockStatus.value = false;
       clearSelectionCanvas('data-three-column-process-key');
-      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
+      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [], leafHash: '' });
       toggleLock();
     }
   }
@@ -353,6 +355,15 @@ const handleCanvasClick = (e) => {
       measureState.isMeasureFixed = false;
       if (!e.ctrlKey) { selectEvent(clickedEvent, props.processKey) };
       isClickedPath.value = true;
+      // 三栏锁定状态下：点击同 label 事件时建立新的跨视图联动（详情面板已由 selectEvent 更新）
+      if (locked && isThreeColumn && clickedEvent.args?.color === lockedLabel && lockedLabel) {
+        const eventHintStr = clickedEvent.args?.['event-hint'] ?? '';
+        const rootHashList = [getRootHashList(eventHintStr)].filter(Boolean);
+        const leafHash = getLeafHashList(eventHintStr);
+        sendMsg('returnSemanticLabelFromSwim', { label: lockedLabel, rootHashList: rootHashList?.length ? rootHashList : [], leafHash });
+        sendMsg('returnSemanticLabelFromSwimToCom', { label: lockedLabel, rootHashList: rootHashList?.length ? rootHashList : [] });
+        sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
+      }
     }
   } else {
     if (isMixMode?.value && swimDataManager.hasMixConfig()) {
@@ -1339,7 +1350,7 @@ const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
   if (!hasHnadleHover && !isLockStatus.value && !isHoverLockStatus.value) {
     const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
     if (!isPointInPolygon && preLabel) {
-      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [] });
+      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [], leafHash: '' });
       preLabel = '';
       clearSelectionCanvas('data-three-column-process-key');
       changeNodeColor(props.processKey, false);
@@ -1452,10 +1463,11 @@ const handleHoverEvent = (hoveredEvent) => {
   const { color } = args ?? {};
   const eventHintStr = args?.['event-hint'] ?? '';
   const rootHashList = [getRootHashList(eventHintStr)];
+  const leafHash = getLeafHashList(eventHintStr);
   // 使用可选链和空值合并确保安全
   if (hoveredEvent.threadName && !hoveredEvent.threadName.includes(FAKE_CORE_KEYWORD) && shouldUpdateOutline(color)) {
     handleOutline(color, false);
-    sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [] });
+    sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [], leafHash });
   }
   preLabel = color;
   return true;
@@ -1665,7 +1677,8 @@ const lockClick = (e) => {
   lockedLabel = preLabel;
   e.stopPropagation();
   isLockStatus.value = true;
-  sendMsg('activeLock', { label: preLabel });
+  // 收集锁定 label 下首个事件的 leafHash （opmaic 泳道侧不填，由计算图侧填充）
+  let leafHash = '';
   let rootHashArray = [];
   swimDataManager.getAllProcesses().forEach((process, processKey) => {
     if (!processExpanded.get(processKey)) {
@@ -1684,10 +1697,14 @@ const lockClick = (e) => {
           const eventHintStr = args?.['event-hint'] ?? '';
           const rootHashStr = getRootHashList(eventHintStr);
           rootHashArray.push(rootHashStr);
+          if (!leafHash) {
+            leafHash = getLeafHashList(eventHintStr);
+          }
         }
       });
     });
   });
+  sendMsg('activeLockFromSwim', { label: preLabel, opmagic: '', leafHash });
   const rootHashList = [...new Set(rootHashArray)];
   sendMsg('sendHashList', { rootHashList });
 };
@@ -3265,6 +3282,17 @@ const drawThreadSeparators = (ctx, process, processKey) => {
   }
 };
 
+// 计算图驱动的 leafHash 高亮：依赖注入式创建，逻辑见 render/leafHashHighlight.ts
+const { drawLeafHashHighlight: drawLeafHashHighlightImpl } = createLeafHashHighlight({
+  swimDataManager,
+  processExpanded,
+  ctxs,
+  changeNodeColor,
+  drawThreadSeparators,
+  highlightEvent,
+});
+const drawLeafHashHighlight = () => drawLeafHashHighlightImpl(leafHashHighlightSet.value);
+
 const drawMixThreadSeparators = (ctx) => {
   const swimLaneOrder = swimDataManager.getSwimLaneOrder();
   if (swimLaneOrder.length === 0) { return };
@@ -4145,14 +4173,19 @@ const drawSelection = (label, needSendCom, isLock) => {
       }
     }
   });
-}; 
+};
 
 const handleOutline = (label, needTransform = true, needSendCom = true, isLock = false) => {
+  const leafHashActive = leafHashHighlightSet.value.size > 0;
   if (!label) {
     clearSelectionCanvas('data-three-column-process-key');
-    changeNodeColor(props.processKey, false);
-    const { eventCtx } = ctxs[props.processKey];
-    drawThreadSeparators(eventCtx, props.process, props.processKey);
+    if (!leafHashActive) {
+      changeNodeColor(props.processKey, false);
+      const { eventCtx } = ctxs[props.processKey];
+      drawThreadSeparators(eventCtx, props.process, props.processKey);
+    } else {
+      drawLeafHashHighlight();
+    }
     return;
   }
   if (!viewState.canvasCssWidth) {
@@ -4165,7 +4198,11 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
     if (needTransform) {
       transformCanvas(boundRange);
     }
-    drawSelection(label, needSendCom, isLock);
+    if (leafHashActive) {
+      drawLeafHashHighlight();
+    } else {
+      drawSelection(label, needSendCom, isLock);
+    }
     threeRender.enableAnimate();
     threeRender.drawBoundary(boundaries, props.processKey);
     threeRender.animate();
@@ -4193,9 +4230,44 @@ window.ascEventBus.on('activeLock', ({ label }) => {
   handleOutline(label, false, true, true);
   isLockStatus.value = true;
 });
+// 泳道图发出的锁定广播，同步其他泳道实例（携带 opmagic/leafHash, 泳道侧暂不使用）
+window.ascEventBus.on('activeLockFromSwim', ({ label }) => {
+  lockedLabel = label;
+  handleOutline(label, false, true, true);
+  isLockStatus.value = true;
+});
 window.ascEventBus.on('deactivateLock', () => {
   lockedLabel = '';
   isLockStatus.value = false;
+  // 解锁时清除 leafHash 高亮
+  leafHashHighlightSet.value = new Set();
+  drawLeafHashHighlight();
+});
+// 计算图回传 ops：按 hash 高亮匹配 leafHash 的事件，其余置灰
+window.ascEventBus.on('returnOpsFromCom', (data) => {
+  const hash = data?.hash;
+  const ops = data?.ops ?? [];
+  const hashSet = new Set();
+  if (hash != null && hash !== '') {
+    hashSet.add(String(hash));
+  }
+  ops.forEach((op) => {
+    if (op != null && op !== '') {
+      hashSet.add(String(op));
+    }
+  });
+  leafHashHighlightSet.value = hashSet;
+  drawLeafHashHighlight();
+});
+// 计算图回传锁定：按 hash 高亮匹配 leafHash 的事件，其余置灰（label/opMagic/candidate 泳道侧暂不使用）
+window.ascEventBus.on('activeLockFromCom', (data) => {
+  const hash = data?.hash;
+  const hashSet = new Set();
+  if (hash != null && hash !== '') {
+    hashSet.add(String(hash));
+  }
+  leafHashHighlightSet.value = hashSet;
+  drawLeafHashHighlight();
 });
 window.ascEventBus.on('clearSearchEvent', () => {
   let { eventCtx } = ctxs[props.processKey];

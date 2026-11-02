@@ -656,6 +656,16 @@ const updateTheme = () => {
   lockedLabel = targetLabel;
   updateBkDecoration(lockedLabel, true);
 });
+// 泳道图发出的锁定广播（携带 opmagic/leafHash，editor 侧暂不使用）
+(window as any).ascEventBus.on('activeLockFromSwim', ({ label }) => {
+  if (lastMoveLabel !== label) {
+    updateHoverDecorationBySemanticLabel(label);
+  }
+  isLocked.value = true;
+  const targetLabel = labels.find(l => l.name === label);
+  lockedLabel = targetLabel;
+  updateBkDecoration(lockedLabel, true);
+});
 (window as any).ascEventBus.on('deactivateLock', () => {
   deactivateLock();
 });

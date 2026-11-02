@@ -34,6 +34,7 @@ export interface Dependencies {
   tsScale: any;
   isMsProf: any;
   isDeviceView?: any;
+  isThreeColumn?: any;
 }
 
 export function isAicpuHatchEvent(processType: string, event: any, isDeviceView: any): boolean {
@@ -149,10 +150,14 @@ export function getNoZoomX(x: number, viewState: any) {
 }
 
 export function getKernalEventColor(event: any, deps: Dependencies, processKey: string, highlight = false, stroke = true) {
-  const { colorCfg, isDarkTheme, userConfig } = deps;
+  const { colorCfg, isDarkTheme, userConfig, isThreeColumn } = deps;
   const process = swimDataManager.getProcess(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
-  const color = getEventColorByMode(event, userConfig?.value.kernelColorRending || 'subGraph', processType, userConfig?.value.hashOrderRending);
+  // 三栏模式：主着色固定 label， 面板选择的 kernelColorRending 作为无 label 时的回退
+  const selectedMode = userConfig?.value.kernelColorRending || 'subGraph';
+  const renderMode = isThreeColumn?.value ? 'label' : selectedMode;
+  const fallback = isThreeColumn?.value && selectedMode !== 'label' ? selectedMode : '';
+  const color = getEventColorByMode(event, renderMode, processType, userConfig?.value.hashOrderRending, fallback);
   event.color = color;
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
   let fillColor = eventColor ? eventColor.base : '';
@@ -168,11 +173,14 @@ export function getKernalEventColor(event: any, deps: Dependencies, processKey: 
 }
 
 function ensureEventColor(event: any, deps: Dependencies, processType: string): void {
-  const { userConfig, isMsProf } = deps;
+  const { userConfig, isMsProf, isThreeColumn  } = deps;
   if (!event.color?.dark || event.parentEventId) {
     const effectiveProcessType = event.originalThreadName ? 'aicpu' : processType;
-    const colorMode = isMsProf.value ? 'name' : (userConfig?.value.kernelColorRending || 'subGraph');
-    const color = getEventColorByMode(event, colorMode, effectiveProcessType, userConfig?.value.hashOrderRending);
+    const selectedMode = isMsProf.value ? 'name' : (userConfig?.value.kernelColorRending || 'subGraph');
+    // 三栏模式：主着色固定 label， 面板选择的 kernelColorRending 作为无 label 时的回退
+    const renderMode = isThreeColumn?.value ? 'label' : selectedMode;
+    const fallback = isThreeColumn?.value && selectedMode !== 'label' ? selectedMode : '';
+    const color = getEventColorByMode(event, renderMode, effectiveProcessType, userConfig?.value.hashOrderRending, fallback);
     event.color = color;
     swimDataManager.updateEvent(event.id, { color });
   }
@@ -262,6 +270,20 @@ export function getRootHashList(eventHintStr: string) {
   const hashArray = matches.map((match) => match?.groups?.hash).filter((hash) => hash != null);
   return hashArray.join(',');
 }
+
+export function getLeafHashList(eventHintStr: string) {
+  // 添加输入验证
+    if (typeof eventHintStr !== 'string') {
+    return '';
+  }
+
+  // 从 event-hint 中提取 leafHash （取第一个匹配项）
+  const leafHashRegex = /leafHash:(?<hash>\d+)/;
+  const match = eventHintStr.match(leafHashRegex);
+  const leafHash = match?.groups?.hash ?? '';
+  return leafHash;
+}
+
 export function getActiveEventCanvas(processKey: string) {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 }
