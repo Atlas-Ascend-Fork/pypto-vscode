@@ -69,8 +69,12 @@ const findClosestEvent = (events: any[], yLayer: number, isPinnedArea: boolean):
 
 const pickTimeInRange = (event: any, type: 'start' | 'end', lineRange: [number, number]): number | null => {
   const [rangeStart, rangeEnd] = lineRange;
-  const targetTime = type === 'start' ? event.startTime : event.endTime;
-  const otherTime = type === 'start' ? event.endTime : event.startTime;
+  // 统一使用 renderStartTime/renderEndTime（与渲染位置一致），普通事件两者相等,
+  // Fake Core 事件经 layoutFakeCoreEvent 重排后 render 值才反映视觉位置。
+  const evStart = event.renderStartTime ?? event.startTime;
+  const evEnd = event.renderEndTime ?? event.endTime;
+  const targetTime = type === 'start' ? evStart : evEnd;
+  const otherTime = type === 'start' ? evEnd : evStart;
   if (targetTime > rangeStart && targetTime < rangeEnd) {
     return targetTime;
   }
@@ -125,9 +129,11 @@ export const realCoordinateY = (y: number) => {
 };
 
 const isEventInRange = (event: any, lineRangeStart: number, lineRangeEnd: number): boolean => {
+  const evStart = event.renderStartTime ?? event.startTime;
+  const evEnd = event.renderEndTime ?? event.endTime;
   return (
-    (event.startTime > lineRangeStart && event.startTime < lineRangeEnd) ||
-    (event.endTime > lineRangeStart && event.endTime < lineRangeEnd)
+    (evStart > lineRangeStart && evStart < lineRangeEnd) ||
+    (evEnd > lineRangeStart && evEnd < lineRangeEnd)
   );
 };
 
@@ -219,14 +225,40 @@ const findThreadByY = (
   return null;
 };
 
-const pickTimeInThreadRange = (
+/*
+* 在线程内取距离窗口中点最近的事件边界
+* @param onlyInWindow true: 仅收集落入窗口内的边界（精确命中）；false：收集所有边界（最近有兜底）
+* @param maxDist      距离上限，超过则返回 null（不吸附）。Infinity 表示无上限
+*/
+const pickClosestBoundaryInThread = (
   thread: any,
   type: 'start' | 'end',
   lineRange: [number, number],
   swimDataManager: SwimDataManager,
-  isMixMode: boolean
+  isMixMode: boolean,
+  onlyInWindow: boolean,
+  maxDist: number = Infinity
 ): number | null => {
   const [rangeStart, rangeEnd] = lineRange;
+  const windowMid = (rangeStart + rangeEnd) / 2;
+
+  let bestTime: number | null = null;
+  let bestDist = Infinity;
+  let bestIsTarget = false;
+
+  const inWindow = (t: number) => t > rangeStart && t < rangeEnd;
+  const considerTarget = (time: number, isTarget: boolean) => {
+    if (onlyInWindow && !inWindow(time)) {
+      return;
+    }
+    const dist = Math.abs(time - windowMid);
+    if (dist < bestDist || (dist === bestDist && !bestIsTarget && (isTarget || bestTime === null))) {
+      bestDist = dist;
+      bestTime = time;
+      bestIsTarget = isTarget;
+    }
+  };
+
   for (const eventId of thread.eventIds) {
     const event = swimDataManager.getEventById(eventId);
     if (!event) {
@@ -236,17 +268,45 @@ const pickTimeInThreadRange = (
       ? (swimDataManager.getSubEvents(event.id).length > 0 ? swimDataManager.getSubEvents(event.id) : [event])
       : [event];
     for (const candidate of candidates) {
-      const targetTime = type === 'start' ? candidate.startTime : candidate.endTime;
-      const otherTime = type === 'start' ? candidate.endTime : candidate.startTime;
-      if (targetTime > rangeStart && targetTime < rangeEnd) {
-        return targetTime;
-      }
-      if (otherTime > rangeStart && otherTime < rangeEnd) {
-        return otherTime;
-      }
+      const evStart = candidate.renderStartTime ?? candidate.startTime;
+      const evEnd = candidate.renderEndTime ?? candidate.endTime;
+      const targetTime = type === 'start' ? evStart : evEnd;
+      const otherTime = type === 'start' ? evEnd : evStart;
+      considerTarget(targetTime, true);
+      considerTarget(otherTime, false);
     }
   }
-  return null;
+
+  if (bestTime === null || bestDist > maxDist) {
+    return null;
+  }
+  return bestTime;
+};
+
+/** 窗口内精确命中：取落入窗口内距离最近的事件边界 */
+const pickTimeInThreadRange = (
+  thread: any,
+  type: 'start' | 'end',
+  lineRange: [number, number],
+  swimDataManager: SwimDataManager,
+  isMixMode: boolean
+): number | null => {
+  return pickClosestBoundaryInThread(thread, type, lineRange, swimDataManager, isMixMode, true);
+};
+
+/**
+ * 本线程最近边界兜底：不限窗口，取距离窗口中点最近的事件边界，
+ * 但距离超过窗口半宽则不吸附（返回 null），避免大范围跳变。
+ */
+const pickClosestBoundaryInThreadWithLimit = (
+  thread: any,
+  type: 'start' | 'end',
+  lineRange: [number, number],
+  swimDataManager: SwimDataManager,
+  isMixMode: boolean
+): number | null => {
+  const maxDist = (lineRange[1] - lineRange[0]) / 2;
+  return pickClosestBoundaryInThread(thread, type, lineRange, swimDataManager, isMixMode, false, maxDist);
 };
 
 export const measureEventSearch = (options: MeasureEventSearchOptions): number | null => {
@@ -296,6 +356,11 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
         if (threadHitTime !== null) {
           return threadHitTime;
         }
+        // 本线程最近边界兜底，命中即吸附道本线程最近的边界
+        const closestBoundary = pickClosestBoundaryInThreadWithLimit(currentThread, type, lineRange, swimDataManager, isMixMode.value);
+        if (closestBoundary !== null) {
+          return closestBoundary;
+        }
       }
     }
 
@@ -306,9 +371,10 @@ export const measureEventSearch = (options: MeasureEventSearchOptions): number |
   }
 
   if (type === 'end' && isMixMode.value) {
-    matchingEvents = matchingEvents.filter(event =>
-      event.endTime > lineRangeStart && event.endTime < lineRangeEnd
-    );
+    matchingEvents = matchingEvents.filter(event => {
+      const evEnd = event.renderEndTime ?? event.endTime;
+      return evEnd > lineRangeStart && evEnd < lineRangeEnd;
+    });
   }
 
   const crossLaneResult = measureTimeSearch(matchingEvents, lineRange, yLayer, type, isPinnedArea);
