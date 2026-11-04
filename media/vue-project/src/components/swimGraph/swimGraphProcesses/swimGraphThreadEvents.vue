@@ -79,11 +79,7 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, getDevicePixelR
   FAKE_CORE_KEYWORD
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
-<<<<<<< HEAD
-import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getLeafHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
-=======
-import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getLeafHash, getCallOpMagic, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
->>>>>>> 6567b23a (feat0: 计算图基础框架)
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getLeafHashList, getCallOpMagic, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
 import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
@@ -1470,7 +1466,6 @@ const handleHoverEvent = (hoveredEvent) => {
   const eventHintStr = args?.['event-hint'] ?? '';
   const rootHashList = [getRootHashList(eventHintStr)];
   const leafHash = getLeafHashList(eventHintStr);
-  const leafHash = getLeafHash(eventHintStr);
   preLeafHash = leafHash;
   preCallOpMagic = getCallOpMagic(eventHintStr);
   // 使用可选链和空值合并确保安全
@@ -4145,7 +4140,7 @@ const setSelectedData = (boundRange, label, matchLeafHash) => {
         const { color } = args;
         // 四联动：按 leafHash 精确匹配（计算图 op / CALL 节点起点）；否则按 label
         const matched = matchLeafHash
-          ? getLeafHash(args?.['event-hint'] ?? '') === matchLeafHash
+          ? getLeafHashList(args?.['event-hint'] ?? '') === matchLeafHash
           : color === label;
         if (matched && event.threadName && !event.threadName.includes(FAKE_CORE_KEYWORD)) {
           const { x, y, width, height } = event.renderInfo;

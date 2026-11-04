@@ -682,6 +682,7 @@ const updateTheme = () => {
   const targetLabel = labels.find(l => l.name === label);
   lockedLabel = targetLabel;
   updateBkDecoration(lockedLabel, true);
+});
 // 计算图/其它栏锁定 op → py 栏：按 label 锁定 + candidate.py 填入文件下拉 + opMagic 精确 reveal
 (window as any).ascEventBus.on('activeLockFromCom', (args) => {
   if (!args) {
