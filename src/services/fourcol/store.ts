@@ -14,33 +14,54 @@
  */
 import { defineAttributes, SqlStore, Store } from '../../core/store';
 
-// fourcol_cce_opmagic 表：cce_opmagic_map.json，(leafhash, opmagic) → CCE 文件 + 行号
+// fourcol_cce_opmagic 表：cce_opmagic_map.json，(programId, leafhash, opmagic) → CCE 文件 + 行号
 export interface FourcolCceOpmagicItem {
+  /** 数据归属 program（= dataDir 规范化绝对路径，见 ADR 0002） */
+  programId: string;
   leafhash: string;
   opmagic: string;
   cce: string;
   line: number;
 }
 
-// fourcol_cce_label 表：cce_semantic_label.json，(leafhash, label) → CCE 文件 + 行号区间（可含嵌套 [start, end] 范围）
+// fourcol_cce_label 表：cce_semantic_label.json，(programId, leafhash, label) → CCE 文件 + 行号区间（可含嵌套 [start, end] 范围）
 export interface FourcolCceLabelItem {
+  /** 数据归属 program（= dataDir 规范化绝对路径，见 ADR 0002） */
+  programId: string;
   leafhash: string;
   label: string;
   cce: string;
   line: unknown[];
 }
 
-// fourcol_op 表：program.json，(leafhash, opmagic) → py 落点（semantic_label.filename / lineno；op.file 不参与）
+// fourcol_op 表：program.json，(programId, leafhash, opmagic) → py 落点（semantic_label.filename / lineno；op.file 不参与）
 export interface FourcolOpItem {
+  /** 数据归属 program（= dataDir 规范化绝对路径，见 ADR 0002） */
+  programId: string;
   leafhash: string;
   opmagic: string;
   pyFile: string;
   pyBasename: string;
   pyLine: number;
+  /** op 所属子图（program.json operations[].subgraphid，缺省 -1） */
   subgraphid: number;
 }
 
+// fourcol_cce_file 表：全部 CCE 文件清单（kernel_aicore 目录扫描 ∪ JSON 引用）
+export interface FourcolCceFileItem {
+  /** 数据归属 program（= dataDir 规范化绝对路径，见 ADR 0002） */
+  programId: string;
+  fileName: string;
+}
+
+// fourcol_meta 表：加载指纹等元信息
+export interface FourcolMetaItem {
+  key: string;
+  value: string;
+}
+
 const FOURCOL_CCE_OPMAGIC_ATTRIBUTES = defineAttributes<FourcolCceOpmagicItem>({
+  programId: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   leafhash: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   opmagic: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   cce: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
@@ -48,6 +69,7 @@ const FOURCOL_CCE_OPMAGIC_ATTRIBUTES = defineAttributes<FourcolCceOpmagicItem>({
 });
 
 const FOURCOL_CCE_LABEL_ATTRIBUTES = defineAttributes<FourcolCceLabelItem>({
+  programId: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   leafhash: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   label: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   cce: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
@@ -55,6 +77,7 @@ const FOURCOL_CCE_LABEL_ATTRIBUTES = defineAttributes<FourcolCceLabelItem>({
 });
 
 const FOURCOL_OP_ATTRIBUTES = defineAttributes<FourcolOpItem>({
+  programId: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   leafhash: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   opmagic: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
   pyFile: { type: String },
@@ -63,27 +86,54 @@ const FOURCOL_OP_ATTRIBUTES = defineAttributes<FourcolOpItem>({
   subgraphid: { type: Number, defaultValue: -1 },
 });
 
-let cceOpmagicStore: Store<FourcolCceOpmagicItem, 'leafhash' | 'opmagic' | 'cce' | 'line'>;
-let cceLabelStore: Store<FourcolCceLabelItem, 'leafhash' | 'label' | 'cce'>;
-let opStore: Store<FourcolOpItem, 'leafhash' | 'opmagic' | 'pyBasename' | 'pyLine'>;
+const FOURCOL_CCE_FILE_ATTRIBUTES = defineAttributes<FourcolCceFileItem>({
+  programId: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
+  fileName: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
+});
 
-export function getFourcolCceOpmagicStore(): Store<FourcolCceOpmagicItem, 'leafhash' | 'opmagic' | 'cce' | 'line'> {
+const FOURCOL_META_ATTRIBUTES = defineAttributes<FourcolMetaItem>({
+  key: { type: String, isQuery: true, isPrimary: true, defaultValue: '' },
+  value: { type: String, isQuery: true },
+});
+
+let cceOpmagicStore: Store<FourcolCceOpmagicItem, 'programId' | 'leafhash' | 'opmagic' | 'cce' | 'line'>;
+let cceLabelStore: Store<FourcolCceLabelItem, 'programId' | 'leafhash' | 'label' | 'cce'>;
+let opStore: Store<FourcolOpItem, 'programId' | 'leafhash' | 'opmagic' | 'pyBasename' | 'pyLine'>;
+
+export function getFourcolCceOpmagicStore(): Store<FourcolCceOpmagicItem, 'programId' | 'leafhash' | 'opmagic' | 'cce' | 'line'> {
   if (!cceOpmagicStore) {
     cceOpmagicStore = new SqlStore('fourcol_cce_opmagic', FOURCOL_CCE_OPMAGIC_ATTRIBUTES);
   }
   return cceOpmagicStore;
 }
 
-export function getFourcolCceLabelStore(): Store<FourcolCceLabelItem, 'leafhash' | 'label' | 'cce'> {
+export function getFourcolCceLabelStore(): Store<FourcolCceLabelItem, 'programId' | 'leafhash' | 'label' | 'cce'> {
   if (!cceLabelStore) {
     cceLabelStore = new SqlStore('fourcol_cce_label', FOURCOL_CCE_LABEL_ATTRIBUTES);
   }
   return cceLabelStore;
 }
 
-export function getFourcolOpStore(): Store<FourcolOpItem, 'leafhash' | 'opmagic' | 'pyBasename' | 'pyLine'> {
+export function getFourcolOpStore(): Store<FourcolOpItem, 'programId' | 'leafhash' | 'opmagic' | 'pyBasename' | 'pyLine'> {
   if (!opStore) {
     opStore = new SqlStore('fourcol_op', FOURCOL_OP_ATTRIBUTES);
   }
   return opStore;
+}
+
+let cceFileStore: Store<FourcolCceFileItem, 'programId' | 'fileName'>;
+let metaStore: Store<FourcolMetaItem, 'key'>;
+
+export function getFourcolCceFileStore(): Store<FourcolCceFileItem, 'programId' | 'fileName'> {
+  if (!cceFileStore) {
+    cceFileStore = new SqlStore('fourcol_cce_file', FOURCOL_CCE_FILE_ATTRIBUTES);
+  }
+  return cceFileStore;
+}
+
+export function getFourcolMetaStore(): Store<FourcolMetaItem, 'key'> {
+  if (!metaStore) {
+    metaStore = new SqlStore('fourcol_meta', FOURCOL_META_ATTRIBUTES);
+  }
+  return metaStore;
 }

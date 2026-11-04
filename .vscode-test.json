@@ -10,5 +10,17 @@
     "mocha": {
       "timeout": 20000
     }
+  },
+  {
+    "label": "fourcol",
+    "files": "dist/test/fourcol/**/*.test.js",
+    "launchArgs": [
+      "--disable-extensions",
+      "--disable-updates",
+      "--disable-telemetry"
+    ],
+    "mocha": {
+      "timeout": 300000
+    }
   }
 ]

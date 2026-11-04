@@ -171,7 +171,10 @@ export type IThreeApis =
   | 'resolveOpsFromLeaf'
   | 'getCceLabels'
   | 'resolveActiveLock'
-  | 'stepOp';
+  | 'stepOp'
+  | 'getOpsByPyInfo'
+  | 'getPyLocationByOps'
+  | 'getPyFileList';
 export type IThreeRefs = {
   InitFlag: unknown;
   SetThreeColumnMode: unknown;
@@ -181,6 +184,8 @@ export type IThreeRefs = {
   PyCode: unknown;
   PyOpmagicMap: unknown;
   GraphSelection: unknown;
+  FourcolLoaded: unknown;
+  FourcolLoadError: unknown;
   FileExistenceResult: unknown;
   CceCode: unknown;
   CceFileList: unknown;
