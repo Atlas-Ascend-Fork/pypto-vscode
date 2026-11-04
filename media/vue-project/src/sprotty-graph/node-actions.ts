@@ -186,6 +186,11 @@ export function useNodeActions(ctx: SprottyContext) {
       return;
     }
     (window as any).ascEventBus.emit('jump2SiblingNode', newNodeId);
+    // 四栏联动：按相邻 op 跳转并联动（stepOp → activeLockFromCom）
+    const opMagicMatch = selectedNodeId?.match(/operation-magic-(\d+)/);
+    if (opMagicMatch) {
+      (window as any).ascEventBus.emit('stepComOp', { opMagic: Number(opMagicMatch[1]), direction: buttonPos === 'left' ? -1 : 1 });
+    }
   };
 
   const searchModeOpenListener = (nodeMagic: number) => {

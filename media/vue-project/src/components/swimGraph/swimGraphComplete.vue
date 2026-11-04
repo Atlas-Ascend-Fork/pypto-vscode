@@ -239,8 +239,13 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  filePaths: {type: Object, default: {}}
+  filePaths: {type: Object, default: {}},
+  graphType: {type: String, default: ''},
 });
+
+// 模板为多根节点（主容器 + global-message），关闭自动属性透传以避免
+// "Extraneous non-props attributes" 警告；节点高度由根 div 自身 style 控制
+defineOptions({ inheritAttrs: false });
 
 const { isDarkTheme } = inject('root');
 const threeColumnCtx = inject(ThreeColumnProvideKey, undefined);

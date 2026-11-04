@@ -64,6 +64,82 @@ const iconPath = computed(() => `${(window as any).staticPath}/static-assets/noF
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
 let lastCode = '';
 
+const FUNC_HASH_RE = /\/\/\s*funcHash:\s*(\d+)/;
+const OP_MAGIC_RE = /\[opMagic:\s*(\d+)\]/;
+let currentFuncHash = '';
+// 当前文件 opMagic → 行号列表索引（文件加载时一次性建立）
+let opMagicLineIndex = new Map<number, number[]>();
+// 当前文件的 label 块（getCceLabels 反查结果），hover 时按行区间命中
+let cceLabelBlocks: Array<{ label: string; lines: number[] }> = [];
+let lastHoverLine = 0;
+let opHighlightDecorations: monaco.editor.IEditorDecorationsCollection | null = null;
+
+const extractOpMagic = (lineContent: string): number | undefined => {
+  const m = lineContent.match(OP_MAGIC_RE);
+  return m ? Number(m[1]) : undefined;
+};
+
+const buildOpMagicLineIndex = (code: string) => {
+  opMagicLineIndex = new Map();
+  code.split('\n').forEach((lineText, idx) => {
+    const opMagic = extractOpMagic(lineText);
+    if (opMagic != null) {
+      const lines = opMagicLineIndex.get(opMagic);
+      if (lines) {
+        lines.push(idx + 1);
+      } else {
+        opMagicLineIndex.set(opMagic, [idx + 1]);
+      }
+    }
+  });
+};
+
+const findLabelByLine = (line: number): string =>
+  cceLabelBlocks.find((block) => block.lines.includes(line))?.label ?? '';
+
+const refreshCceLabelBlocks = () => {
+  if (!currentPath.value) {
+    cceLabelBlocks = [];
+    return;
+  }
+  Promise.resolve(threeColumnServer.getCceLabels?.({ fileName: currentPath.value }))
+    .then((res) => {
+      cceLabelBlocks = res?.labels ?? [];
+    })
+    .catch(() => {
+      cceLabelBlocks = [];
+    });
+};
+
+// 计算图 op 悬停（source:'com'）→ CCE 行高亮（不切文件、不动视图）
+const applyOpsHighlight = (hash: string, ops: number[]) => {
+  if (!editor) {
+    return;
+  }
+  if (!hash || !ops?.length || hash !== currentFuncHash) {
+    opHighlightDecorations?.clear();
+    return;
+  }
+  const lines = ops.flatMap((opMagic) => opMagicLineIndex.get(opMagic) ?? []);
+  if (!lines.length) {
+    opHighlightDecorations?.clear();
+    return;
+  }
+  opHighlightDecorations?.set(
+    Array.from(new Set(lines)).map((line) => ({
+      range: new monaco.Range(line, 1, line, 1),
+      options: {
+        isWholeLine: true,
+        className: 'cce-op-hover-highlight',
+      },
+    })),
+  );
+};
+
+const sendMsg = (command: string, param: unknown) => {
+  (window as any).ascEventBus.emit(command, param);
+};
+
 const createEditor = (code: string) => {
   if (!containerRef.value || editor) {
     return;
@@ -86,6 +162,47 @@ const createEditor = (code: string) => {
     stickyScroll: {
       enabled: false,
     },
+  });
+  setupCceInteraction();
+};
+
+const setupCceInteraction = () => {
+  if (!editor) {
+    return;
+  }
+  opHighlightDecorations = editor.createDecorationsCollection();
+  editor.onMouseMove((e) => {
+    const line = e.target?.position?.lineNumber;
+    if (!line || line === lastHoverLine) {
+      return;
+    }
+    lastHoverLine = line;
+    const text = editor!.getModel()?.getLineContent(line) ?? '';
+    const opMagic = extractOpMagic(text);
+    if (opMagic != null && currentFuncHash) {
+      sendMsg('returnOpFromCce', { opmagic: opMagic, hash: currentFuncHash });
+    } else {
+      sendMsg('returnOpFromCce', { opmagic: 0, hash: '' });
+    }
+    // label 反查：按行区间命中真实 label（R11 通道），空串表示离开 label 块
+    const label = findLabelByLine(line);
+    sendMsg('returnSemanticLabelFromCce', { label });
+  });
+  editor.onMouseLeave(() => {
+    lastHoverLine = 0;
+    sendMsg('returnOpFromCce', { opmagic: 0, hash: '' });
+    sendMsg('returnSemanticLabelFromCce', { label: '' });
+  });
+  editor.onMouseDown((e) => {
+    const line = e.target?.position?.lineNumber;
+    if (!line) {
+      return;
+    }
+    const text = editor!.getModel()?.getLineContent(line) ?? '';
+    const opMagic = extractOpMagic(text);
+    if (opMagic != null && currentFuncHash) {
+      sendMsg('activeLockFromCce', { label: findLabelByLine(line), opmagic: opMagic, hash: currentFuncHash });
+    }
   });
 };
 
@@ -118,12 +235,37 @@ watch(
     lastCode = data.code ?? '';
     fileName.value = data.fileName ?? '';
     currentPath.value = data.filePath ?? '';
+    currentFuncHash = FUNC_HASH_RE.exec(lastCode)?.[1] ?? '';
+    buildOpMagicLineIndex(lastCode);
+    refreshCceLabelBlocks();
+    opHighlightDecorations?.clear();
     if (editor) {
       editor.setValue(lastCode);
     }
   },
   { immediate: true },
 );
+
+// 计算图/其它栏锁定 → CCE 栏切到 candidate.cce
+(window as any).ascEventBus.on('activeLockFromCom', (args) => {
+  const ccePaths: string[] = args?.candidate?.cce ?? [];
+  if (!ccePaths.length) {
+    return;
+  }
+  const name = ccePaths[0].split(/[\/\\]/).pop();
+  if (name) {
+    threeColumnServer.getCceCode({ paramObj: { fileName: name } });
+  }
+});
+
+// 计算图 op 悬停(source:'com') / py 行悬停(source:'py') → CCE 行高亮；其它来源/空 ops 清除
+(window as any).ascEventBus.on('returnOpsFromCom', (args) => {
+  if (args?.source === 'com' || args?.source === 'py') {
+    applyOpsHighlight(args.hash, args.ops ?? []);
+  } else {
+    opHighlightDecorations?.clear();
+  }
+});
 
 watch(isDarkTheme, () => {
   monaco.editor.setTheme(isDarkTheme.value ? 'vs-dark' : 'vs');
@@ -134,6 +276,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  (window as any).ascEventBus.remove('activeLockFromCom');
+  (window as any).ascEventBus.remove('returnOpsFromCom');
   editor?.dispose();
   editor = null;
 });
@@ -166,5 +310,11 @@ onBeforeUnmount(() => {
 .cce-container {
   flex: 1;
   min-height: 0;
+}
+</style>
+
+<style lang="scss">
+.cce-op-hover-highlight {
+  background-color: rgba(56, 132, 255, 0.25);
 }
 </style>

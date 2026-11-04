@@ -98,6 +98,7 @@ import { findNodeIdsBySemanticLabel } from '../../utils/search';
 import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
 import type { DrillDownPathItem } from './type';
 import { GraphType } from './type';
+import { useFourColumnGraphLinkage, type OpSelection } from './hooks/use-four-column-graph-linkage';
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t } = useI18n();
@@ -217,6 +218,12 @@ function onMessageFromSwim(args) {
   } else {
     removeSelectNodesRect?.();
   }
+  // 四联动：泳道 task 悬停带 leafHash → 该 leaf 全部 opmagic 回发 py 栏（按行渐变）
+  if (args.leafHash) {
+    void emitOpsFromLeaf('swim', args.leafHash, []);
+  } else {
+    (window as any).ascEventBus.emit('returnOpsFromCom', { source: 'swim', hash: '', ops: [] });
+  }
   sendlist = args.rootHashList;
   if (args.rootHashList?.length) {
     if (comGraphStore.data.curPath.length) {
@@ -243,6 +250,11 @@ function onMessageFromSwim(args) {
     createSelectNodesRect?.(args.semanticLabel, false);
     (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: args.semanticLabel, rootHash: rootHash.value });
   }
+  // 四联动：op 节点悬停 → py/CCE 栏按 (leafHash, opmagic) 描边
+  const opMagic = extractOpMagic(args.nodeId);
+  if (opMagic != null && rootHash.value) {
+    void emitOpsFromLeaf('com', rootHash.value, [opMagic]);
+  }
 });
 (window as any).ascEventBus.on('rect_node_leave', () => {
   if (comGraphStore.data.isNodeRectLock) {
@@ -250,15 +262,44 @@ function onMessageFromSwim(args) {
   }
   removeSelectNodesRect?.();
   (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: '' });
+  (window as any).ascEventBus.emit('returnOpsFromCom', { source: 'com', hash: '', ops: [] });
 });
 
+// CCE 行悬停 → 图内精确选中该 op 节点（描边，不 zoom）
+(window as any).ascEventBus.on('returnOpFromCce', (args) => {
+  const opMagic = args?.opmagic;
+  const leafHash = args?.hash;
+  if (opMagic == null || !leafHash || rootHash.value !== leafHash) {
+    return;
+  }
+  const jsonData = comGraphStore.data.jsonData as any;
+  const op = (jsonData?.operations ?? []).find((o: any) => String(o.opmagic) === String(opMagic));
+  if (!op) {
+    return;
+  }
+  const subgraphid = op.subgraphid !== undefined ? op.subgraphid : -1;
+  const nodeId = `operation-magic-${opMagic}-${subgraphid}`;
+  selectAction?.([nodeId]);
+  centerNodeAction?.([nodeId], true, true);
+});
+
+// leafHash → 该 leaf 的 opmagic 列表（悬停时返回全部；带指定 ops 时原样透传）
+async function emitOpsFromLeaf(source: string, leafHash: string, ops: number[]) {
+  if (!leafHash) {
+    (window as any).ascEventBus.emit('returnOpsFromCom', { source, hash: '', ops: [] });
+    return;
+  }
+  if (ops.length) {
+    (window as any).ascEventBus.emit('returnOpsFromCom', { source, hash: leafHash, ops });
+    return;
+  }
+  const res = await threeColumnServer.resolveOpsFromLeaf?.({ leafHash }).catch(() => null);
+  const leafOps: number[] = res?.ops ?? [];
+  (window as any).ascEventBus.emit('returnOpsFromCom', { source, hash: leafHash, ops: leafOps });
+}
+
 (window as any).ascEventBus.on('activeLock', (args) => {
-  prevent = true;
-  currentLockLabel = args.label;
-  comGraphStore.data.isNodeRectLock = true;
-  drillDownPathIcon.disableBack = true;
-  createSelectNodesRect?.(args.label, true);
-  hoverFeedbackAction?.();
+  lockGraphByLabel(args.label);
 });
 (window as any).ascEventBus.on('sendHashList', (args) => {
   generateHashList(args.rootHashList ?? []);
@@ -395,6 +436,106 @@ const handleHashChange = (val) => {
 const onHashChange = (val) => {
   server.innerGetSubgraph({ paramObj: { calleehash: val.value, subFuncmagicname: val.name } });
 };
+
+const extractOpMagic = (nodeId?: string): number | undefined => {
+  if (!nodeId) {
+    return undefined;
+  }
+  const m = nodeId.match(/operation-magic-(\d+)/);
+  return m ? Number(m[1]) : undefined;
+};
+
+/**
+ * 当前渲染子图的 hash。
+ * 不能直接用 comGraphStore.data.curPath 下标：GraphData.curPath 是 JSON 字符串，
+ * 字符串按下标取会得到最后一个字符（曾导致点击计算图节点拿不到 leafHash、联动全失效）。
+ */
+function currentGraphHash(): string {
+  const graph = (comGraphStore.data.jsonData ?? {}) as any;
+  if (graph.hash != null) {
+    return String(graph.hash);
+  }
+  const raw = comGraphStore.data.curPath;
+  let list: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      list = JSON.parse(raw || '[]');
+    } catch {
+      list = [];
+    }
+  }
+  const last = Array.isArray(list) && list.length ? list[list.length - 1] : rootHash.value;
+  return last != null ? String(last) : '';
+}
+
+let pendingSelection: { nodeId: string; label: string | null; lock: boolean } | null = null;
+
+/**
+ * 进入锁定态。isNodeRectLock 是图内所有锁定判断的唯一开关
+ * （rect_node_hover / rect_node_leave / onMessageFromSwim 都靠它跳过悬停覆盖），
+ * 不置位的话任何一次悬停都会把选中冲掉，表现为「点了没锁住」。
+ */
+function lockGraphByLabel(label: string) {
+  prevent = true;
+  currentLockLabel = label;
+  comGraphStore.data.isNodeRectLock = true;
+  drillDownPathIcon.disableBack = true;
+  // 不做 if (label) 短路：createSelectNodesRect('') 内部会走 removeSelectNodesRect()，
+  // 这是 activeLock 空 label（如 onLockClick 的 selectedNodeSemanticLabel 为 ''）时的原有清框语义
+  createSelectNodesRect?.(label, true);
+  hoverFeedbackAction?.();
+}
+
+// 下钻渲染完成后执行精确选中（layoutEnding 触发）
+function flushPendingSelection() {
+  if (!pendingSelection) {
+    return;
+  }
+  const { nodeId, label, lock } = pendingSelection;
+  pendingSelection = null;
+  centerNodeAction?.([nodeId]);
+  selectAction?.([nodeId]);
+  if (lock) {
+    lockGraphByLabel(label ?? '');
+  } else if (label) {
+    createSelectNodesRect?.(label, false);
+  }
+}
+
+// 代码行 → 计算图：反查 op 落点后下钻（如需要）+ 精确选中；stable（点击）时进入锁定态
+function applyOpsSelection(ops: OpSelection[], opts: { stable: boolean; label?: string }) {
+  if (!ops.length) {
+    // label 兜底：点击 label 块内非 op 行（整块首行/中间行）→ 按 label 框选并锁定
+    if (opts.stable && opts.label) {
+      lockGraphByLabel(opts.label);
+      return;
+    }
+    if (!opts.stable) {
+      removeSelectNodesRect?.();
+      selectAction?.([]);
+    }
+    return;
+  }
+  const first = ops[0];
+  const nodeId = `operation-magic-${first.opmagic}-${first.subgraphid}`;
+  const lockLabel = first.label ?? opts.label ?? '';
+  if (rootHash.value === first.leafHash && centerNodeAction && selectAction) {
+    centerNodeAction([nodeId]);
+    selectAction([nodeId]);
+    if (opts.stable) {
+      lockGraphByLabel(lockLabel);
+    } else if (lockLabel) {
+      createSelectNodesRect?.(lockLabel, false);
+    }
+    return;
+  }
+  pendingSelection = { nodeId, label: lockLabel || null, lock: opts.stable };
+  const name = (comGraphStore.data.calleeMap?.[first.leafHash]?.func_magicname ?? first.leafHash).replace(/^TENSOR_/i, '');
+  rootHash.value = first.leafHash;
+  onHashChange({ value: first.leafHash, name });
+}
+
+const { emitComLock, stepOp } = useFourColumnGraphLinkage({ applyOpsSelection });
 
 const onLocate = (id) => {
   centerNodeAction?.([id]);
@@ -539,12 +680,37 @@ onMounted(() => {
       const container = document.querySelector('.simple-com-graph-container');
       containerHeight.value = container.getBoundingClientRect().height;
       showNodeDetail.value = true;
+    } else {
+      // op 节点点击 → activeLockFromCom（四联动点击锁定）
+      const opMagic = extractOpMagic(node.id);
+      if (opMagic == null) {
+        return;
+      }
+      // 注意：curPath 可能是 JSON 字符串（GraphData.curPath 为 string），不能再按下标取
+      const graph = (comGraphStore.data.jsonData ?? {}) as any;
+      const graphHash = graph.hash != null ? String(graph.hash) : '';
+      const op = (graph.operations ?? []).find((o: any) => String(o.opmagic) === String(opMagic));
+      // ROOT 层 CALL 节点：联动目标是它调用的 leaf（服务端取该 leaf 首个 op）
+      const calleeHash = op?.calleehash != null ? String(op.calleehash) : '';
+      if (calleeHash) {
+        void emitComLock(calleeHash);
+      } else if (graphHash) {
+        void emitComLock(graphHash, opMagic);
+      }
+    }
+  });
+  // 上一/下一 op 切换（由菜单/快捷键触发 stepComOp {leafHash?, opMagic, direction}）
+  (window as any).ascEventBus.on('stepComOp', (args) => {
+    const leafHash = args?.leafHash ?? currentGraphHash();
+    if (leafHash && args?.opMagic != null && (args.direction === 1 || args.direction === -1)) {
+      void stepOp(leafHash, args.opMagic, args.direction);
     }
   });
   (window as any).ascEventBus.on('layoutEnding', (args) => {
     isLoading.value = false;
     loadingText.value = '';
     showGuideAnchor.value = true;
+    flushPendingSelection();
   });
   if (props.loadingStep === 'readJson' || props.loadingStep === 'convertData') {
     isLoading.value = true;

@@ -79,7 +79,11 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, getDevicePixelR
   FAKE_CORE_KEYWORD
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
+<<<<<<< HEAD
 import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getLeafHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
+=======
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getLeafHash, getCallOpMagic, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
+>>>>>>> 6567b23a (feat0: 计算图基础框架)
 import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
@@ -106,6 +110,8 @@ let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
 let preLabel = '';
+let preLeafHash = '';
+let preCallOpMagic = '';
 let lockedLabel = '';
 let drawColorDatas = {};
 let isHoverLockStatus = ref(false);
@@ -1464,6 +1470,9 @@ const handleHoverEvent = (hoveredEvent) => {
   const eventHintStr = args?.['event-hint'] ?? '';
   const rootHashList = [getRootHashList(eventHintStr)];
   const leafHash = getLeafHashList(eventHintStr);
+  const leafHash = getLeafHash(eventHintStr);
+  preLeafHash = leafHash;
+  preCallOpMagic = getCallOpMagic(eventHintStr);
   // 使用可选链和空值合并确保安全
   if (hoveredEvent.threadName && !hoveredEvent.threadName.includes(FAKE_CORE_KEYWORD) && shouldUpdateOutline(color)) {
     handleOutline(color, false);
@@ -1679,6 +1688,9 @@ const lockClick = (e) => {
   isLockStatus.value = true;
   // 收集锁定 label 下首个事件的 leafHash （opmaic 泳道侧不填，由计算图侧填充）
   let leafHash = '';
+  sendMsg('activeLock', { label: preLabel });
+  // callOpMagic（ROOT 层 CALL 节点）是 task→计算图的精确 key；leafHash 兜底
+  sendMsg('activeLockFromSwim', { label: preLabel, leafHash: preLeafHash, opmagic: preCallOpMagic ? Number(preCallOpMagic) : undefined });
   let rootHashArray = [];
   swimDataManager.getAllProcesses().forEach((process, processKey) => {
     if (!processExpanded.get(processKey)) {
@@ -4112,7 +4124,7 @@ const focusWrap = (wrapId, pathLocked = false) => {
   transformWrap({ minX, maxX, startT: wrapContainer.minStartTime, endT: wrapContainer.maxEndTime, minY, targetWidth: viewState.canvasCssWidth * 0.95 });
 };
 
-const setSelectedData = (boundRange, label) => {
+const setSelectedData = (boundRange, label, matchLeafHash) => {
   points = [];
   drawColorDatas = {};
   swimDataManager.getAllProcesses().forEach((process, processKey) => {
@@ -4131,7 +4143,11 @@ const setSelectedData = (boundRange, label) => {
       events.forEach((event, eventKey) => {
         const { args } = event;
         const { color } = args;
-        if (color === label && event.threadName && !event.threadName.includes(FAKE_CORE_KEYWORD)) {
+        // 四联动：按 leafHash 精确匹配（计算图 op / CALL 节点起点）；否则按 label
+        const matched = matchLeafHash
+          ? getLeafHash(args?.['event-hint'] ?? '') === matchLeafHash
+          : color === label;
+        if (matched && event.threadName && !event.threadName.includes(FAKE_CORE_KEYWORD)) {
           const { x, y, width, height } = event.renderInfo;
           boundRange.minX = Math.min(boundRange.minX, x);
           boundRange.maxX = Math.max(boundRange.maxX, x + width);
@@ -4223,8 +4239,52 @@ const handleOutline = (label, needTransform = true, needSendCom = true, isLock =
     }
   }
 };
+
+/**
+ * 四联动：按 leafHash 圈选该 leaf 的全部 task（计算图 op / CALL 节点起点）。
+ * 不回发任何消息（避免与计算图互发形成环路），仅本地描边 + zoom-to-fit。
+ */
+const handleOutlineByLeafHash = (leafHash, needTransform = true) => {
+  if (!leafHash || leafHash === '0') {
+    return;
+  }
+  if (!viewState.canvasCssWidth) {
+    return;
+  }
+  const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
+  setSelectedData(boundRange, '', leafHash);
+  boundaries = calcRowBoundaries(points);
+  if (!boundaries.length) {
+    clearSelectionCanvas('data-three-column-process-key');
+    return;
+  }
+  if (needTransform) {
+    transformCanvas(boundRange);
+  }
+  drawSelection('', false, false);
+  threeRender.enableAnimate();
+  threeRender.drawBoundary(boundaries, props.processKey);
+  threeRender.animate();
+  toggleLock();
+};
 window.ascEventBus.on('returnSemanticLabelFromCode', ({ label }) => { handleOutline(label) });
 window.ascEventBus.on('returnSemanticLabelFromCom', ({ label }) => { handleOutline(label, true, false) });
+// 四联动：计算图点击 op / CALL 节点 → 按 leafHash 圈选该 leaf 的全部 task（不回发消息，避免环路）
+window.ascEventBus.on('activeLockFromCom', ({ hash, leafHash }) => {
+  if (isLockStatus.value) {
+    return;
+  }
+  const targetLeafHash = leafHash ?? hash;
+  if (targetLeafHash) {
+    handleOutlineByLeafHash(String(targetLeafHash), true);
+  }
+});
+// 计算图悬停离开（returnOpsFromCom 空 ops）→ 清除 leaf 圈选
+window.ascEventBus.on('returnOpsFromCom', ({ source, ops }) => {
+  if (source === 'com' && !isLockStatus.value && (!ops || !ops.length)) {
+    handleOutline('');
+  }
+});
 window.ascEventBus.on('activeLock', ({ label }) => {
   lockedLabel = label;
   handleOutline(label, false, true, true);

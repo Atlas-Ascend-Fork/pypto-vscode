@@ -146,7 +146,7 @@ export abstract class GraphData {
         func_magicname: funcItem.func_magicname || null,
         graphtype: funcItem.graphtype ?? null,
       };
-      if (findExecFunc && funcItem.graphtype?.toString() === '2' && funcItem.semantic_label?.[0] !== '') {
+      if (findExecFunc && funcItem.graphtype?.toString() === '2' && (funcItem.operations?.length ?? 0) > 0) {
         this.firstExecFuncHash = hash;
         findExecFunc = false;
       }

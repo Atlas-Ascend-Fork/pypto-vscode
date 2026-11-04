@@ -96,7 +96,7 @@ export interface FileSelectItem {
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 const { currentActiveBlock, BlockToGraphMap } = inject(ThreeColumnProvideKey) as IThreeColumnCtx;
 const { baseChoose } = inject('runDataList');
-const swimGraphState = inject(SwimGraphStateKey) as ISwimGraphState | undefined;
+const swimGraphState = inject(SwimGraphStateKey, undefined) as ISwimGraphState | undefined;
 
 const props = defineProps({
   fileName: { type: String, default: '' },

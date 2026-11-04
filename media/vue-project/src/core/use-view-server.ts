@@ -26,16 +26,26 @@ import type {
 import { deepToRaw } from '@/utils/reactive';
 
 import { ExtensionConnector } from './connector';
-import { getQuery } from './query';
 
 /**
  * 视图服务配置
+ * @description 必须同步初始化：extension 注入 HTML 时 _server 已可用。
+ * 若异步初始化（如 getQuery().then），HMR/模块重载期间会短暂为 undefined，
+ * 导致 watch(server.Xxx) 拿到 undefined 而抛 "Invalid watch source"。
  */
-let serverConfig: ViewServerConfig;
+const serverConfig: ViewServerConfig | undefined = (window.extensionQuery as { _server?: ViewServerConfig } | undefined)?._server;
 
-getQuery().then(({ _server }) => {
-  serverConfig = _server;
-});
+/** 配置缺失时兜底的空 ref，避免 watch 源为 undefined 导致组件 setup 崩溃 */
+const emptyServerRefs = new Map<string, Readonly<Ref>>();
+
+function getFallbackRef(key: string): Readonly<Ref> {
+  let fallback = emptyServerRefs.get(key);
+  if (!fallback) {
+    fallback = readonly(ref(undefined));
+    emptyServerRefs.set(key, fallback);
+  }
+  return fallback;
+}
 
 /** 转为异步函数 */
 type Async<T extends (...args: any[]) => any> = ReturnType<T> extends Promise<unknown>
@@ -60,9 +70,11 @@ export function useViewServer<ServerInstance extends ViewServer<never, {}> = Vie
           return getViewServerApi(p);
         } else if (serverConfig?.refs.includes(p)) {
           return getViewServerRef(p);
-        } else {
+        } else if (serverConfig) {
           return undefined;
         }
+        // 配置尚未就绪（异常场景）时返回稳定空 ref，保证 watch 源合法
+        return getFallbackRef(p);
       },
     },
   );

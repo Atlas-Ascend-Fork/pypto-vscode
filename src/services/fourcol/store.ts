@@ -37,6 +37,7 @@ export interface FourcolOpItem {
   pyFile: string;
   pyBasename: string;
   pyLine: number;
+  subgraphid: number;
 }
 
 const FOURCOL_CCE_OPMAGIC_ATTRIBUTES = defineAttributes<FourcolCceOpmagicItem>({
@@ -59,6 +60,7 @@ const FOURCOL_OP_ATTRIBUTES = defineAttributes<FourcolOpItem>({
   pyFile: { type: String },
   pyBasename: { type: String, isQuery: true },
   pyLine: { type: Number, isQuery: true },
+  subgraphid: { type: Number, defaultValue: -1 },
 });
 
 let cceOpmagicStore: Store<FourcolCceOpmagicItem, 'leafhash' | 'opmagic' | 'cce' | 'line'>;

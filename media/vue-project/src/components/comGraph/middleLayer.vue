@@ -186,14 +186,8 @@ function setupComWatchers(server: any) {
     jsonContent.value = newValue.data;
     shouldUpdateComGraphHashList.value = false;
   });
-  watch(server.InitData, (newValue) => {
-    pushState({
-      fsPath: newValue.fsPath,
-      funcHash: newValue.funcHash,
-      magicName: newValue.magicName,
-      pathName: newValue.pathName,
-    });
-  });
+  // 注：原 watch(server.InitData) 已移除 —— 服务端从未声明/推送该 ref，
+  // watch 源恒为 undefined（Vue: Invalid watch source），且其 body 从未执行。
 }
 
 function setupThreeWatchers(server: any) {

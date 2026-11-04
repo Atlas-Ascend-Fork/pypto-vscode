@@ -163,7 +163,15 @@ export type IThreeApis =
   | 'selectFile'
   | 'selectRunData'
   | 'singleSelectFile'
-  | 'fetchVscodeState';
+  | 'fetchVscodeState'
+  | 'getPyOpmagicMap'
+  | 'resolveFromCce'
+  | 'resolveFromPyLine'
+  | 'resolveOpsFromPyLine'
+  | 'resolveOpsFromLeaf'
+  | 'getCceLabels'
+  | 'resolveActiveLock'
+  | 'stepOp';
 export type IThreeRefs = {
   InitFlag: unknown;
   SetThreeColumnMode: unknown;
@@ -171,6 +179,8 @@ export type IThreeRefs = {
   FuncHashFileList: unknown;
   CompleteData: unknown;
   PyCode: unknown;
+  PyOpmagicMap: unknown;
+  GraphSelection: unknown;
   FileExistenceResult: unknown;
   CceCode: unknown;
   CceFileList: unknown;

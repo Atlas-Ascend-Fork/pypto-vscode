@@ -284,6 +284,21 @@ export function getLeafHashList(eventHintStr: string) {
   return leafHash;
 }
 
+export function getLeafHash(eventHintStr: string): string {
+  if (typeof eventHintStr !== 'string') {
+    return '';
+  }
+  const m = eventHintStr.match(/leafHash:(?<hash>\d+)/);
+  return m?.groups?.hash ?? '';
+}
+
+export function getCallOpMagic(eventHintStr: string): string {
+  if (typeof eventHintStr !== 'string') {
+    return '';
+  }
+  const m = eventHintStr.match(/callOpMagic:(?<magic>\d+)/);
+  return m?.groups?.magic ?? '';
+}
 export function getActiveEventCanvas(processKey: string) {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 }

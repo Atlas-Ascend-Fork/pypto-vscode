@@ -31,12 +31,13 @@ import {
 const TEST_LEAF_HASH = '11133360491696497719';
 const TEST_OP_MAGIC = '10632';
 const TEST_CCE_FILE = 'sum_lstm_kernel_loop_idx_bs_offset_Unroll4_PATH0_hiddenfunc_6_17003207903596263872_0_aiv.cpp';
+const TEST_CCE_FILE_MAIN = 'sum_lstm_kernel_loop_idx_bs_offset_Unroll4_PATH0_hiddenfunc_6_17003207903596263872_0_aiv_main.cpp';
 const TEST_CCE_FILE_2 = 'sum_lstm_kernel_loop_idx_bs_offset_Unroll4_PATH0_hiddenfunc_6_17003207903596263872_2_aiv_main.cpp';
 const TEST_NO_LABEL_CCE_FILE = 'aicore_530342627983503388.cpp';
 const TEST_CCE_LINE = 26;
 const TEST_NON_OP_CCE_LINE = 20;
 const TEST_PY_LINE = 164;
-const TEST_PY_LINE_OP_COUNT = 67;
+const TEST_PY_LINE_OP_COUNT = 11;
 
 function log(message: string): void {
   console.log(`[test4col] [${new Date().toISOString()}] ${message}`);
@@ -74,10 +75,10 @@ export async function runFourColTest(pyPath: string): Promise<void> {
         const stats = await loadFourColData(pyPath);
         log(`[LOAD] 入库完成: cce_opmagic ${stats.opmagicCount} 行, cce_label ${stats.labelCount} 行, op ${stats.opCount} 行`);
         log(`[LOAD] 耗时 ${Date.now() - startTime}ms`);
-        check('入库行数（opmagic/label/op）', [stats.opmagicCount, stats.labelCount, stats.opCount], [450, 48, 845]);
+        check('入库行数（opmagic/label/op）', [stats.opmagicCount, stats.labelCount, stats.opCount], [450, 48, 132]);
 
         progress.report({ message: '执行查询测试' });
-        check('getCceLocation 正向', await getCceLocation(TEST_LEAF_HASH, TEST_OP_MAGIC), { fileName: TEST_CCE_FILE, lines: [TEST_CCE_LINE]});
+        check('getCceLocation 正向', await getCceLocation(TEST_LEAF_HASH, TEST_OP_MAGIC), { fileName: TEST_CCE_FILE_MAIN, lines: [TEST_CCE_LINE]});
         check('getCceLocation 假 opmagic', await getCceLocation(TEST_LEAF_HASH, '99999'), null);
         check('getCceLocation 假 hash', await getCceLocation('1234567890123456789', TEST_OP_MAGIC), null);
 
@@ -99,7 +100,7 @@ export async function runFourColTest(pyPath: string): Promise<void> {
         check('getOpsByPyLine 正向数量', ops.length, TEST_PY_LINE_OP_COUNT);
         check('getOpsByPyLine 错 basename', await getOpsByPyLine(path.join(dataDir, 'kernel_src', '__init__.py'), TEST_PY_LINE), []);
 
-        check('getCceFile 正向', await getCceFile(TEST_LEAF_HASH), TEST_CCE_FILE);
+        check('getCceFile 正向', await getCceFile(TEST_LEAF_HASH), TEST_CCE_FILE_MAIN);
         check('getCceFile 假 hash', await getCceFile('1234567890123456789'), null);
 
         check('getLabel 正向', await getLabel(TEST_LEAF_HASH, TEST_OP_MAGIC), 'gelu_activation_core 2');

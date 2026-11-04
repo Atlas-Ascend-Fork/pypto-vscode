@@ -45,6 +45,7 @@ import {
 } from './view-server-interface';
 import { readFirstNLines } from '../../utils/file-system';
 import { detectColumnMode } from '../../services/cce-index';
+import { loadFourColData, buildPyOpmagicMap, getCceLocation, getOpByCceTree, getOpsByPyLine, getCceFile, getCceFilesByLeaf, getPyFilesByLeaf, getOpSequence, getOpSelectionByPyLine, getLabelsByCceFile, locateFourColFiles } from '../../services/fourcol';
 
 export class SwimData {
   public uri: Uri;
@@ -66,6 +67,8 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'ColumnMode',
   'CceCode',
   'CceFileList',
+  'PyOpmagicMap',
+  'GraphSelection',
   'FuncHashFileList',
   'CompleteData',
   'PyCode',
@@ -124,6 +127,8 @@ export class ThreeColumnServer
   headerTitle?: string
   columnMode: 3 | 4 = 3;
   cceDir?: string;
+  fourcolLoaded = false;
+  fourcolProgramMtime = 0;
 
   constructor(ctx: ViewServerContext) {
     super(ctx);
@@ -546,6 +551,7 @@ export class ThreeColumnServer
     this.cceDir = result.cceDir;
     this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
     this.pushDefaultCceCode();
+    void this.loadFourColLinkage();
   }
   resetLinkedPanes() {
     this.swimDataPath = undefined;
@@ -563,6 +569,122 @@ export class ThreeColumnServer
     }
     this.pushCceDir(this.cceDir);
   }
+  /** 四联动三件套入库（mtime 失效重灌），随后推 PyOpmagicMap */
+  async loadFourColLinkage() {
+    if (this.columnMode !== 4 || !this.codePath || !this.comPath) {
+      return;
+    }
+    try {
+      const { programPath } = locateFourColFiles(this.codePath);
+      const mtime = statSync(programPath).mtimeMs;
+      if (this.fourcolLoaded && this.fourcolProgramMtime === mtime) {
+        return;
+      }
+      await loadFourColData(this.codePath);
+      this.fourcolLoaded = true;
+      this.fourcolProgramMtime = mtime;
+      await this.getPyOpmagicMap();
+    } catch (error) {
+      console.log('load fourcol data failed:', error);
+    }
+  }
+  @viewApi()
+  public getPyOpmagicMap = async () => {
+    if (this.columnMode !== 4) {
+      return;
+    }
+    const pyOpmagicMap = await buildPyOpmagicMap();
+    this.setRef('PyOpmagicMap', { pyOpmagicMap });
+  };
+  @viewApi()
+  public resolveFromCce = async (message: { opmagic: number; hash: string }) => {
+    const { opmagic, hash } = message;
+    if (!opmagic || !hash) {
+      return null;
+    }
+    const loc = await getCceLocation(hash, String(opmagic));
+    const tree = await getOpByCceTree(loc?.fileName ?? '', loc?.lines?.[0] ?? 0);
+    return { hash, opmagic: String(opmagic), label: tree?.label ?? null, pyFile: tree?.pyFile ?? null, pyLine: tree?.pyLine ?? null, cce: loc?.fileName ?? null, lines: loc?.lines ?? [] };
+  };
+  /** 泳道 task 悬停：leafHash → 该 leaf 全部 opmagic（CCE 行序），供 returnOpsFromCom 广播 */
+  @viewApi()
+  public resolveOpsFromLeaf = async (message: { leafHash: string }) => {
+    const leafHash = message?.leafHash;
+    if (!leafHash) {
+      return { ops: [] };
+    }
+    const seq = await getOpSequence(leafHash);
+    return { ops: seq.map((r) => Number(r.opmagic)) };
+  };
+  /** CCE 文件行悬停：按行反查 label 块（区间命中），供 returnSemanticLabelFromCce */
+  @viewApi()
+  public getCceLabels = async (message: { fileName: string }) => {
+    const fileName = message?.fileName;
+    if (!fileName) {
+      return { labels: [] };
+    }
+    return { labels: await getLabelsByCceFile(fileName) };
+  };
+  @viewApi()
+  public resolveFromPyLine = async (message: { file: string; line: number }) => {
+    const { file, line } = message;
+    if (!file || !line) {
+      return [];
+    }
+    return getOpsByPyLine(file, line);
+  };
+  /** 计算图列自高亮：py 行 → 精确 op 落点（leafHash + opmagic + subgraphid + label） */
+  @viewApi()
+  public resolveOpsFromPyLine = async (message: { file: string; line: number }) => {
+    const { file, line } = message;
+    if (!file || !line) {
+      return { leafHashes: [], ops: [] };
+    }
+    const ops = await getOpSelectionByPyLine(file, line);
+    return { leafHashes: Array.from(new Set(ops.map((o) => o.leafHash))), ops };
+  };
+  @viewApi()
+  public resolveActiveLock = async (message: { opmagic?: number; hash?: string; leafHash?: string; file?: string; line?: number }) => {
+    let hash = message.hash ?? message.leafHash;
+    let opmagic = message.opmagic;
+    if (opmagic == null) {
+      if (message.file && typeof message.line === 'number') {
+        const ops = await getOpsByPyLine(message.file, message.line);
+        if (!ops.length) {
+          return null;
+        }
+        hash = ops[0][0];
+        opmagic = Number(ops[0][1]);
+      } else if (hash) {
+        const seq = await getOpSequence(hash);
+        if (!seq.length) {
+          return null;
+        }
+        opmagic = Number(seq[0].opmagic);
+      }
+    }
+    if (!hash || opmagic == null) {
+      return null;
+    }
+    const loc = await getCceLocation(hash, String(opmagic));
+    const tree = await getOpByCceTree(loc?.fileName ?? '', loc?.lines?.[0] ?? 0);
+    // candidate 全集：py = 该 leaf 命中 op 的去重文件；cce = 主块在前 + 尾块
+    const [candidatePy, candidateCce] = await Promise.all([getPyFilesByLeaf(hash), getCceFilesByLeaf(hash)]);
+    return { hash, opMagic: opmagic, label: tree?.label ?? null, candidate: { py: candidatePy, cce: candidateCce } };
+  };
+  @viewApi()
+  public stepOp = async (message: { leafHash: string; opMagic: number; direction: -1 | 1 }) => {
+    const seq = await getOpSequence(message.leafHash);
+    const cur = seq.findIndex((r) => Number(r.opmagic) === message.opMagic);
+    if (cur < 0) {
+      return null;
+    }
+    const next = cur + message.direction;
+    if (next < 0 || next >= seq.length) {
+      return null;
+    }
+    return Number(seq[next].opmagic);
+  };
   @viewApi()
   public selectRunData = async (message: any) => {
     const { swimPath, comPath, runDataTitle } = message.runDataPaths;

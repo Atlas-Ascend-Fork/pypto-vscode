@@ -92,25 +92,34 @@ const lockPosition = ref(null);
 
 // 配置 Monaco Editor
 const configureMonaco = () => {
-  if (typeof window !== 'undefined') {
-    self.MonacoEnvironment = {
-      getWorkerUrl: (moduleId, label) => {
-        if (label === 'json') {
-          return './monaco-editor-workers/json.worker.js';
-        }
-        if (label === 'css' || label === 'scss' || label === 'less') {
-          return './monaco-editor-workers/css.worker.js';
-        }
-        if (label === 'html' || label === 'handlebars' || label === 'razor') {
-          return './monaco-editor-workers/html.worker.js';
-        }
-        if (label === 'typescript' || label === 'javascript') {
-          return './monaco-editor-workers/ts.worker.js';
-        }
-        return './monaco-editor-workers/editor.worker.js';
-      }
-    };
+  if (typeof window === 'undefined') {
+    return;
   }
+  // main.ts 已注入基于 Vite worker 的 getWorker（js/css/html/ts/editor），必须保留。
+  // 仅在缺失时才提供 getWorkerUrl 回退：这里写死的是相对路径，
+  // 在 vscode-webview:// 下会解析成不存在的 monaco-editor-workers/*.worker.js
+  // （MIME 为空 → worker 加载失败），并会清掉 main.ts 的 getWorker。
+  const monacoEnvironment = (self as any).MonacoEnvironment;
+  if (monacoEnvironment?.getWorker) {
+    return;
+  }
+  (self as any).MonacoEnvironment = {
+    getWorkerUrl: (moduleId, label) => {
+      if (label === 'json') {
+        return './monaco-editor-workers/json.worker.js';
+      }
+      if (label === 'css' || label === 'scss' || label === 'less') {
+        return './monaco-editor-workers/css.worker.js';
+      }
+      if (label === 'html' || label === 'handlebars' || label === 'razor') {
+        return './monaco-editor-workers/html.worker.js';
+      }
+      if (label === 'typescript' || label === 'javascript') {
+        return './monaco-editor-workers/ts.worker.js';
+      }
+      return './monaco-editor-workers/editor.worker.js';
+    },
+  };
 };
 
 // 应用语义标签装饰
@@ -641,11 +650,19 @@ const updateTheme = () => {
 });
 // 计算图精确过滤后的 opmagic 列表
 // source='swim'（泳道图悬停）→ 按 opmagic 行渲染渐变块
-// source='com'（计算图悬停）→ 保持 label 渐变，不覆盖
+// source='com'（计算图悬停）→ 按 opmagic 行渲染单行蓝条（与泳道同样精确，来源不同）
+// 其它来源 → 清除
 (window as any).ascEventBus.on('returnOpsFromCom', (args) => {
-  if (args.source === 'swim') {
+  if (args.source === 'swim' || args.source === 'com') {
     highlightOpmagicLines(args.hash, args.ops);
+  } else if (args.source !== 'py') {
+    // py 悬停源：保持本地 label 渐变，不处理（returnOpsFromCom{source:'py'} 是给 CCE 栏的）
+    clearBlockHighlights(editor);
   }
+});
+// CCE 行悬停 → py 栏 label 描边（R11：CCE label 反查结果；空串清除）
+(window as any).ascEventBus.on('returnSemanticLabelFromCce', (args) => {
+  updateHoverDecorationBySemanticLabel(args?.label ?? '', false);
 });
 (window as any).ascEventBus.on('activeLock', ({ label }) => {
   if (lastMoveLabel !== label) {
@@ -665,6 +682,39 @@ const updateTheme = () => {
   const targetLabel = labels.find(l => l.name === label);
   lockedLabel = targetLabel;
   updateBkDecoration(lockedLabel, true);
+// 计算图/其它栏锁定 op → py 栏：按 label 锁定 + candidate.py 填入文件下拉 + opMagic 精确 reveal
+(window as any).ascEventBus.on('activeLockFromCom', (args) => {
+  if (!args) {
+    return;
+  }
+  if (args.label) {
+    if (lastMoveLabel !== args.label) {
+      updateHoverDecorationBySemanticLabel(args.label, true);
+    }
+    isLocked.value = true;
+    const targetLabel = labels.find((l) => l.name === args.label);
+    lockedLabel = targetLabel;
+    updateBkDecoration(lockedLabel, true);
+  }
+  // opMagic → pyLine 精确定位（label 缺失/不命中时仍能跳到语句行）
+  const hash = args.hash ?? args.leafHash;
+  if (hash && args.opMagic != null) {
+    const line = pyOpmagicMap?.[initCodePath]?.[String(hash)]?.[String(args.opMagic)]
+      ?? pyOpmagicLineLookupByBasename(String(hash), String(args.opMagic));
+    if (line && editor) {
+      editor.revealPositionInCenter({ lineNumber: line, column: 1 });
+    }
+  }
+  const candidatePy: string[] = args.candidate?.py ?? [];
+  if (candidatePy.length) {
+    const seen = new Set(pyFileList.value.map((f) => f.path));
+    for (const p of candidatePy) {
+      if (!seen.has(p)) {
+        pyFileList.value.push({ path: p, name: p.split(/[\/\\]/).pop() ?? p, exists: true });
+        seen.add(p);
+      }
+    }
+  }
 });
 (window as any).ascEventBus.on('deactivateLock', () => {
   deactivateLock();
@@ -777,6 +827,16 @@ watch(threeColumnServer.PyCode, (newValue) => {
   loading.value = false;
   nextTick(() => initEditor(code));
 });
+
+// pyOpmagicMap 主键是完整路径；编译机路径与本地路径不一致时按 basename 兜底匹配
+const pyOpmagicLineLookupByBasename = (hash: string, opMagic: string): number | undefined => {
+  const base = initCodePath.split(/[\\/]/).pop();
+  if (!base) {
+    return undefined;
+  }
+  const fileEntry = Object.entries(pyOpmagicMap ?? {}).find(([path]) => path.split(/[\\/]/).pop() === base);
+  return fileEntry?.[1]?.[hash]?.[opMagic];
+};
 
 // 在组件挂载前配置 Monaco
 configureMonaco();
