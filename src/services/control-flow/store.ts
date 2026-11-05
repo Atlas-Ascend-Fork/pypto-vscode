@@ -28,11 +28,17 @@ const CONTROL_FLOW_ATTRIBUTES = defineAttributes<ControlFlowCache>({
   flow: { type: Array },
 });
 
+/**
+ * 控制流缓存数据库版本
+ * 解析算法变化时递增（如新版program.json的leaf owner下沉解析），强制清空旧缓存
+ */
+const CONTROL_FLOW_STORE_VERSION = 1;
+
 let controlFlowStore: Store<ControlFlowCache, 'sourceFilePath', 'runDataPath'>;
 
 export function getControlFlowStore() {
   if (!controlFlowStore) {
-    controlFlowStore = new SqlStore('control_flow', CONTROL_FLOW_ATTRIBUTES);
+    controlFlowStore = new SqlStore('control_flow', CONTROL_FLOW_ATTRIBUTES, { version: CONTROL_FLOW_STORE_VERSION });
   }
   return controlFlowStore;
 }

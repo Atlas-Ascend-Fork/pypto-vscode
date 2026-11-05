@@ -316,18 +316,16 @@ const unLockClick = (e) => {
   deactivateLock();
 };
 
-// 更新悬停装饰
-const updateHoverDecoration = (position, emit = true) => {
+// 更新悬停装饰：label 块同步渲染；蓝条等查询结果后整体替换（render 自带替换语义，等待期保留旧装饰防闪烁）
+const updateHoverDecoration = async (position, emit = true) => {
   // 如果处于锁定状态，不更新悬停装饰
   if (isLocked.value) {
     return;
   }
 
-  // 清除之前的悬停块和蓝条
-  clearBlockHighlights(editor);
-  clearLineBands(editor);
-
   if (!position) {
+    clearBlockHighlights(editor);
+    clearLineBands(editor);
     lockPosition.value = null;
     if (lastSentLabel && emit) {
       sendMsg('returnSemanticLabelFromCode', { label: '' });
@@ -337,23 +335,32 @@ const updateHoverDecoration = (position, emit = true) => {
     return;
   }
 
-  // 悬停行在 PyOpmagicMap 中有 hash+opmagic 对时，添加整行蓝色背景条
-  const opmagicLine = findLineInPyOpmagicMap(position.lineNumber);
-  if (opmagicLine) {
-    renderLineBands(editor, [position.lineNumber], isDarkTheme.value);
-  }
-
+  // label 不依赖查询，先同步渲染/清除，避免清空-等待-重画的闪烁
   const currentLabel = findSemanticLabelAtPosition(position);
-
-  // 如果当前在语义标签区域内，渲染块状悬停效果
   if (currentLabel) {
     renderBlockHighlights(editor, [[currentLabel.startLine, currentLabel.endLine]], getBlockStyle(false));
+  } else {
+    clearBlockHighlights(editor);
+  }
+
+  // 蓝条：等查询结果再整体替换；期间被点击锁定取代时放弃本次渲染
+  const hasOpmagic = await hasOpsOnLine(position.lineNumber);
+  if (isLocked.value) {
+    return;
+  }
+  if (hasOpmagic) {
+    renderLineBands(editor, [position.lineNumber], isDarkTheme.value);
+  } else {
+    clearLineBands(editor);
+  }
+
+  if (currentLabel) {
     if (emit && lastSentLabel !== currentLabel.name && !isMouseLeaved) {
       lastSentLabel = currentLabel.name;
       sendMsg('returnSemanticLabelFromCode', { label: currentLabel.name });
       sendMsg('returnFileLineFromCode', { file: initCodePath, line: position.lineNumber });
     }
-  } else if (opmagicLine && emit && !isMouseLeaved) {
+  } else if (hasOpmagic && emit && !isMouseLeaved) {
     // 无语义标签但该行有 hash+opmagic 对，也发送 file+line
     sendMsg('returnSemanticLabelFromCode', { label: '' });
     sendMsg('returnFileLineFromCode', { file: initCodePath, line: position.lineNumber });
@@ -366,12 +373,12 @@ const updateHoverDecoration = (position, emit = true) => {
   }
 };
 
-// 查找当前文件中某行是否在 PyOpmagicMap 中有 hash+opmagic 对（O(1)）
-const findLineInPyOpmagicMap = (lineNumber: number): boolean => {
+// 悬停行是否有对应 ops
+const hasOpsOnLine = async (lineNumber: number): Promise<boolean> => {
   return pyOpmagicLineSet.has(lineNumber);
 };
 
-// 计算图精确过滤后的 opmagic 渲染：根据 hash+opmagic 从 pyOpmagicMap 查行号，只渲染这些行
+// 计算图精确过滤后的 opmagic 渲染：本地逆索引查 py 落点，只渲染当前文件命中的行
 const highlightOpmagicLines = (hash: string | null, ops: number[]) => {
   if (!editor || isLocked.value) {
     return;
@@ -380,14 +387,12 @@ const highlightOpmagicLines = (hash: string | null, ops: number[]) => {
     clearBlockHighlights(editor);
     return;
   }
-  const fileMap = pyOpmagicMap?.[initCodePath];
-  if (!fileMap?.[hash]) {
-    return;
-  }
-  const hashOps = fileMap[hash];
+  // 落点 pyFile 可能是编译机路径，与本地路径不一致时按 basename 兜底匹配
+  const editorBase = initCodePath.split(/[\/\\]/).pop();
   const lines = ops
-    .map((opmagic) => hashOps[String(opmagic)])
-    .filter((line) => line != null) as number[];
+    .map((opmagic) => opLocationIndex.get(`${hash}_${opmagic}`))
+    .filter((location): location is { pyFile: string; pyLine: number } => !!location && location.pyFile.split(/[\/\\]/).pop() === editorBase)
+    .map((location) => location.pyLine);
   if (!lines.length) {
     return;
   }
@@ -460,9 +465,9 @@ const handleMouseMove = throttle((e) => {
   simulateMouseMove(position);
 }, 100);
 
-const simulateMouseMove = (position) => {
+const simulateMouseMove = async (position) => {
   const currentLabel = findSemanticLabelAtPosition(position);
-  const hasOpmagic = findLineInPyOpmagicMap(position.lineNumber);
+  const hasOpmagic = await hasOpsOnLine(position.lineNumber);
 
   if (currentLabel) {
     // 有 label：label 优先，同 label 内不重复触发
@@ -482,7 +487,7 @@ const simulateMouseMove = (position) => {
     lastMoveLabel = null;
     lockPosition.value = null;
   }
-  updateHoverDecoration(position);
+  await updateHoverDecoration(position);
 };
 // 添加鼠标悬停事件监听
 const setupHoverListeners = () => {
@@ -496,13 +501,13 @@ const setupHoverListeners = () => {
   });
 
   // 鼠标点击事件
-  editor.onMouseDown((e) => {
+  editor.onMouseDown(async (e) => {
     const { position } = e.target;
     if (position) {
       // 清除之前的标签信息装饰
       clearLabelInfo();
       const currentLabel = findSemanticLabelAtPosition(position);
-      const hasOpmagic = findLineInPyOpmagicMap(position.lineNumber);
+      const hasOpmagic = await hasOpsOnLine(position.lineNumber);
       if (!currentLabel && !hasOpmagic) {
         return;
       }
@@ -652,8 +657,12 @@ const updateTheme = () => {
 // source='swim'（泳道图悬停）→ 按 opmagic 行渲染渐变块
 // source='com'（计算图悬停）→ 按 opmagic 行渲染单行蓝条（与泳道同样精确，来源不同）
 // 其它来源 → 清除
+// 计算图最近一次给出的 ops（returnOpsFromCom），泳道发起锁定（activeLockFromCom source='swim'）时用作渐变
+let lastComOps: { hash: string | null; ops: number[] } | null = null;
+
 (window as any).ascEventBus.on('returnOpsFromCom', (args) => {
   if (args.source === 'swim' || args.source === 'com') {
+    lastComOps = { hash: args.hash, ops: args.ops };
     highlightOpmagicLines(args.hash, args.ops);
   } else if (args.source !== 'py') {
     // py 悬停源：保持本地 label 渐变，不处理（returnOpsFromCom{source:'py'} 是给 CCE 栏的）
@@ -683,39 +692,54 @@ const updateTheme = () => {
   lockedLabel = targetLabel;
   updateBkDecoration(lockedLabel, true);
 });
-// 计算图/其它栏锁定 op → py 栏：按 label 锁定 + candidate.py 填入文件下拉 + opMagic 精确 reveal
+// 计算图锁定 op 广播 → py 栏（source 标记发起栏）。py 自身发起的直接忽略（自回声）；
+// 渐变背景按来源：cce/其它 → label 区间，swim → 计算图最近一次给出的 ops 行区间；
+// 之后按 hash+op 锁定代码行
+const applyActiveLock = (args) => {
+  const hash = args.hash ?? args.leafHash;
+  const line = hash && args.opMagic != null ? opLocationIndex.get(`${hash}_${args.opMagic}`)?.pyLine : undefined;
+
+  // 渐变背景：渲染函数带 isLocked 守卫，须在置锁前渲染；置锁后 updateBkDecoration 会用锁定
+  // 目标重画并覆盖渐变，故锁定流程不再调用它
+  if (args.source === 'swim') {
+    if (lastComOps) {
+      highlightOpmagicLines(lastComOps.hash, lastComOps.ops);
+    }
+  } else if (args.label) {
+    const targetLabel = labels.find((l) => l.name === args.label);
+    if (targetLabel) {
+      renderBlockHighlights(editor, [[targetLabel.startLine, targetLabel.endLine]], getBlockStyle(true));
+    }
+  }
+
+  // 按 hash+op 锁定代码行
+  isLocked.value = true;
+  lockedLabel = line != null
+    ? { name: '', startLine: line, endLine: line }
+    : (args.label ? labels.find((l) => l.name === args.label) ?? null : null);
+  lastMoveLabel = lockedLabel;
+  if (lockedLabel) {
+    updateLockPosition(lockedLabel);
+  }
+  if (line != null && editor) {
+    editor.revealPositionInCenter({ lineNumber: line, column: 1 });
+  }
+};
+
+// 跨文件锁定挂起：candidate 最多一个 py 文件，非当前文件先切换，编辑器重建后继续执行
+let pendingActiveLock: any = null;
+
 (window as any).ascEventBus.on('activeLockFromCom', (args) => {
-  if (!args) {
+  if (!args || args.source === 'py') {
     return;
   }
-  if (args.label) {
-    if (lastMoveLabel !== args.label) {
-      updateHoverDecorationBySemanticLabel(args.label, true);
-    }
-    isLocked.value = true;
-    const targetLabel = labels.find((l) => l.name === args.label);
-    lockedLabel = targetLabel;
-    updateBkDecoration(lockedLabel, true);
+  const candidatePy: string | undefined = args.candidate?.py?.[0];
+  if (candidatePy && candidatePy.split(/[\/\\]/).pop() !== initCodePath.split(/[\/\\]/).pop()) {
+    pendingActiveLock = args;
+    threeColumnServer.switchPyFile({ paramObj: { path: candidatePy } });
+    return;
   }
-  // opMagic → pyLine 精确定位（label 缺失/不命中时仍能跳到语句行）
-  const hash = args.hash ?? args.leafHash;
-  if (hash && args.opMagic != null) {
-    const line = pyOpmagicMap?.[initCodePath]?.[String(hash)]?.[String(args.opMagic)]
-      ?? pyOpmagicLineLookupByBasename(String(hash), String(args.opMagic));
-    if (line && editor) {
-      editor.revealPositionInCenter({ lineNumber: line, column: 1 });
-    }
-  }
-  const candidatePy: string[] = args.candidate?.py ?? [];
-  if (candidatePy.length) {
-    const seen = new Set(pyFileList.value.map((f) => f.path));
-    for (const p of candidatePy) {
-      if (!seen.has(p)) {
-        pyFileList.value.push({ path: p, name: p.split(/[\/\\]/).pop() ?? p, exists: true });
-        seen.add(p);
-      }
-    }
-  }
+  applyActiveLock(args);
 });
 (window as any).ascEventBus.on('deactivateLock', () => {
   deactivateLock();
@@ -777,16 +801,57 @@ watch(threeColumnServer.CompleteData, () => {
   pendingLabelRefresh = !refreshSemanticLabels();
 });
 
-// 计算图提供的 filename → calleehash → opmagic → lineno 映射
+// 联动 py 文件列表：整表 key 本地派生；存在性走 checkFileExistence（webview 无文件系统）
+const refreshPyFileList = () => {
+  const paths = Object.keys(pyOpmagicMap);
+  pyFileList.value = paths.map((filePath) => ({
+    path: filePath,
+    name: filePath.split(/[\/\\]/).pop() ?? filePath,
+    exists: true,
+  }));
+  if (paths.length) {
+    threeColumnServer.checkFileExistence({ paramObj: { paths } });
+  }
+};
+
+watch(threeColumnServer.FileExistenceResult, (newValue: any) => {
+  const result: Record<string, boolean> = newValue?.data ?? {};
+  for (const item of pyFileList.value) {
+    if (item.path in result) {
+      item.exists = result[item.path];
+    }
+  }
+});
+
+// 计算图加载后推送的整表（pyFile → hash → opmagic → lineno）：悬停行集合、ops 逆落点索引、
+// 文件列表全部由它本地派生（零往返延迟）
 let pyOpmagicMap: Record<string, Record<string, Record<string, number>>> = {};
 let pyOpmagicLineSet: Set<number> = new Set();
+// `${hash}_${opmagic}` → 落点（同一 program 内 (hash, opmagic) 唯一）
+const opLocationIndex = new Map<string, { pyFile: string; pyLine: number }>();
 
-const rebuildPyOpmagicLineSet = () => {
+const rebuildLocalIndexes = () => {
   pyOpmagicLineSet = new Set();
-  if (!pyOpmagicMap || !initCodePath) {
+  opLocationIndex.clear();
+  if (!pyOpmagicMap) {
     return;
   }
-  const fileMap = pyOpmagicMap[initCodePath];
+  for (const [filePath, fileMap] of Object.entries(pyOpmagicMap)) {
+    for (const [hashKey, hashOps] of Object.entries(fileMap)) {
+      for (const [magicKey, pyLine] of Object.entries(hashOps)) {
+        opLocationIndex.set(`${hashKey}_${magicKey}`, { pyFile: filePath, pyLine });
+      }
+    }
+  }
+  if (!initCodePath) {
+    return;
+  }
+  let fileMap = pyOpmagicMap[initCodePath];
+  if (!fileMap) {
+    // 整表主键可能是编译机路径，与本地不一致时按 basename 兜底
+    const base = initCodePath.split(/[\/\\]/).pop();
+    fileMap = Object.entries(pyOpmagicMap).find(([p]) => p.split(/[\/\\]/).pop() === base)?.[1];
+  }
   if (!fileMap) {
     return;
   }
@@ -797,47 +862,34 @@ const rebuildPyOpmagicLineSet = () => {
   }
 };
 
-watch(threeColumnServer.PyOpmagicMap, (newValue: any) => {
-  pyOpmagicMap = newValue?.pyOpmagicMap ?? {};
-  const paths = Object.keys(pyOpmagicMap);
-  pyFileList.value = paths.map((filePath) => ({
-    path: filePath,
-    name: filePath.split(/[\/\\]/).pop() ?? filePath,
-    exists: true,
-  }));
-  rebuildPyOpmagicLineSet();
-  if (paths.length) {
-    threeColumnServer.checkFileExistence({ paramObj: { paths } });
-  }
-});
+watch(
+  threeColumnServer.PyOpmagicMap,
+  (newValue: any) => {
+    pyOpmagicMap = newValue?.pyOpmagicMap ?? {};
+    rebuildLocalIndexes();
+    refreshPyFileList();
+  },
+  { immediate: true },
+);
 
-watch(threeColumnServer.FileExistenceResult, (newValue: any) => {
-  const result: Record<string, boolean> = newValue?.data ?? {};
-  for (const item of pyFileList.value) {
-    if (item.path in result) {
-      item.exists = result[item.path];
-    }
-  }
-});
 watch(threeColumnServer.PyCode, (newValue) => {
   const { codePath, code } = newValue.data;
   initCodePath = codePath;
-  rebuildPyOpmagicLineSet();
+  // 文件切换后重算本地索引（行集合依赖当前文件，顺带重建逆索引，整表量级重建耗时可忽略）
+  rebuildLocalIndexes();
   editorFileName.value = initCodePath.split(/[\/\\]/).pop();
   initTotalLine = code.split('\n').length;
   loading.value = false;
-  nextTick(() => initEditor(code));
+  nextTick(() => {
+    initEditor(code);
+    // 跨文件锁定的延续：编辑器重建后执行挂起的锁定
+    if (pendingActiveLock) {
+      const pending = pendingActiveLock;
+      pendingActiveLock = null;
+      applyActiveLock(pending);
+    }
+  });
 });
-
-// pyOpmagicMap 主键是完整路径；编译机路径与本地路径不一致时按 basename 兜底匹配
-const pyOpmagicLineLookupByBasename = (hash: string, opMagic: string): number | undefined => {
-  const base = initCodePath.split(/[\\/]/).pop();
-  if (!base) {
-    return undefined;
-  }
-  const fileEntry = Object.entries(pyOpmagicMap ?? {}).find(([path]) => path.split(/[\\/]/).pop() === base);
-  return fileEntry?.[1]?.[hash]?.[opMagic];
-};
 
 // 在组件挂载前配置 Monaco
 configureMonaco();

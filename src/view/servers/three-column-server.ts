@@ -18,6 +18,7 @@ import { ViewServerContext } from '../../core/view/view-server-context';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
 import { FourcolMsgHandler } from '../../handler/fourcolMsgHandler';
+import { hismartliteEx } from '../../hismarliteEx';
 import { Fider } from '../threeColumnEntry';
 import { Util } from '../../util';
 import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
@@ -399,10 +400,13 @@ export class ThreeColumnServer
       this.setRef('dataError', { msg: t('pypto.threeCol.notTraceFormat')});
       return;
     }
+    hismartliteEx.startTime = new Date().getTime();
     const data = await SwimGraphMsgHandler.getData(this);
     if (Array.isArray(data)) {
+      hismartliteEx.transformStartTime = new Date().getTime();
       return stream.Readable.toWeb(stream.Readable.from(data!));
     }
+    hismartliteEx.transformStartTime = new Date().getTime();
     return data;
   };
   @viewApi()

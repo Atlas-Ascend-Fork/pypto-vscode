@@ -175,6 +175,63 @@ describe('run-data/utils/async-resolving-list', () => {
     });
 
     describe('stop', () => {
+      it('should stop after a skipped item and settle every stop caller', async () => {
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        const visited: number[] = [];
+        const resolver = new AsyncListResolverImpl<number, number>(async (item) => {
+          visited.push(item);
+          await gate;
+          return { skip: true };
+        });
+
+        const running = resolver.start([1, 2, 3]);
+        const firstStop = resolver.stop();
+        const secondStop = resolver.stop();
+        const waiting = resolver.waitFor(10);
+        release();
+
+        expect(await firstStop).toEqual([]);
+        expect(await secondStop).toEqual([]);
+        expect(await running).toEqual([]);
+        expect(await waiting).toEqual([]);
+        expect(visited).toEqual([1]);
+        expect(resolver.isResolving()).toBe(false);
+      }, 1000);
+
+      it('should settle stop requested by a handler that skips the current item', async () => {
+        let stopping: Promise<number[]> | undefined;
+        const visited: number[] = [];
+        const resolver = new AsyncListResolverImpl<number, number>(async (item) => {
+          visited.push(item);
+          stopping = resolver.stop();
+          return { skip: true };
+        });
+
+        expect(await resolver.start([1, 2])).toEqual([]);
+        expect(await stopping).toEqual([]);
+        expect(visited).toEqual([1]);
+      }, 1000);
+
+      it('should settle concurrent stop callers after a retained item', async () => {
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        const resolver = new AsyncListResolverImpl<number, number>(async (item) => {
+          await gate;
+          return { data: item };
+        });
+
+        const running = resolver.start([1, 2]);
+        const firstStop = resolver.stop();
+        const secondStop = resolver.stop();
+        release();
+
+        expect(await firstStop).toEqual([1]);
+        expect(await secondStop).toEqual([1]);
+        expect(await running).toEqual([1]);
+        expect(await resolver.start([3])).toEqual([3]);
+      }, 1000);
+
       it('should stop resolving and return current results', async () => {
         const handler = vi.fn().mockImplementation(async (item: number) => {
           await new Promise(r => setTimeout(r, 50));

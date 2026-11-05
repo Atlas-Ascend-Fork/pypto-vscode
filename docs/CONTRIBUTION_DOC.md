@@ -8,6 +8,10 @@
 
 相关文档写作要求请参考[文档写作要求](https://gitcode.com/cann/community/blob/master/contributor/docs/document_writing_specs.md)。
 
+### 更新文档
+
+如果您需要更新现有文档，可点击 [PyPTO Toolkit 文档中心](https://pypto-tools.gitcode.com/) 页面右上角的编辑按钮，跳转至源文件。修改该文件，并提交 PR 即可参与贡献。
+
 ### 新增文档
 
 如果您需要新增文档，请在docs合适的目录新建Markdown。

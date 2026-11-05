@@ -194,6 +194,222 @@ describe('control-flow/path-leaf', () => {
       });
     });
 
+    describe('new program format (leaf owner sunk into root sub-function)', () => {
+      /**
+       * 新版program.json结构：
+       * PATH外层函数只包含VIEW/ASSEMBLE及CALL操作，programs和CALL leaf操作在CALL指向的root子函数上
+       */
+      const setupNewFormatFunctions = () => {
+        const leaf0: FunctionNode = {
+          hash: 'leaf0_hash',
+          funcmagic: 201,
+          rawname: 'kernel_PATH0_hiddenfunc_leaf0',
+        } as FunctionNode;
+
+        const leaf1: FunctionNode = {
+          hash: 'leaf1_hash',
+          funcmagic: 202,
+          rawname: 'kernel_PATH0_hiddenfunc_leaf2',
+        } as FunctionNode;
+
+        const rootFunction: FunctionNode = {
+          hash: 'root_hash',
+          funcmagic: 110,
+          rawname: 'kernel_PATH0_hiddenfunc_root',
+          operations: [
+            { opmagic: 1, calleehash: 'leaf0_hash' },
+            { opmagic: 2, calleehash: 'leaf0_hash' },
+            { opmagic: 3, calleehash: 'leaf1_hash' },
+          ],
+          programs: [201, 202],
+        } as FunctionNode;
+
+        const pathWrapperFunction: FunctionNode = {
+          hash: 'path_hash',
+          funcmagic: 100,
+          rawname: 'kernel_PATH0',
+          operations: [
+            { opmagic: 11 },
+            { opmagic: 12 },
+            { opmagic: 13, calleehash: 'root_hash' },
+            { opmagic: 14 },
+          ],
+        } as FunctionNode;
+
+        functionHashMap.set('path_hash', pathWrapperFunction);
+        functionHashMap.set('root_hash', rootFunction);
+        functionHashMap.set('leaf0_hash', leaf0);
+        functionHashMap.set('leaf1_hash', leaf1);
+        functionMagicMap.set(100, pathWrapperFunction);
+        functionMagicMap.set(110, rootFunction);
+        functionMagicMap.set(201, leaf0);
+        functionMagicMap.set(202, leaf1);
+
+        return { pathWrapperFunction, rootFunction, leaf0, leaf1 };
+      };
+
+      it('should resolve leaf functions from the root sub-function called by the wrapper', () => {
+        const { pathWrapperFunction } = setupNewFormatFunctions();
+
+        const analyzer = new PathLeafAnalyzer(functionHashMap, functionMagicMap, passes);
+        const result = analyzer.makePathFunction(pathWrapperFunction);
+
+        // leaf函数个数来自root子函数的programs
+        expect(result.meta.leafFunctions).toHaveLength(2);
+        expect(result.meta.leafFunctions[0].hash).toBe('leaf0_hash');
+        expect(result.meta.leafFunctions[0].programId).toBe('00');
+        expect(result.meta.leafFunctions[1].hash).toBe('leaf1_hash');
+        expect(result.meta.leafFunctions[1].programId).toBe('01');
+        // leaf命名前缀使用PATH外层函数名，与leaf计算图文件名解码保持一致
+        expect(result.meta.leafFunctions[0].magicName).toBe('kernel_PATH0_leaf_00');
+        expect(result.meta.leafFunctions[1].magicName).toBe('kernel_PATH0_leaf_01');
+      });
+
+      it('should resolve callee records from the root sub-function operations', () => {
+        const { pathWrapperFunction } = setupNewFormatFunctions();
+
+        const analyzer = new PathLeafAnalyzer(functionHashMap, functionMagicMap, passes);
+        const result = analyzer.makePathFunction(pathWrapperFunction);
+
+        // 调用leaf次数来自root子函数的CALL操作
+        expect(result.meta.calleeRecords).toHaveLength(3);
+        expect(result.meta.calleeRecords.every((record) => record.callerHash === 'path_hash')).toBe(true);
+        expect(result.meta.calleeRecords.filter((record) => record.calleeHash === 'leaf0_hash')).toHaveLength(2);
+        expect(result.meta.calleeRecords.filter((record) => record.calleeHash === 'leaf1_hash')).toHaveLength(1);
+      });
+
+      it('should calculate called records after calculateLeafFunctionCalledRecords', () => {
+        const { pathWrapperFunction } = setupNewFormatFunctions();
+
+        const analyzer = new PathLeafAnalyzer(functionHashMap, functionMagicMap, passes);
+        const pathFunction = analyzer.makePathFunction(pathWrapperFunction);
+
+        analyzer.calculateLeafFunctionCalledRecords();
+
+        // leaf被调用次数不再为0
+        expect(pathFunction.meta.calledRecords).toHaveLength(3);
+        expect(pathFunction.meta.calledRecords[0].callerHash).toBe('path_hash');
+        expect(pathFunction.meta.calledRecords[0].calleeHash).toBe('leaf0_hash');
+      });
+
+      it('should keep PATH node identity from the wrapper function', () => {
+        const { pathWrapperFunction } = setupNewFormatFunctions();
+
+        const analyzer = new PathLeafAnalyzer(functionHashMap, functionMagicMap, passes);
+        const result = analyzer.makePathFunction(pathWrapperFunction);
+
+        // PATH节点自身身份保持为外层函数（用于计算图文件匹配）
+        expect(result.hash).toBe('path_hash');
+        expect(result.magic).toBe(100);
+        expect(result.magicName).toBe('kernel_PATH0');
+      });
+
+      it('should fall back to the wrapper itself when no owner function has programs', () => {
+        const calleeWithoutPrograms: FunctionNode = {
+          hash: 'callee_hash',
+          funcmagic: 110,
+          rawname: 'kernel_PATH0_hiddenfunc',
+          operations: [{ opmagic: 1 }],
+        } as FunctionNode;
+
+        const pathWrapperFunction: FunctionNode = {
+          hash: 'path_hash',
+          funcmagic: 100,
+          rawname: 'kernel_PATH0',
+          operations: [
+            { opmagic: 11 },
+            { opmagic: 12, calleehash: 'callee_hash' },
+          ],
+        } as FunctionNode;
+
+        functionHashMap.set('path_hash', pathWrapperFunction);
+        functionHashMap.set('callee_hash', calleeWithoutPrograms);
+        functionMagicMap.set(100, pathWrapperFunction);
+        functionMagicMap.set(110, calleeWithoutPrograms);
+
+        const analyzer = new PathLeafAnalyzer(functionHashMap, functionMagicMap, passes);
+        const result = analyzer.makePathFunction(pathWrapperFunction);
+
+        expect(result.meta.leafFunctions).toEqual([]);
+        expect(result.meta.calleeRecords).toEqual([]);
+      });
+
+      it('should resolve nested owner functions through multi-level CALL chain', () => {
+        const leaf: FunctionNode = {
+          hash: 'leaf_hash',
+          funcmagic: 201,
+          rawname: 'kernel_PATH0_hiddenfunc_leaf0',
+        } as FunctionNode;
+
+        const rootFunction: FunctionNode = {
+          hash: 'root_hash',
+          funcmagic: 110,
+          rawname: 'kernel_PATH0_hiddenfunc_root',
+          operations: [{ opmagic: 1, calleehash: 'leaf_hash' }],
+          programs: [201],
+        } as FunctionNode;
+
+        const middleWrapper: FunctionNode = {
+          hash: 'middle_hash',
+          funcmagic: 105,
+          rawname: 'kernel_PATH0_middle',
+          operations: [{ opmagic: 2, calleehash: 'root_hash' }],
+        } as FunctionNode;
+
+        const pathWrapperFunction: FunctionNode = {
+          hash: 'path_hash',
+          funcmagic: 100,
+          rawname: 'kernel_PATH0',
+          operations: [{ opmagic: 3, calleehash: 'middle_hash' }],
+        } as FunctionNode;
+
+        functionHashMap.set('path_hash', pathWrapperFunction);
+        functionHashMap.set('middle_hash', middleWrapper);
+        functionHashMap.set('root_hash', rootFunction);
+        functionHashMap.set('leaf_hash', leaf);
+        functionMagicMap.set(100, pathWrapperFunction);
+        functionMagicMap.set(105, middleWrapper);
+        functionMagicMap.set(110, rootFunction);
+        functionMagicMap.set(201, leaf);
+
+        const analyzer = new PathLeafAnalyzer(functionHashMap, functionMagicMap, passes);
+        const result = analyzer.makePathFunction(pathWrapperFunction);
+
+        expect(result.meta.leafFunctions).toHaveLength(1);
+        expect(result.meta.calleeRecords).toHaveLength(1);
+      });
+
+      it('should not fall into infinite loop on circular CALL chain', () => {
+        const wrapperA: FunctionNode = {
+          hash: 'wrapper_a_hash',
+          funcmagic: 100,
+          rawname: 'kernel_PATH0',
+          operations: [
+            { opmagic: 11 },
+            { opmagic: 12, calleehash: 'wrapper_b_hash' },
+          ],
+        } as FunctionNode;
+
+        const wrapperB: FunctionNode = {
+          hash: 'wrapper_b_hash',
+          funcmagic: 110,
+          rawname: 'kernel_PATH0_hiddenfunc',
+          operations: [{ opmagic: 2, calleehash: 'wrapper_a_hash' }],
+        } as FunctionNode;
+
+        functionHashMap.set('wrapper_a_hash', wrapperA);
+        functionHashMap.set('wrapper_b_hash', wrapperB);
+        functionMagicMap.set(100, wrapperA);
+        functionMagicMap.set(110, wrapperB);
+
+        const analyzer = new PathLeafAnalyzer(functionHashMap, functionMagicMap, passes);
+        const result = analyzer.makePathFunction(wrapperA);
+
+        expect(result.meta.leafFunctions).toEqual([]);
+        expect(result.meta.calleeRecords).toEqual([]);
+      });
+    });
+
     describe('calculateLeafFunctionCalledRecords', () => {
       it('should calculate called records for leaf functions', () => {
         const leafFunctionNode: FunctionNode = {

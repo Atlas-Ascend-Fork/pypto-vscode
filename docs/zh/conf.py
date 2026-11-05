@@ -68,8 +68,7 @@ pygments_style = "sphinx"
 # Furo 主题配置
 html_theme = "furo"
 
-html_theme_options = {
-}
+html_theme_options = {"source_edit_link": "https://gitcode.com/cann/pypto-vscode/blob/master/docs/zh/{filename}"}
 
 # 模板路径
 templates_path = []
