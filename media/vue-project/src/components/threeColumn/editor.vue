@@ -343,15 +343,18 @@ const updateHoverDecoration = async (position, emit = true) => {
     clearBlockHighlights(editor);
   }
 
-  // 蓝条：等查询结果再整体替换；期间被点击锁定取代时放弃本次渲染
-  const hasOpmagic = await hasOpsOnLine(position.lineNumber);
-  if (isLocked.value) {
-    return;
-  }
-  if (hasOpmagic) {
+  // 蓝条：悬停行指示，非空代码行即显示
+  const lineContent = editor?.getModel()?.getLineContent(position.lineNumber) ?? '';
+  if (lineContent.trim()) {
     renderLineBands(editor, [position.lineNumber], isDarkTheme.value);
   } else {
     clearLineBands(editor);
+  }
+
+  // 有 ops 的行才向其他栏发送 file+line
+  const hasOpmagic = await hasOpsOnLine(position.lineNumber);
+  if (isLocked.value) {
+    return;
   }
 
   if (currentLabel) {
@@ -669,9 +672,28 @@ let lastComOps: { hash: string | null; ops: number[] } | null = null;
     clearBlockHighlights(editor);
   }
 });
-// CCE 行悬停 → py 栏 label 描边（R11：CCE label 反查结果；空串清除）
+// CCE 行悬停 → py 栏按 label 设置渐变背景色（空串清除）
 (window as any).ascEventBus.on('returnSemanticLabelFromCce', (args) => {
-  updateHoverDecorationBySemanticLabel(args?.label ?? '', false);
+  updateHoverDecorationBySemanticLabel(args?.label ?? '', true);
+});
+// CCE op 悬停 → py 栏按 (hash, opmagic) 设置该语句行蓝条（本地逆索引；无落点/非当前文件则清除）
+(window as any).ascEventBus.on('returnOpFromCce', (args) => {
+  if (!editor || isLocked.value) {
+    return;
+  }
+  // cce 清除信号为 {opmagic: 0, hash: ''}，空值同样视为清除
+  if (!args?.hash || !args?.opmagic) {
+    clearLineBands(editor);
+    return;
+  }
+  const loc = opLocationIndex.get(`${args.hash}_${args.opmagic}`);
+  const editorBase = initCodePath.split(/[\/\\]/).pop();
+  if (loc && loc.pyFile.split(/[\/\\]/).pop() === editorBase) {
+    renderLineBands(editor, [loc.pyLine], isDarkTheme.value);
+    editor.revealPositionInCenter({ lineNumber: loc.pyLine, column: 1 });
+  } else {
+    clearLineBands(editor);
+  }
 });
 (window as any).ascEventBus.on('activeLock', ({ label }) => {
   if (lastMoveLabel !== label) {
