@@ -23,6 +23,31 @@ const darkThemeLightColors = darkThemeColors.lightColorList;
 const lightThemeBaseColors = lithtThemeColors.baseColorList;
 const lightThemeLightColors = lithtThemeColors.lightColorList;
 
+// 用于三栏初始化时决定是否默认 label 着色
+export const hasLabelInEvents = (): boolean => {
+  for (const process of swimDataManager.getAllProcesses().values()) {
+    if (process.type === 'aicpu' || !process.isRendered) {
+      continue;
+    }
+    for (const thread of process.threads.values()) {
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
+        if (!event || event.originalThreadName || event.isCounter) {
+          continue;
+        }
+        const labelPart = event.name && event.name.match(/\((?<label>[^)]+)\)/);
+        if (labelPart && labelPart.groups.label.trim()) {
+          return true;
+        }
+        if (event.args?.color) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
 export const getHashOrderGroup = (event: any, hashOrderType='') => {
   let hashOrderGroup = '';
   if (event.args['hashOrder-hint'] !== undefined || event.args.hashorder !== undefined) {

@@ -127,8 +127,7 @@ export abstract class SwimGraphMsgHandler {
       const cfgCache = Util.readSwim2ComGraphMap(this.cacheCfgPath);
       const comGraphPath = swim2com[swimPath];
       const colorRendingMode = cfgCache['colorRending'] ?? 'subGraph';
-      const isThreeServer = (server?.columnMode ?? 3) >= 3;
-      const colorRending = isThreeServer ? 'label' : server.query?.isMsProf ? 'name' : colorRendingMode;
+      const colorRending = server.query?.isMsProf ? 'name' : colorRendingMode;
       const textRending = cfgCache['textRending']?.length === 0 ? ['taskName', 'taskLabel'] : cfgCache['textRending'] ?? ['taskName', 'taskLabel'];
       const aicpuColorRending = cfgCache['aicpuColorRending'] || 'name';
       const perfColorReding = cfgCache['perfColorReding'] || 'perfName';

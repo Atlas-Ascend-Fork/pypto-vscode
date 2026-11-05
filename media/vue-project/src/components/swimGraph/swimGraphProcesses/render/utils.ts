@@ -153,10 +153,9 @@ export function getKernalEventColor(event: any, deps: Dependencies, processKey: 
   const { colorCfg, isDarkTheme, userConfig, isThreeColumn } = deps;
   const process = swimDataManager.getProcess(processKey);
   const processType = process?.type || process?.args?.type || 'kernel';
-  // 三栏模式：主着色固定 label， 面板选择的 kernelColorRending 作为无 label 时的回退
-  const selectedMode = userConfig?.value.kernelColorRending || 'subGraph';
-  const renderMode = isThreeColumn?.value ? 'label' : selectedMode;
-  const fallback = isThreeColumn?.value && selectedMode !== 'label' ? selectedMode : '';
+  // 面板选择的 kernelColorRending 作为主着色模式；label 作为回退
+  const renderMode = isMsProf?.value ? 'name' : (userConfig?.value.kernelColorRending || 'subGraph');
+  const fallback = (!renderMode || renderMode === 'label') ? 'subGraph' : 'label';
   const color = getEventColorByMode(event, renderMode, processType, userConfig?.value.hashOrderRending, fallback);
   event.color = color;
   const eventColor = isDarkTheme.value ? event.color.dark : event.color.light;
@@ -177,9 +176,9 @@ function ensureEventColor(event: any, deps: Dependencies, processType: string): 
   if (!event.color?.dark || event.parentEventId) {
     const effectiveProcessType = event.originalThreadName ? 'aicpu' : processType;
     const selectedMode = isMsProf.value ? 'name' : (userConfig?.value.kernelColorRending || 'subGraph');
-    // 三栏模式：主着色固定 label， 面板选择的 kernelColorRending 作为无 label 时的回退
-    const renderMode = isThreeColumn?.value ? 'label' : selectedMode;
-    const fallback = isThreeColumn?.value && selectedMode !== 'label' ? selectedMode : '';
+    // 面板选择的 kernelColorRending 作为主着色模式；label 作为回退
+    const renderMode = selectedMode;
+    const fallback = (!renderMode || renderMode === 'label') ? 'subGraph' : 'label';
     const color = getEventColorByMode(event, renderMode, effectiveProcessType, userConfig?.value.hashOrderRending, fallback);
     event.color = color;
     swimDataManager.updateEvent(event.id, { color });
@@ -284,21 +283,6 @@ export function getLeafHashList(eventHintStr: string) {
   return leafHash;
 }
 
-export function getLeafHash(eventHintStr: string): string {
-  if (typeof eventHintStr !== 'string') {
-    return '';
-  }
-  const m = eventHintStr.match(/leafHash:(?<hash>\d+)/);
-  return m?.groups?.hash ?? '';
-}
-
-export function getCallOpMagic(eventHintStr: string): string {
-  if (typeof eventHintStr !== 'string') {
-    return '';
-  }
-  const m = eventHintStr.match(/callOpMagic:(?<magic>\d+)/);
-  return m?.groups?.magic ?? '';
-}
 export function getActiveEventCanvas(processKey: string) {
   return document.querySelector(`[data-process-key="${processKey}"]`);
 }

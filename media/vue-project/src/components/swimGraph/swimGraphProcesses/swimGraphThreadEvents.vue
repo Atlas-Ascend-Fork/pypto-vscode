@@ -79,7 +79,7 @@ import { COLOR_CFG, DEP_MODE, ctxs, drawArrow, devicePixelRatio, getDevicePixelR
   FAKE_CORE_KEYWORD
 } from '../swimGraphUtils';
 import { isEqual, throttle, debounce } from 'lodash-es';
-import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getLeafHashList, getCallOpMagic, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
+import { isPointInPolygonFun, computeLocalXY, getEventColor, getNoZoomX, getOffset, getRootHashList, getLeafHashList, getActiveEventCanvas, matchKey, getCanvasRefs, getUIContext, handleMatchKey, selectNoNodeWarm, isAicpuHatchEvent} from './render/utils';
 import { SliceMipmap, CounterMipmap, calcResolution, drawCounterMipmapBuckets } from './render/mipmapRender';
 import { EventRender } from './render/eventRender';
 import { altClickData, measureState, MeatureRender } from './render/meatureRender';
@@ -106,8 +106,6 @@ let colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;
 let points = [];
 let boundaries = [];
 let preLabel = '';
-let preLeafHash = '';
-let preCallOpMagic = '';
 let lockedLabel = '';
 let drawColorDatas = {};
 let isHoverLockStatus = ref(false);
@@ -320,7 +318,7 @@ const handleCanvasClick = (e) => {
   }
   if (!isDragging.value && !locked) {
     clearAllSelectionCanvas('data-selection-process-key');
-  } 
+  }
   const rect = canvasRef.getBoundingClientRect();
   const x = (e.clientX - rect.left - viewState.offsetX) / viewState.scale;
   const y = e.clientY - rect.top;
@@ -355,16 +353,28 @@ const handleCanvasClick = (e) => {
     } else {
       measureState.isMeasureFirst = false;
       measureState.isMeasureFixed = false;
-      if (!e.ctrlKey) { selectEvent(clickedEvent, props.processKey) };
       isClickedPath.value = true;
-      // 三栏锁定状态下：点击同 label 事件时建立新的跨视图联动（详情面板已由 selectEvent 更新）
-      if (locked && isThreeColumn && clickedEvent.args?.color === lockedLabel && lockedLabel) {
+      // 三栏锁定状态下：点击任意事件都更新详情面板 + 切换锁定 label + 重建跨视图联动
+      if (locked && isThreeColumn && clickedEvent.args?.color) {
+        const clickedLabel = clickedEvent.args?.color;
         const eventHintStr = clickedEvent.args?.['event-hint'] ?? '';
         const rootHashList = [getRootHashList(eventHintStr)].filter(Boolean);
         const leafHash = getLeafHashList(eventHintStr);
-        sendMsg('returnSemanticLabelFromSwim', { label: lockedLabel, rootHashList: rootHashList?.length ? rootHashList : [], leafHash });
-        sendMsg('returnSemanticLabelFromSwimToCom', { label: lockedLabel, rootHashList: rootHashList?.length ? rootHashList : [] });
+        // 切换锁定 label 到被点击事件的 label，并重绘高亮区域
+        lockedLabel = clickedLabel;
+        preLabel = clickedLabel;
+        // 先 handleOutline 重绘高亮（内部 setSelectedData 会重置 detailsPanelExpanded），再 selectEvent 打开详情面板
+        handleOutline(clickedLabel, false, true, true);
+        if (!e.ctrlKey) {
+          selectEvent(clickedEvent, props.processKey)
+        };
+        sendMsg('returnSemanticLabelFromSwim', { label: clickedLabel, rootHashList: rootHashList?.length ? rootHashList : [], leafHash });
+        sendMsg('returnSemanticLabelFromSwimToCom', { label: clickedLabel, rootHashList: rootHashList?.length ? rootHashList : [] });
         sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
+      } else {
+        if (!e.ctrlKey) {
+          selectEvent(clickedEvent, props.processKey)
+        };
       }
     }
   } else {
@@ -1466,8 +1476,6 @@ const handleHoverEvent = (hoveredEvent) => {
   const eventHintStr = args?.['event-hint'] ?? '';
   const rootHashList = [getRootHashList(eventHintStr)];
   const leafHash = getLeafHashList(eventHintStr);
-  preLeafHash = leafHash;
-  preCallOpMagic = getCallOpMagic(eventHintStr);
   // 使用可选链和空值合并确保安全
   if (hoveredEvent.threadName && !hoveredEvent.threadName.includes(FAKE_CORE_KEYWORD) && shouldUpdateOutline(color)) {
     handleOutline(color, false);
@@ -1683,9 +1691,6 @@ const lockClick = (e) => {
   isLockStatus.value = true;
   // 收集锁定 label 下首个事件的 leafHash （opmaic 泳道侧不填，由计算图侧填充）
   let leafHash = '';
-  sendMsg('activeLock', { label: preLabel });
-  // callOpMagic（ROOT 层 CALL 节点）是 task→计算图的精确 key；leafHash 兜底
-  sendMsg('activeLockFromSwim', { label: preLabel, leafHash: preLeafHash, opmagic: preCallOpMagic ? Number(preCallOpMagic) : undefined });
   let rootHashArray = [];
   swimDataManager.getAllProcesses().forEach((process, processKey) => {
     if (!processExpanded.get(processKey)) {
@@ -1961,6 +1966,9 @@ const handleMouseDown = (e) => {
     rootHashes.value = [];
     leafHashes.value = [];
     leafHashMap.value.clear();
+  } else {
+    // 锁定状态下仍允许点击事件（用于切换锁定 label + 重建跨视图联动）
+    isClick.value = true;
   }
   if (!e.ctrlKey) { return };
   lastMoveX = e.clientX;

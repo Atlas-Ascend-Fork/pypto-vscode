@@ -92,7 +92,7 @@
 import { ref, inject, watch, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { clone } from 'lodash-es';
-import { getEventColorByMode } from '../swimGraphProcesses/processInfo';
+import { getEventColorByMode, hasLabelInEvents } from '../swimGraphProcesses/processInfo';
 import { useViewServer } from '../../../core/use-view-server';
 import { COLOR_CFG, DEP_MODE, threadCache } from '../swimGraphUtils';
 import { swimDataManager } from '../swimData';
@@ -325,9 +325,11 @@ function savePerfRendingMode(colorRenderMode) {
 };
 
 const updateKernelEvents = (mode, hashOrderOption) => {
-    // 三栏模式：主着色固定label，面板选择的 mode 作为无 label 的回退
-    const renderMode = isThreeColumn ? 'label' : mode;
-    const fallback = isThreeColumn ? (mode && mode !== 'label' ? mode : 'subGraph') : '';
+    // 面板选择的 mode 作为主着色模式；label 模式下若无 label 则回退到持久化的配置模式
+    const renderMode = mode || 'subGraph';
+    const persistedMode = userConfig.value.kernelColorRending && userConfig.value.kernelColorRending !== 'label'
+        ? userConfig.value.kernelColorRending : 'subGraph';
+    const fallback = mode === 'label' ? persistedMode : 'label';
     const updateEventColors = (event) => {
         if (event.originalThreadName) {
             return;
@@ -494,6 +496,10 @@ watch(userConfig, () => {
     perfModeOption.value = userConfig.value.perfColorReding;
     if (isMsProf.value) {
         kernelModeOption.value = 'name';
+    } else if (isThreeColumn && hasLabelInEvents()) {
+        // 三栏初始化：数据存在 label 时默认 label 着色，同步 userConfig 保证渲染一致
+        kernelModeOption.value = 'label';
+        userConfig.value.kernelColorRending = 'label';
     } else {
         kernelModeOption.value = userConfig.value.kernelColorRending;
     }

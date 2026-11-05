@@ -222,7 +222,7 @@ import { swimConfig } from '../welcome/guideStepsConfig';
 import { intelligentSearchHelper } from './swimGrapMeasurehDetail/helper';
 import { globalKeyEvent } from './eventHandler';
 import { getKernalEventColor } from './swimGraphProcesses/render/utils';
-import { getPositionByTime, getWidthByDuration } from './swimGraphProcesses/processInfo';
+import { getPositionByTime, getWidthByDuration, hasLabelInEvents } from './swimGraphProcesses/processInfo';
 import { eventTextSize, getFontStyle, getThreadStartY, getThreadHeight, drawDependencyHighlightEvent } from './swimGraphUtils';
 import { perfLogger, setDebugMode, setTotalStartTime, setTransformTime, isDebugEnabled } from './perfLogger';
 
@@ -940,6 +940,11 @@ const handleMixModeLayout = () => {
 
 const scheduleRender = (locateTarget) => {
   nextTick(() => {
+    // 若三栏下有 label 则默认 label 着色，同步 userconfig 保证渲染一致
+    if (props.isThreeColumn && hasLabelInEvents()) {
+      userConfig.value.kernelColorRending = 'label';
+      modeOption.value = 'label';
+    }
     initCanvases();
     resizeCanvases();
     render();
@@ -3607,8 +3612,12 @@ const setPageState = (message) => {
     performanceVisible.value = message.config.showPerformancePanel && !props.isThreeColumn && !isGuidePage.value;
   }
 
-  // 三栏模式：实际着色固定 label， 面板选择的 kernelColorRending 作为无 label 时的回退源
-  modeOption.value = props.isThreeColumn ? 'label' : userConfig.value.kernelColorRending;
+  // 三栏初始化：若数据存在 label 则默认 label 着色，否则用面板配置的 kernelColorRending
+  const hasLabel = props.isThreeColumn && hasLabelInEvents();
+  if (hasLabel) {
+    userConfig.value.kernelColorRending = 'label';
+  }
+  modeOption.value = userConfig.value.kernelColorRending;
   hashOrderRending.value = userConfig.value.hashOrderRending;
   configComponent.value.connectionLevel = userConfig.value.connectionLevel;
   detailComponent.value.connectionLevel = userConfig.value.connectionLevel;
