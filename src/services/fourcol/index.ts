@@ -174,17 +174,28 @@ export function locateFourColFiles(dataDir: string) {
 }
 
 /**
- * 读取三份 JSON 入库（行全部携带 programId）。数据指纹（programId + 各源文件 mtime/size）未变化时
+ * 读取源数据入库（行全部携带 programId）。数据指纹（programId + 各源文件 mtime/size）未变化时
  * 跳过重灌；变化时只清空并重灌该 programId 的行，其他 program 的数据原封不动（幂等）。
+ *
+ * 源文件分两级：计算图文件（graphPath，缺省为 programId/program.json）**必选**——三个 py 反查
+ * 接口（getOpsByPyInfo / getPyLocationByOps / getPyFileList）只依赖它；CCE 两件 JSON **可选**
+ * （缺失时对应表为空，CCE 相关接口返回空，四栏模式天然齐备、三栏联动不受影响）。
  */
-export async function loadFourColData(programId: string): Promise<FourcolLoadStats> {
+export async function loadFourColData(programId: string, graphPath?: string): Promise<FourcolLoadStats> {
   programId = normalizeProgramPath(programId);
-  const { programPath, opmagicMapPath, semanticLabelPath, missing } = locateFourColFiles(programId);
-  if (missing.length > 0) {
-    const missingFiles = missing.map((file) => `${file.name} (${file.path})`).join('; ');
-    throw new Error(`缺少四联动数据文件（programId 需为三件套所在目录）: ${missingFiles}`);
+  const graphFile = graphPath ?? path.join(programId, 'program.json');
+  if (!fs.existsSync(graphFile)) {
+    throw new Error(`缺少计算图文件: ${graphFile}`);
   }
-  const fingerprint = await computeLoadFingerprint(programId, [programPath, opmagicMapPath, semanticLabelPath]);
+  const opmagicMapPath = path.join(programId, 'kernel_aicore', 'cce_opmagic_map.json');
+  const semanticLabelPath = path.join(programId, 'kernel_aicore', 'cce_semantic_label.json');
+  const hasOpmagicMap = fs.existsSync(opmagicMapPath);
+  const hasSemanticLabel = fs.existsSync(semanticLabelPath);
+  const fingerprint = await computeLoadFingerprint(programId, [
+    graphFile,
+    ...(hasOpmagicMap ? [opmagicMapPath] : []),
+    ...(hasSemanticLabel ? [semanticLabelPath] : []),
+  ]);
   const metaStore = getFourcolMetaStore();
   const [savedFingerprint] = await metaStore.query().filter({ key: fingerprintKey(programId) }).exec();
   if (savedFingerprint) {
@@ -204,9 +215,9 @@ export async function loadFourColData(programId: string): Promise<FourcolLoadSta
     }
   }
   const [opmagicMap, semanticLabel, program] = (await Promise.all([
-    readJsonFile(opmagicMapPath),
-    readJsonFile(semanticLabelPath),
-    readJsonFile(programPath),
+    hasOpmagicMap ? readJsonFile(opmagicMapPath) : Promise.resolve([]),
+    hasSemanticLabel ? readJsonFile(semanticLabelPath) : Promise.resolve([]),
+    readJsonFile(graphFile),
   ])) as [CceOpmagicSource[], CceLabelSource[], ProgramJson];
 
   // fourcol_cce_opmagic：非 _main 的 .cpp 排前，保证“首条匹配”即 .cpp

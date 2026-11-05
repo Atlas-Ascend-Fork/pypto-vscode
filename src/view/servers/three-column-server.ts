@@ -47,6 +47,7 @@ import {
 } from './view-server-interface';
 import { readFirstNLines } from '../../utils/file-system';
 import { detectColumnMode } from '../../services/cce-index';
+import { getSemanticFromCache, readAndBuildSemanticObj, saveSemanticToCache } from '../../services/three-column-semantic';
 import {
   buildPyOpmagicMap,
   getCceFilesByLeaf,
@@ -591,12 +592,13 @@ export class ThreeColumnServer
     this.pushCceDir(this.cceDir);
   }
   /**
-   * 四栏模式下后台预载四联动索引（幂等、防重入、指纹跳过，per-program）。load 失败只记
-   * 日志 + setRef 提示，不 throw、不影响三栏功能；加载完成后推 PyOpmagicMap 供 py 栏
-   * 逆映射消费；查询侧未加载一律返回空，绝不在此自动触发 load。
+   * 联动模式下后台预载四联动索引（幂等、防重入、指纹跳过，per-program）。只要 comPath 就绪
+   * 即加载（三栏/四栏均可——py 反查三接口只依赖计算图文件；CCE 两件缺失时对应表为空）。
+   * load 失败只记日志 + setRef 提示，不 throw、不影响联动功能；加载完成后推 PyOpmagicMap
+   * 供 py 栏逆映射消费（非四栏时 getPyOpmagicMap 自行短路）；查询侧未加载一律返回空。
    */
   private async ensureFourcolLoaded(): Promise<void> {
-    if (this.columnMode !== 4 || !this.comPath) {
+    if (!this.comPath) {
       return;
     }
     const programId = toProgramId(this.comPath);
@@ -605,7 +607,7 @@ export class ThreeColumnServer
     }
     this.loadingProgramId = programId;
     try {
-      const stats = await loadFourColData(programId);
+      const stats = await loadFourColData(programId, this.comPath);
       this.setRef('FourcolLoaded', { data: { ...stats } });
       await this.getPyOpmagicMap();
     } catch (error) {
@@ -977,68 +979,31 @@ export class ComGraphHandler extends SingleGraphHandler {
     return true
   }
 
-  static getSemanticByType(semanticInfo: any, op: any) {
-    let lineno: number | undefined;
-    let label: string | undefined;
-    let filename: string | undefined;
-    if (Array.isArray(semanticInfo)) {
-      if (op.file) {
-        lineno = op.line;
-        filename = op.file;
-        label = semanticInfo.find(label => label && label.trim() !== '');
-        return { lineno, label, filename };
-      }
-    } else if (typeof (semanticInfo) === 'object') {
-      return semanticInfo;
-    }
-  }
-
-  static async getSemanticObj(server: any, jsonData: any) {
-    const semanticObj = {};
-    const workspaces = vscode.workspace.workspaceFolders;
-    if (!workspaces || !workspaces.length) {
-      server.setRef('SemanticObj', { semanticObj });
-      return;
-    }
-    const rootPath = workspaces[0].uri.fsPath;
-    if (jsonData.functions && Array.isArray(jsonData.functions)) {
-      jsonData.functions.forEach((func: any) => {
-        if (func.operations && Array.isArray(func.operations)) {
-          func.operations.forEach((op: any) => {
-            const semanticInfo = op.semantic_label;
-            if (!semanticInfo) {
-              // TODO：抛错
-              return;
-            }
-            const result = ComGraphHandler.getSemanticByType(semanticInfo, op);
-            if (!result) {
-              return;
-            }
-            let { lineno, filename, label } = result;
-            if (!isAbsolute(filename)) {
-              filename = resolve(rootPath, filename);
-            }
-            if (filename.includes('\\')) {
-              const driveLetter = filename[0].toLowerCase();
-              const _path = filename.slice(1);
-              filename = `${driveLetter}${_path}`;
-            }
-            if (!semanticObj[filename]) {
-              semanticObj[filename] = {};
-            }
-            semanticObj[filename][lineno] = label;
-          });
-        }
-      });
-    }
-    server.setRef('CompleteData', { semanticObj });
-  }
-
+  /**
+   * 语义高亮映射：three_column_semantic 缓存优先（mtime 严格相等命中）；
+   * miss 时单遍读取计算图 JSON 构建并回填缓存。
+   */
   static override async getInitialData(server: any) {
     await super.getInitialData(server);
     const graphData = this.getGraphData(server);
-    const fullData = await graphData.getCompleteData(graphData.fsPath);
-    ComGraphHandler.getSemanticObj(server, fullData);
+    const startTime = Date.now();
+    const workspaces = vscode.workspace.workspaceFolders;
+    if (!workspaces || !workspaces.length) {
+      server.setRef('CompleteData', { semanticObj: {} });
+      return;
+    }
+    const rootPath = workspaces[0].uri.fsPath;
+    const graphPath = graphData.fsPath;
+    const cached = await getSemanticFromCache(graphPath);
+    if (cached) {
+      server.setRef('CompleteData', { semanticObj: cached });
+      console.log(`[semantic-cache] 命中 ${graphPath}，耗时 ${Date.now() - startTime}ms`);
+      return;
+    }
+    const semanticObj = await readAndBuildSemanticObj(graphPath, rootPath);
+    server.setRef('CompleteData', { semanticObj });
+    await saveSemanticToCache(graphPath, semanticObj);
+    console.log(`[semantic-cache] 未命中，单遍解析 ${graphPath}，耗时 ${Date.now() - startTime}ms`);
   }
 
   static findSubDir(targetHash: string, curPath: string, extName: string, res: string[]) {

@@ -14,12 +14,22 @@
  */
 import * as assert from 'node:assert';
 import * as fs from 'node:fs';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
+import { tmpdir } from 'node:os';
 
 import * as vscode from 'vscode';
 
 import { FourcolMsgHandler } from '../../handler/fourcolMsgHandler';
-import { loadFourColData, pyPathToProgramId } from '../../services/fourcol';
+import {
+  getCceLocation,
+  getOpsByPyInfo,
+  getPyFileList,
+  getPyLocationByOps,
+  isProgramLoaded,
+  loadFourColData,
+  pyPathToProgramId,
+} from '../../services/fourcol';
 import { runFourColTest } from '../../services/fourcol/test';
 
 const EXTENSION_ID = 'CANN-PUB.pypto-toolkit';
@@ -84,5 +94,43 @@ suite('fourcol（四联动索引：服务层 + 消息层，无头）', () => {
     const files = await FourcolMsgHandler.getPyFileList(stubServer);
     assert.ok(Array.isArray(files) && files.length === 1, `getPyFileList 应返回 1 个 py 文件，实际: ${files?.length}`);
     assert.strictEqual(files?.[0].exists, true, '本机数据 sum_lstm.py 应存在');
+  });
+
+  test('三栏联动（仅计算图、无 CCE 数据）下三个 py 反查接口可用', async function () {
+    this.timeout(60000);
+    const extension = vscode.extensions.getExtension(EXTENSION_ID);
+    assert.ok(extension, '扩展在 Extension Host 中可用');
+    await extension.activate();
+
+    const pyPath = getDevPyPath(extension.extensionPath);
+    const sourceGraph = path.join(path.dirname(path.dirname(pyPath)), 'program.json');
+    const graphOnlyDir = path.join(tmpdir(), 'opencode', 'fourcol-graph-only-test');
+    await rm(graphOnlyDir, { recursive: true, force: true });
+    await mkdir(graphOnlyDir, { recursive: true });
+    await writeFile(path.join(graphOnlyDir, 'program.json'), await readFile(sourceGraph));
+    try {
+      const programId = pyPathToProgramId(path.join(graphOnlyDir, 'kernel_src', 'sum_lstm.py'));
+      const stats = await loadFourColData(programId);
+      assert.strictEqual(stats.skippedReload, false, '首次加载应全量灌库');
+      assert.deepStrictEqual(
+        [stats.opmagicCount, stats.labelCount, stats.opCount, stats.cceFileCount],
+        [0, 0, 845, 0],
+        '仅计算图：op 表 845 行，CCE 三表为 0',
+      );
+      assert.strictEqual(await isProgramLoaded(programId), true, '图文件加载后应视为已加载');
+
+      // 三个 py 反查接口照常解析（py 组件同事契约：联动模式 + 有计算图即可用）
+      const ops = await getOpsByPyInfo(programId, pyPath, 164);
+      assert.ok(Array.isArray(ops) && ops.length === 67, `getOpsByPyInfo 应返回 67 对，实际: ${ops?.length}`);
+      const locations = await getPyLocationByOps(programId, [{ hash: '11133360491696497719', opmagic: '10632' }]);
+      assert.ok(locations[0] && locations[0].pyLine === 194, `getPyLocationByOps 应返回真实落点: ${JSON.stringify(locations[0])}`);
+      const files = await getPyFileList(programId);
+      assert.ok(Array.isArray(files) && files.length === 1 && files[0].exists === true, 'getPyFileList 应返回 1 个存在的 py 文件');
+
+      // CCE 相关接口无数据时自然返回空（四栏专属能力不受降级影响）
+      assert.strictEqual(await getCceLocation(programId, '11133360491696497719', '10632'), null, '无 CCE 数据时 getCceLocation 应为 null');
+    } finally {
+      await rm(graphOnlyDir, { recursive: true, force: true });
+    }
   });
 });

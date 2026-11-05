@@ -22,5 +22,17 @@
     "mocha": {
       "timeout": 300000
     }
+  },
+  {
+    "label": "semantic-cache",
+    "files": "dist/test/semantic-cache/**/*.test.js",
+    "launchArgs": [
+      "--disable-extensions",
+      "--disable-updates",
+      "--disable-telemetry"
+    ],
+    "mocha": {
+      "timeout": 60000
+    }
   }
 ]
