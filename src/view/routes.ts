@@ -49,7 +49,7 @@ export const routes: EditorViewRoutes = {
   },
   // 三栏视图
   threeColumnGraph: {
-    title: 'Three Column Graph',
+    title: () => t('PyPTOToolkit.workspace.threeColumnGraphName'),
     viewServer: ThreeColumnServer,
   },
   swimGraph: {

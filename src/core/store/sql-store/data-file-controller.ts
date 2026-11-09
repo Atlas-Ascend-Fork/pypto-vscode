@@ -54,7 +54,15 @@ export class DataFileController<Item extends Data> {
   }
 
   public async clear(): Promise<void> {
-    await vscode.workspace.fs.delete(this._storeDirUri, { recursive: true });
+    // 目录可能被并发清理（多个视图/服务同时重灌）或尚未创建，删除失败不应中断上层流程
+    try {
+      if (await isFileUriExists(this._storeDirUri)) {
+        await vscode.workspace.fs.delete(this._storeDirUri, { recursive: true });
+      }
+    } catch {
+      // ignore: 目录已不存在
+    }
+    await vscode.workspace.fs.createDirectory(this._storeDirUri);
     return;
   }
 }

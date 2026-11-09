@@ -131,11 +131,16 @@ vi.mock('../../src/command/registerCommand', () => ({
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
-  return {
-    ...actual,
-    default: { ...actual, existsSync: vi.fn().mockReturnValue(false), chmodSync: vi.fn() },
+  const overrides = {
     existsSync: vi.fn().mockReturnValue(false),
     chmodSync: vi.fn(),
+    mkdirSync: vi.fn(),
+    writeFileSync: vi.fn(),
+  };
+  return {
+    ...actual,
+    default: { ...actual, ...overrides },
+    ...overrides,
   };
 });
 

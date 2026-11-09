@@ -116,6 +116,7 @@ const {
   draggingSelectionProcessKey,
   deviceDataMap,
   isDeviceView,
+  noAssociatedObject,
 } = inject('swimGraphState');
 
 const curThread = ref('');
@@ -252,6 +253,7 @@ provide('swimGraphState', {
   draggingSelectionProcessKey,
   deviceDataMap,
   isDeviceView,
+  noAssociatedObject,
 });
 
 const {

@@ -17,10 +17,12 @@ import { viewApi, viewRefs, ViewServer } from '../../core/view/view-server';
 import { ViewServerContext } from '../../core/view/view-server-context';
 import { SingleGraphHandler } from '../../handler/singleGraphHandler';
 import { SwimGraphMsgHandler } from '../../handler/swimGraphMsgHandler';
+import { FourcolMsgHandler } from '../../handler/fourcolMsgHandler';
+import { hismartliteEx } from '../../hismarliteEx';
 import { Fider } from '../threeColumnEntry';
 import { Util } from '../../util';
-import { readFileSync, writeFileSync, readdirSync } from 'fs';
-import { isAbsolute, resolve, dirname, extname } from 'path';
+import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
+import { isAbsolute, resolve, dirname, extname, basename, join } from 'path';
 import { SingleGraphData } from '../../core/graphData';
 import { GetOutputRecordParams } from '../../services/run-data/api';
 import { getRunDataList } from '../../services/run-data/api';
@@ -44,6 +46,23 @@ import {
   ISwimRefs,
 } from './view-server-interface';
 import { readFirstNLines } from '../../utils/file-system';
+import { detectColumnMode } from '../../services/cce-index';
+import { getSemanticFromCache, readAndBuildSemanticObj, saveSemanticToCache } from '../../services/three-column-semantic';
+import {
+  buildPyOpmagicMap,
+  getCceFile,
+  getCceFilesByLeaf,
+  getCceLocation,
+  getLabelsByCceFile,
+  getLeafOpsByLabel,
+  getOpByCceTree,
+  getOpSelectionByImplPyLine,
+  getOpSequence,
+  getOpsByPyLine,
+  getPyFilesByLeaf,
+  loadFourColData,
+  toProgramId,
+} from '../../services/fourcol';
 
 export class SwimData {
   public uri: Uri;
@@ -62,11 +81,15 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
 @viewRefs([
   'InitFlag',
   'SetThreeColumnMode',
+  'ColumnMode',
+  'CceCode',
+  'CceFileList',
+  'PyOpmagicMap',
+  'GraphSelection',
   'FuncHashFileList',
   'CompleteData',
   'PyCode',
-  'SaveSuccess',
-  'SaveError',
+  'FileExistenceResult',
   'CalleeMap',
   'CalleeOpAttrMap',
   'ComData',
@@ -102,6 +125,8 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'SetVscodeState',
   'returnSwimPath',
   'returnComPath',
+  'FourcolLoaded',
+  'FourcolLoadError',
 ])
 export class ThreeColumnServer
   extends ViewServer<Apis, Refs>
@@ -119,6 +144,14 @@ export class ThreeColumnServer
   query?: any;
   cachePath?: any;
   headerTitle?: string
+  columnMode: 3 | 4 = 3;
+  cceDir?: string;
+  /** CCE 先打开场景的初始子图 hash（pickCceFile 流程下发，loadMainData 一次性消费） */
+  cceInitialFuncHash?: string;
+  /** 正在加载中的 programId，防重入（完成/失败后清空，允许后续指纹复查） */
+  loadingProgramId?: string;
+  /** 进行中的加载任务：重入调用方等待它，避免查询打到未灌完的空表 */
+  private fourcolLoadingPromise?: Promise<void>;
 
   constructor(ctx: ViewServerContext) {
     super(ctx);
@@ -128,7 +161,7 @@ export class ThreeColumnServer
   getMetadata: () => Promise<void>;
   getInitialMemoryData: () => Promise<void>;
 
-  public override created(ctx: ViewServerContext): void { 
+  public override created(ctx: ViewServerContext): void {
     if (!ctx.fileUri) {
       return;
     }
@@ -145,7 +178,7 @@ export class ThreeColumnServer
     this.title = 'multiple graph';
     this.isReveal = false;
     this._disposables = [];
-    const threeQuery = JSON.parse(ctx.fileUri?.query)  
+    const threeQuery = JSON.parse(ctx.fileUri?.query)
     if (threeQuery.isBootStep) {
       this.swimDataPath = threeQuery.swim
       this.comPath = threeQuery.comput
@@ -156,12 +189,14 @@ export class ThreeColumnServer
 
   @viewApi()
   public getInitialData = async () => {
+    void this.ensureFourcolLoaded();
     this.setRef('SetThreeColumnMode', '');
     await ComGraphHandler.getInitialData(this);
     await SwimGraphMsgHandler.getInitialData(this);
   };
   @viewApi()
   public getInitialComData = async () => {
+    void this.ensureFourcolLoaded();
     this.setRef('SetThreeColumnMode', '');
     await ComGraphHandler.getInitialData(this);
   };
@@ -175,8 +210,113 @@ export class ThreeColumnServer
     await codeMsgHandler.getPyCode(this);
   };
   @viewApi()
-  public savePyCode = async (message) => {
-    await codeMsgHandler.savePyCode(this, message);
+  public switchPyFile = async (message: any) => {
+    const { path } = message.paramObj;
+    if (!path || !existsSync(path)) {
+      return;
+    }
+    this.codePath = path;
+    const code = readFileSync(path, 'utf8');
+    this.setRef('PyCode', { data: { code, codePath: path } });
+    this.resetLinkedPanes();
+  };
+  @viewApi()
+  public getCceCode = async (message: any) => {
+    const fileName = message.paramObj?.fileName;
+    if (!fileName || !this.cceDir) {
+      return;
+    }
+    const filePath = isAbsolute(fileName) ? fileName : join(this.cceDir, fileName);
+    if (!filePath.startsWith(this.cceDir) || !existsSync(filePath)) {
+      return;
+    }
+    const code = readFileSync(filePath, 'utf8');
+    this.setRef('CceCode', { data: { code, fileName: basename(filePath), filePath } });
+  };
+  @viewApi()
+  public pickCceFile = async () => {
+    const { path } = await new Fider(this.codePath).selectPath('cce');
+    if (!path || !existsSync(path)) {
+      return;
+    }
+    const isDir = statSync(path).isDirectory();
+    const dir = isDir ? path : dirname(path);
+    const selectedFile = isDir ? undefined : path;
+    const hadComPath = !!this.comPath;
+    const hadSwimPath = !!this.swimDataPath;
+    // CCE 先打开：展示目标（所选文件/目录默认文件）的 funcHash 随补全的计算图路径下发，
+    // 图初始加载直接定位该子图；complement 内 refreshColumnMode 推的默认文件先落地，
+    // 最后推送所选目录/文件作为最终展示
+    const target = this.resolveCceTarget(dir, selectedFile);
+    const cceFuncHash = target ? readCceFuncHash(join(dir, target)) : '';
+    this.complementPathsFromCceDir(dir, cceFuncHash);
+    this.pushCceDir(dir, selectedFile);
+    // 路径未变化（图已加载时重选 CCE 文件/目录）不重推 returnSearchPath：重推会触发图重初始化，
+    // 把 cceFileSwitched 的下钻覆盖回 firstExecFuncHash；此场景由文件切换事件完成图同步
+    if ((!hadComPath && this.comPath) || (!hadSwimPath && this.swimDataPath)) {
+      const pathMsg = { swimPath: this.swimDataPath || '', comPath: this.comPath || '' };
+      if (this.swimDataPath || this.comPath) {
+        this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+      }
+      this.setRef('returnSearchPath', { data: pathMsg });
+    }
+  };
+  complementPathsFromCceDir(dir: string, cceFuncHash?: string) {
+    for (const candidate of [dir, dirname(dir)]) {
+      if (!this.comPath) {
+        const comPath = join(candidate, 'program.json');
+        if (existsSync(comPath)) {
+          this.updateComData(comPath, cceFuncHash);
+        }
+      }
+      if (!this.swimDataPath) {
+        const swimPath = join(candidate, 'merged_swimlane.json');
+        if (existsSync(swimPath)) {
+          this.updateSwimData(swimPath);
+        }
+      }
+      if (this.comPath && this.swimDataPath) {
+        break;
+      }
+    }
+  }
+  /** CCE 展示目标：优先所选文件，其次首个 _main.cpp，最后字典序首个 .cpp；目录不可读返回 undefined */
+  resolveCceTarget(dir: string, selectedFile?: string): string | undefined {
+    try {
+      const cppFiles = readdirSync(dir).filter((f) => f.endsWith('.cpp')).sort();
+      const selectedName = selectedFile ? basename(selectedFile) : undefined;
+      return (selectedName && cppFiles.includes(selectedName) ? selectedName : undefined)
+        ?? cppFiles.find((f) => f.endsWith('_main.cpp'))
+        ?? cppFiles[0];
+    } catch {
+      return undefined;
+    }
+  }
+  pushCceDir(dir: string, selectedFile?: string) {
+    this.cceDir = dir;
+    try {
+      const cppFiles = readdirSync(dir).filter((f) => f.endsWith('.cpp')).sort();
+      const files = cppFiles.map((f) => ({ path: join(dir, f), name: f, exists: true }));
+      this.setRef('CceFileList', { data: { files } });
+      const target = this.resolveCceTarget(dir, selectedFile);
+      if (!target) {
+        this.setRef('CceCode', { data: { code: '', fileName: '', filePath: '' } });
+        return;
+      }
+      const code = readFileSync(join(dir, target), 'utf8');
+      this.setRef('CceCode', { data: { code, fileName: target, filePath: join(dir, target) } });
+    } catch (error) {
+      console.log('push cce dir failed:', error);
+    }
+  }
+  @viewApi()
+  public checkFileExistence = async (message: any) => {
+    const paths: string[] = message.paramObj?.paths ?? [];
+    const result: Record<string, boolean> = {};
+    for (const p of paths) {
+      result[p] = existsSync(p);
+    }
+    this.setRef('FileExistenceResult', { data: result });
   };
   @viewApi()
   public askLayout = async (message) => {
@@ -289,10 +429,13 @@ export class ThreeColumnServer
       this.setRef('dataError', { msg: t('pypto.threeCol.notTraceFormat')});
       return;
     }
+    hismartliteEx.startTime = new Date().getTime();
     const data = await SwimGraphMsgHandler.getData(this);
     if (Array.isArray(data)) {
+      hismartliteEx.transformStartTime = new Date().getTime();
       return stream.Readable.toWeb(stream.Readable.from(data!));
     }
+    hismartliteEx.transformStartTime = new Date().getTime();
     return data;
   };
   @viewApi()
@@ -387,6 +530,7 @@ export class ThreeColumnServer
   async initWebViewPanel() {
     try {
       await this.initPaths();
+      this.refreshColumnMode();
       // 如果路径未初始化成功，有缺省页面
       if (!this.swimDataPath || !this.comPath) {
         const pathMsg = { swimPath: this.swimDataPath || "", comPath: this.comPath || "" };
@@ -436,13 +580,244 @@ export class ThreeColumnServer
     this.swimDataPath = path;
     this.swimData = new SwimData(Uri.file(path), path);
   }
-  updateComData(path: string) {
+  updateComData(path: string, cceFuncHash?: string) {
     this.comPath = path;
     this.query = {
       fsPath: path,
       _path: this.initPath
     };
+    // CCE 先打开场景暂存初始子图 hash；其它流程传 undefined 顺带清掉残留
+    this.cceInitialFuncHash = cceFuncHash;
+    this.refreshColumnMode();
   }
+  refreshColumnMode() {
+    if (!this.comPath) {
+      this.columnMode = 4;
+      this.cceDir = undefined;
+      this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
+      this.pushDefaultCceCode();
+      return;
+    }
+    const result = detectColumnMode(this.comPath);
+    this.columnMode = result.columnMode;
+    this.cceDir = result.cceDir;
+    this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
+    this.pushDefaultCceCode();
+    void this.ensureFourcolLoaded();
+  }
+  resetLinkedPanes() {
+    this.swimDataPath = undefined;
+    this.swimData = undefined;
+    this.comPath = undefined;
+    // 联动重置：作废未消费的 CCE 初始子图 hash，避免下次图加载钉到过期 hash
+    this.cceInitialFuncHash = undefined;
+    this.refreshColumnMode();
+    this.setRef('SetVscodeState', { codePath: this.codePath, comPath: '', swimDataPath: '' });
+    this.setRef('returnInitPath', { data: { swimPath: '', comPath: '', forceEmpty: true } });
+  }
+  pushDefaultCceCode() {
+    if (this.columnMode !== 4 || !this.cceDir) {
+      this.setRef('CceFileList', { data: { files: [] } });
+      this.setRef('CceCode', { data: { code: '', fileName: '', filePath: '' } });
+      return;
+    }
+    this.pushCceDir(this.cceDir);
+  }
+  /**
+   * 联动模式下后台预载四联动索引（幂等、防重入、指纹跳过，per-program）。只要 comPath 就绪
+   * 即加载（三栏/四栏均可——py 反查三接口只依赖计算图文件；CCE 两件缺失时对应表为空）。
+   * load 失败只记日志 + setRef 提示，不 throw、不影响联动功能；加载完成后推 PyOpmagicMap
+   * 供 py 栏逆映射消费（非四栏时 getPyOpmagicMap 自行短路）；查询侧未加载一律返回空。
+   * 重入调用方（加载进行中再次调用）等待同一加载任务完成，避免查询打到未灌完的空表。
+   */
+  private async ensureFourcolLoaded(): Promise<void> {
+    if (!this.comPath) {
+      return;
+    }
+    const programId = toProgramId(this.comPath);
+    if (programId === this.loadingProgramId && this.fourcolLoadingPromise) {
+      await this.fourcolLoadingPromise;
+      return;
+    }
+    const comPath = this.comPath;
+    this.loadingProgramId = programId;
+    this.fourcolLoadingPromise = this.loadFourcolDataAndNotify(programId, comPath);
+    await this.fourcolLoadingPromise;
+  }
+
+  private async loadFourcolDataAndNotify(programId: string, comPath: string): Promise<void> {
+    try {
+      const stats = await loadFourColData(programId, comPath);
+      this.setRef('FourcolLoaded', { data: { ...stats } });
+      await this.getPyOpmagicMap();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[fourcol] 加载 ${programId} 失败:`, error);
+      this.setRef('FourcolLoadError', { data: { programId, message } });
+    } finally {
+      // 仅清理自己占用的槽位：comPath 中途切换时新任务的守卫不被旧任务误清
+      if (this.loadingProgramId === programId) {
+        this.loadingProgramId = undefined;
+        this.fourcolLoadingPromise = undefined;
+      }
+    }
+  }
+  /** 四栏查询锚定的 programId（comPath 缺失时为空串，查询自然返回空结果） */
+  private get fourcolProgramId(): string {
+    return this.comPath ? toProgramId(this.comPath) : '';
+  }
+  @viewApi()
+  public getPyOpmagicMap = async () => {
+    if (this.columnMode !== 4) {
+      return;
+    }
+    const pyOpmagicMap = await buildPyOpmagicMap(this.fourcolProgramId);
+    this.setRef('PyOpmagicMap', { pyOpmagicMap });
+  };
+  @viewApi()
+  public resolveFromCce = async (message: { opmagic: number; hash: string }) => {
+    const { opmagic, hash } = message;
+    if (!opmagic || !hash) {
+      return null;
+    }
+    const programId = this.fourcolProgramId;
+    const loc = await getCceLocation(programId, hash, String(opmagic));
+    const tree = await getOpByCceTree(programId, loc?.fileName ?? '', loc?.lines?.[0] ?? 0);
+    return { hash, opmagic: String(opmagic), label: tree?.label ?? null, pyFile: tree?.pyFile ?? null, pyLine: tree?.pyLine ?? null, cce: loc?.fileName ?? null, lines: loc?.lines ?? [] };
+  };
+  /** 泳道 task 悬停：leafHash → 该 leaf 全部 opmagic（CCE 行序），供 returnOpsFromCom 广播 */
+  @viewApi()
+  public resolveOpsFromLeaf = async (message: { leafHash: string }) => {
+    const leafHash = message?.leafHash;
+    if (!leafHash) {
+      return { ops: [] };
+    }
+    const seq = await getOpSequence(this.fourcolProgramId, leafHash);
+    return { ops: seq.map((r) => Number(r.opmagic)) };
+  };
+  /**
+   * 四联动泳道悬停/点击：按 (leafHash, label) 取该 leaf 的 opmagic 列表，
+   * 回发 returnOpsFromCom 后由 py/CCE 栏反查各自落点（必须是 leaf 层编号，
+   * root 层 CALL 的 opmagic 在 fourcol_py_impl 里没有实现行，下游反查不到）。
+   * label 为空代表「整张子图」。
+   */
+  @viewApi()
+  public resolveSwimOps = async (message: { leafHash?: string; label?: string }) => {
+    const leafHash = message?.leafHash;
+    if (!leafHash) {
+      return { ops: [] as number[] };
+    }
+    await this.ensureFourcolLoaded();
+    const ops = await getLeafOpsByLabel(this.fourcolProgramId, String(leafHash), message?.label ?? '');
+    return { ops: ops.map((o) => Number(o)) };
+  };
+  /** CCE 文件行悬停：按行反查 label 块（区间命中），供 returnSemanticLabelFromCce */
+  @viewApi()
+  public getCceLabels = async (message: { fileName: string }) => {
+    const fileName = message?.fileName;
+    if (!fileName) {
+      return { labels: [] };
+    }
+    return { labels: await getLabelsByCceFile(this.fourcolProgramId, fileName) };
+  };
+  /** 计算图子图 hash → 强绑定的 CCE 文件名（尾块优先，无尾块回退主块）；无绑定时返回 null */
+  @viewApi()
+  public getCceFileBySubgraph = async (message: { hash: string }) => {
+    const hash = message?.hash;
+    if (!hash || !this.cceDir) {
+      return { fileName: null };
+    }
+    await this.ensureFourcolLoaded();
+    return { fileName: await getCceFile(this.fourcolProgramId, hash) };
+  };
+  @viewApi()
+  public resolveFromPyLine = async (message: { file: string; line: number }) => {
+    const { file, line } = message;
+    if (!file || !line) {
+      return [];
+    }
+    return getOpsByPyLine(this.fourcolProgramId, file, line);
+  };
+  /** 计算图列自高亮：py 行 → 精确 op 落点（leafHash + opmagic + subgraphid + label） */
+  @viewApi()
+  public resolveOpsFromPyLine = async (message: { file: string; line: number }) => {
+    const { file, line } = message;
+    if (!file || !line) {
+      return { leafHashes: [], ops: [] };
+    }
+    const ops = await getOpSelectionByImplPyLine(this.fourcolProgramId, file, line);
+    return { leafHashes: Array.from(new Set(ops.map((o) => o.leafHash))), ops };
+  };
+  @viewApi()
+  public resolveActiveLock = async (message: {
+    opmagic?: number | string;
+    hash?: string;
+    leafHash?: string;
+    file?: string;
+    line?: number;
+    label?: string;
+  }) => {
+    const programId = this.fourcolProgramId;
+    let hash = message.hash ?? message.leafHash;
+    // 泳道点击发的是 opmagic: ''（空串），与未提供同等处理；否则会带着空串往下走，
+    // 使 getCceLocation 反查失败、载荷里的 opMagic 也变成空串
+    let opmagic = message.opmagic == null || message.opmagic === '' ? undefined : Number(message.opmagic);
+    if (opmagic == null) {
+      if (message.file && typeof message.line === 'number') {
+        const ops = await getOpsByPyLine(programId, message.file, message.line);
+        if (!ops.length) {
+          return null;
+        }
+        hash = ops[0][0];
+        opmagic = Number(ops[0][1]);
+      } else if (hash) {
+        const seq = await getOpSequence(programId, hash);
+        if (!seq.length) {
+          return null;
+        }
+        opmagic = Number(seq[0].opmagic);
+      }
+    }
+    if (!hash || opmagic == null) {
+      return null;
+    }
+    const loc = await getCceLocation(programId, hash, String(opmagic));
+    const tree = await getOpByCceTree(programId, loc?.fileName ?? '', loc?.lines?.[0] ?? 0);
+    // candidate 全集：py = 该 leaf 命中 op 的去重文件；cce = 主块在前 + 尾块
+    const [candidatePy, candidateCce] = await Promise.all([getPyFilesByLeaf(programId, hash), getCceFilesByLeaf(programId, hash)]);
+    // 来源明确给了 label（泳道 task 的 color）时以来源为准，getOpByCceTree 反查不到时也不会退化成 null
+    return {
+      hash,
+      opMagic: opmagic,
+      label: message.label || tree?.label || null,
+      candidate: { py: candidatePy, cce: candidateCce },
+    };
+  };
+  @viewApi()
+  public stepOp = async (message: { leafHash: string; opMagic: number; direction: -1 | 1 }) => {
+    const seq = await getOpSequence(this.fourcolProgramId, message.leafHash);
+    const cur = seq.findIndex((r) => Number(r.opmagic) === message.opMagic);
+    if (cur < 0) {
+      return null;
+    }
+    const next = cur + message.direction;
+    if (next < 0 || next >= seq.length) {
+      return null;
+    }
+    return Number(seq[next].opmagic);
+  };
+  @viewApi()
+  public getOpsByPyInfo = async (message: any) => {
+    return await FourcolMsgHandler.getOpsByPyInfo(this, message);
+  };
+  @viewApi()
+  public getPyLocationByOps = async (message: any) => {
+    return await FourcolMsgHandler.getPyLocationByOps(this, message);
+  };
+  @viewApi()
+  public getPyFileList = async () => {
+    return await FourcolMsgHandler.getPyFileList(this);
+  };
   @viewApi()
   public selectRunData = async (message: any) => {
     const { swimPath, comPath, runDataTitle } = message.runDataPaths;
@@ -531,11 +906,7 @@ export class ThreeColumnServer
       switch (message.graphType) {
         case 'editor':
           await this.handleCodeGraph(path);
-          const graphData = ComGraphHandler.getGrahpDataExtend(this);
-          if (graphData) {
-            const fullData = await graphData.getCompleteData(graphData.fsPath);
-            ComGraphHandler.getSemanticObj(this, fullData);
-          }
+          this.resetLinkedPanes();
           break;
         case 'swimGraph':
           await this.handleSwimGraph(path);
@@ -558,6 +929,8 @@ export class ThreeColumnServer
     } catch (err) {
       console.error(`${path}读取 py 文件时发生错误:`, err);
     }
+    // 切换 py 文件后重推语义高亮映射（缓存优先，前端 editor.vue watch CompleteData）
+    await ComGraphHandler.pushSemanticObj(this);
   };
   private async handleComGraph(path: string) {
     this.updateComData(path);
@@ -651,6 +1024,18 @@ function removeSuffix(input: string): string {
   }
 }
 
+// CCE 文件头部 funcHash 注释（与 CCE 栏前端 FUNC_HASH_RE 同源）
+const CCE_FUNC_HASH_RE = /\/\/\s*funcHash:\s*(\d+)/;
+
+/** 读 CCE 文件的 funcHash 注释；无注释/读取失败返回空串（图初始子图回退默认行为） */
+function readCceFuncHash(filePath: string): string {
+  try {
+    return CCE_FUNC_HASH_RE.exec(readFileSync(filePath, 'utf8'))?.[1] ?? '';
+  } catch {
+    return '';
+  }
+}
+
 class codeMsgHandler {
   static getPyCode(server: any) {
     const codePath = server.codePath;
@@ -661,25 +1046,6 @@ class codeMsgHandler {
       console.error(`${codePath}读取 py 文件时发生错误:`, err);
     }
     server.setRef('PyCode', { data: { code, codePath } });
-  }
-
-  static savePyCode(server: any, code: string) {
-    const codePath = server.codePath;
-
-    try {
-      // 保存代码到文件
-      writeFileSync(codePath, code, 'utf8');
-
-      // 通知前端保存成功
-      server.setRef('SaveSuccess', { data: 'Code saved successfully' });
-
-      console.log(`Code saved to: ${codePath}`);
-    } catch (err: any) {
-      console.error(`保存文件时发生错误:`, err);
-
-      // 通知前端保存失败
-      server.setRef('SaveError', { data: err.message });
-    }
   }
 }
 
@@ -697,7 +1063,8 @@ export class ComGraphHandler extends SingleGraphHandler {
     try {
       const { entryhash } = await SingleGraphData.getEntryHash(gd.fsPath);
       server.entryHash = entryhash;
-      gd.funcHash = entryhash;
+      // CCE 先打开：初始子图定位到 CCE 文件的 funcHash（不在图中时回退 entry）
+      gd.funcHash = await ComGraphHandler.resolveInitialFuncHash(server, entryhash);
     } catch (err: any) {
       if (err.code === 'FILE_READ_ERROR') {
         server.setRef('ErrorMessage', { data: t('pypto.comGraph.errorMessage.fileRead'), log: t('pypto.comGraph.errorLogMessage.error', { logText: err.message }), graphType: 'comGraph' }); return false;
@@ -712,68 +1079,79 @@ export class ComGraphHandler extends SingleGraphHandler {
     return true
   }
 
-  static getSemanticByType(semanticInfo: any, op: any) {
-    let lineno: number | undefined;
-    let label: string | undefined;
-    let filename: string | undefined;
-    if (Array.isArray(semanticInfo)) {
-      if (op.file) {
-        lineno = op.line;
-        filename = op.file;
-        label = semanticInfo.find(label => label && label.trim() !== '');
-        return { lineno, label, filename };
-      }
-    } else if (typeof (semanticInfo) === 'object') {
-      return semanticInfo;
+  /** CCE 先打开场景的初始子图：一次性消费待定的 CCE funcHash，hash 不在图中时回退 entryhash（可为 undefined） */
+  static async resolveInitialFuncHash(server: any, entryhash?: string): Promise<string | undefined> {
+    const cceFuncHash = server.cceInitialFuncHash;
+    server.cceInitialFuncHash = undefined;
+    if (!cceFuncHash || !server.comPath) {
+      return entryhash;
     }
+    const inGraph = await ComGraphHandler.graphContainsFuncHash(server.comPath, cceFuncHash);
+    if (inGraph) {
+      // 钉定标记：fetchFuncData 据此跳过三栏 firstExecFuncHash 重定向，初始图保持在 CCE 文件 funcHash
+      server.comGraphData.cceInitialPinned = true;
+      return cceFuncHash;
+    }
+    return entryhash;
   }
 
-  static async getSemanticObj(server: any, jsonData: any) {
-    const semanticObj = {};
-    const workspaces = vscode.workspace.workspaceFolders;
-    if (!workspaces || !workspaces.length) {
-      server.setRef('SemanticObj', { semanticObj });
+  /** 流式扫描 program.json 的 functions[].hash，避免为大图文件校验做整体 JSON.parse */
+  static graphContainsFuncHash(fsPath: string, funcHash: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      // 引号可选：兼容字符串（"hash": "123"）与数字字面量（"hash": 123）两种序列化
+      const pattern = new RegExp(`"hash"\\s*:\\s*"?${funcHash}"?`);
+      let tail = '';
+      const stream = fs.createReadStream(fsPath, { encoding: 'utf8' });
+      stream.on('data', (chunk) => {
+        const combined = tail + chunk;
+        if (pattern.test(combined)) {
+          stream.destroy();
+          resolve(true);
+          return;
+        }
+        tail = combined.slice(-200);
+      });
+      stream.on('end', () => resolve(pattern.test(tail)));
+      stream.on('error', () => resolve(false));
+    });
+  }
+
+  /**
+   * 语义高亮映射：three_column_semantic 缓存优先（mtime 严格相等命中）；
+   * miss 时单遍读取计算图 JSON 构建并回填缓存；构建失败降级为空映射（语义高亮
+   * 属辅助信息，不因图文件不可读/解析失败中断联动初始化）。打开联动与切换 py 文件均经此推送。
+   */
+  static async pushSemanticObj(server: any, graphPath?: string): Promise<void> {
+    const startTime = Date.now();
+    const pathToLoad = graphPath ?? this.getGrahpDataExtend(server)?.fsPath ?? server.comPath;
+    if (!pathToLoad) {
       return;
     }
-    const rootPath = workspaces[0].uri.fsPath;
-    if (jsonData.functions && Array.isArray(jsonData.functions)) {
-      jsonData.functions.forEach((func: any) => {
-        if (func.operations && Array.isArray(func.operations)) {
-          func.operations.forEach((op: any) => {
-            const semanticInfo = op.semantic_label;
-            if (!semanticInfo) {
-              // TODO：抛错
-              return;
-            }
-            const result = ComGraphHandler.getSemanticByType(semanticInfo, op);
-            if (!result) {
-              return;
-            }
-            let { lineno, filename, label } = result;
-            if (!isAbsolute(filename)) {
-              filename = resolve(rootPath, filename);
-            }
-            if (filename.includes('\\')) {
-              const driveLetter = filename[0].toLowerCase();
-              const _path = filename.slice(1);
-              filename = `${driveLetter}${_path}`;
-            }
-            if (!semanticObj[filename]) {
-              semanticObj[filename] = {};
-            }
-            semanticObj[filename][lineno] = label;
-          });
-        }
-      });
+    const workspaces = vscode.workspace.workspaceFolders;
+    if (!workspaces || !workspaces.length) {
+      server.setRef('CompleteData', { semanticObj: {} });
+      return;
     }
-    server.setRef('CompleteData', { semanticObj });
+    const cached = await getSemanticFromCache(pathToLoad);
+    if (cached) {
+      server.setRef('CompleteData', { semanticObj: cached });
+      console.log(`[semantic-cache] 命中 ${pathToLoad}，耗时 ${Date.now() - startTime}ms`);
+      return;
+    }
+    try {
+      const semanticObj = await readAndBuildSemanticObj(pathToLoad, workspaces[0].uri.fsPath);
+      server.setRef('CompleteData', { semanticObj });
+      await saveSemanticToCache(pathToLoad, semanticObj);
+      console.log(`[semantic-cache] 未命中，单遍解析 ${pathToLoad}，耗时 ${Date.now() - startTime}ms`);
+    } catch (error) {
+      server.setRef('CompleteData', { semanticObj: {} });
+      console.error(`[semantic-cache] 构建失败，降级为空映射 ${pathToLoad}:`, error);
+    }
   }
 
   static override async getInitialData(server: any) {
     await super.getInitialData(server);
-    const graphData = this.getGraphData(server);
-    const fullData = await graphData.getCompleteData(graphData.fsPath);
-    ComGraphHandler.getSemanticObj(server, fullData);
+    await this.pushSemanticObj(server);
   }
 
   static findSubDir(targetHash: string, curPath: string, extName: string, res: string[]) {

@@ -79,6 +79,7 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
     setModelDirection: renderer.setModelDirection,
     syncDiffView: nodeActions.syncDiffView,
     createSelectNodesRect: nodeActions.createSelectNodesRect,
+    createSelectNodesRectByIds: nodeActions.createSelectNodesRectByIds,
     removeSelectNodesRect: nodeActions.removeSelectNodesRect,
     resetModelSource: renderer.resetModelSource,
     hoverFeedbackAction: nodeActions.hoverFeedbackAction,

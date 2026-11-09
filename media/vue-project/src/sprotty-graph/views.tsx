@@ -329,12 +329,12 @@ export class AstgrGraphView implements IView {
     const fixedNodes = [comGraphStore.data.fixedNodeId];
     if (comGraphStore.data.inFixedComGraphFlow) {// 如果固定的计算流为true 永远失焦其他节点和连线
       fixedNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));
-    }else{ 
-      if (selectedNodes.length > 0) { 
+    }else{
+      if (selectedNodes.length > 0) {
         // 选中时  显示追踪轨迹 失焦其他节点和连线
         comGraphStore.setData('inSelectedComGraphFlow',true);
-        selectedNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));    
-      } else if(hoverNodes.length > 0 && model.children.length < 20000 && comGraphStore.data.comGraphConfig.isHoverHighlightNode){ 
+        selectedNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));
+      } else if(hoverNodes.length > 0 && model.children.length < 20000 && comGraphStore.data.comGraphConfig.isHoverHighlightNode){
         // 悬停时 显示追踪轨迹 失焦其他节点和连线
         hoverNodes.forEach((elementId) => traceElementsOptimized(elementId, edgeMap, window['trace'], model, context));
       }
@@ -651,6 +651,55 @@ function getBadgeDom(node) {
   </g>)
 }
 
+/**
+ * 四联动节点级视觉：focus → 高亮色，dim → 常规色底 + 置灰。
+ * 比 selectedNodeSemanticLabel 的 label 粒度更细（可区分同一 label 组内的 B 与 b）。
+ * 两个数组都为空时返回 null，保证其它视图/模式行为完全不变。
+ */
+function getFourColNodeStyle(node: any): { fill?: string; filter?: string } | null {
+  const { fourColFocusNodeIds, fourColDimNodeIds } = comGraphStore.data;
+  if (!fourColDimNodeIds?.length && !fourColFocusNodeIds?.length) {
+    return null;
+  }
+  if (fourColDimNodeIds?.includes(node.id)) {
+    return { fill: node.baseColor, filter: 'grayscale(1)' };
+  }
+  if (fourColFocusNodeIds?.includes(node.id)) {
+    return { fill: node.lightColor, filter: '' };
+  }
+  return null;
+}
+
+/**
+ * 四联动 py 行匹配的两级节点配色（节点 id 由 leafHash+opmagic 定位到当前子图）。
+ * 取节点自身底色，只调节明度，使各节点保留原有色调：
+ *   matched = 整组向远端调一档（浅色主题压暗、深色主题提亮）
+ *   active  = 当前节点保持原色，是组内最浅/最亮的一个
+ * 置灰节点不参与，避免与 CCE 链路的 dim 视觉冲突。
+ */
+function getFourColOpHighlightFill(node: any): { fill: string; filter: string } | null {
+  const { fourColActiveNodeIds, fourColMatchedNodeIds, fourColDimNodeIds } = comGraphStore.data;
+  if (fourColDimNodeIds?.includes(node.id)) {
+    return null;
+  }
+  const isActive = !!fourColActiveNodeIds?.includes(node.id);
+  const isMatched = !!fourColMatchedNodeIds?.includes(node.id);
+  if (!isActive && !isMatched) {
+    return null;
+  }
+  const fill = node.baseColor ?? node.lightColor;
+  if (!fill) {
+    return null;
+  }
+  if (isActive) {
+    return { fill, filter: '' };
+  }
+  // 浅色主题节点底色偏浅，压暗以拉开与当前节点的差距；深色主题反之
+  const ratio = 0.6;
+  const brightness = (window as any).isAscDark ? 1 / ratio : ratio;
+  return { fill, filter: `brightness(${brightness.toFixed(2)})` };
+}
+
 function getOpBackgroundStyle(node: any, incoming: boolean, outgoing: boolean, errClass: string) {
   let backgroundFillColor = node.baseColor;
   let backgroundFilter = '';
@@ -669,8 +718,22 @@ function getOpBackgroundStyle(node: any, incoming: boolean, outgoing: boolean, e
       backgroundFilter = 'grayscale(1)';
     }
   }
+  const fourCol = getFourColNodeStyle(node);
+  if (fourCol) {
+    if (fourCol.fill !== undefined) {
+      backgroundFillColor = fourCol.fill;
+    }
+    if (fourCol.filter !== undefined) {
+      backgroundFilter = fourCol.filter;
+    }
+  }
   if (node.isTokenNode) {
     backgroundFillColor = node.baseColor;
+  }
+  const fourColOp = getFourColOpHighlightFill(node);
+  if (fourColOp) {
+    backgroundFillColor = fourColOp.fill;
+    backgroundFilter = fourColOp.filter;
   }
   return { backgroundFillColor, backgroundFilter };
 }
@@ -1099,6 +1162,20 @@ function getTensorBackgroundStyle(node: any, incoming: boolean, outgoing: boolea
     } else {
       backgroundFilter = 'grayscale(1)';
     }
+  }
+  const fourCol = getFourColNodeStyle(node);
+  if (fourCol) {
+    if (fourCol.fill !== undefined) {
+      titleBackgroundFillColor = fourCol.fill;
+    }
+    if (fourCol.filter !== undefined) {
+      backgroundFilter = fourCol.filter;
+    }
+  }
+  const fourColOp = getFourColOpHighlightFill(node);
+  if (fourColOp) {
+    titleBackgroundFillColor = fourColOp.fill;
+    backgroundFilter = fourColOp.filter;
   }
   return { titleBackgroundFillColor, inoutBackgroundFillColor, backgroundFilter };
 }
@@ -1664,29 +1741,29 @@ export class InputOutputNodeView extends ShapeView {
 
 function generateRoundedPathWithArc(points, radius = 10) {
   if (points.length < 2) return "";
-  
+
   const direction = comGraphStore.data.layoutDirection;
   const xDelta = direction === 'RIGHT' ? 3: 0;
   const yDelta = direction === 'RIGHT' ? 0 : 3;
 
   let path = `M ${points[0].x - xDelta} ${points[0].y - yDelta}`;
-  
+
   for (let i = 0; i < points.length - 1; i++) {
       const current = points[i];
       const next = points[i + 1];
-      
+
       // 如果是最后一个线段或者是直线段，直接连接
       if (i === points.length - 2) {
         path += ` L ${next.x + xDelta} ${next.y + yDelta}`;
       } else {
           const afterNext = points[i + 2];
-          
+
           // 计算圆角
           const cornerPath = createRoundedCorner(current, next, afterNext, radius);
           path += cornerPath;
       }
   }
-  
+
   return path;
 }
 
@@ -1697,33 +1774,33 @@ function createRoundedCorner(prev, corner, next, radius) {
   // 计算向量
   const v1 = { x: corner.x - prev.x, y: corner.y - prev.y };
   const v2 = { x: next.x - corner.x, y: next.y - corner.y };
-  
+
   // 计算向量长度
   const len1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
   const len2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
-  
+
   if (len1 === 0 || len2 === 0) {
       return ` L ${corner.x} ${corner.y}`;
   }
-  
+
   // 标准化向量
   const n1 = { x: v1.x / len1, y: v1.y / len1 };
   const n2 = { x: v2.x / len2, y: v2.y / len2 };
-  
+
   // 确定实际半径（不超过线段长度的一半）
   const actualRadius = Math.min(radius, len1 / 2, len2 / 2);
-  
+
   // 计算圆角的起点和终点
   const startPoint = {
       x: corner.x - n1.x * actualRadius,
       y: corner.y - n1.y * actualRadius
   };
-  
+
   const endPoint = {
       x: corner.x + n2.x * actualRadius,
       y: corner.y + n2.y * actualRadius
   };
-  
+
   // 计算圆弧的方向（大弧标志和小弧标志）
   const angle = Math.atan2(n2.y, n2.x) - Math.atan2(n1.y, n1.x);
   let sweepFlag = angle > 0 ? 1 : 0;
@@ -1733,7 +1810,7 @@ function createRoundedCorner(prev, corner, next, radius) {
   if ((n2.x + n1.x< 0) && (n2.y + n1.y < 0)) {
     sweepFlag = sweepFlag ? 0 : 1;
   }
-  
+
   // 构建路径
   return ` L ${startPoint.x} ${startPoint.y} A ${actualRadius} ${actualRadius} 0 ${largeArcFlag} ${sweepFlag} ${endPoint.x} ${endPoint.y}`;
 }

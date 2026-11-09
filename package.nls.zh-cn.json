@@ -124,6 +124,7 @@
   "PyPTOToolkit.workspace.controlFlowName": "结果总览",
   "PyPTOToolkit.workspace.computeGraphName": "计算图",
   "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图",
+  "PyPTOToolkit.workspace.threeColumnGraphName": "联动视图",
   "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置",
   "pypto.threeCol.notTraceFormat": "三栏视图只能选择 Google Trace Array Format 的泳道图",
   "pypto.swimGraph.validate.processWithPid": "processes 缺少关键字段 pid:{{pid}}",

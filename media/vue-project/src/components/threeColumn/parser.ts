@@ -25,10 +25,23 @@ function normalize(filePath: string) {
   return filePath;
 }
 
+/** 取文件名（同时按 / 与 \ 切分）：语义映射的路径来自编译机，分隔符与运行平台不一定一致 */
+function baseName(filePath: string) {
+  return `${filePath ?? ''}`.split(/[\\/]/).pop() ?? '';
+}
+
 export function mkSemanticLabel(semanticObj: any, filePath: string) {
   const nfilePath = normalize(filePath);
   lineToSemanticMap.clear();
-  const line2label = semanticObj[nfilePath];
+  let line2label = semanticObj?.[nfilePath];
+  if (!line2label) {
+    // semantic_label.filename 是编译机绝对路径，与本地打开的文件不同源，按文件名兜底匹配
+    const target = baseName(nfilePath);
+    const key = Object.keys(semanticObj ?? {}).find((k) => baseName(k) === target);
+    if (key) {
+      line2label = semanticObj[key];
+    }
+  }
   if (!line2label) {
     return;
   }
@@ -45,28 +58,28 @@ export interface SemanticRange {
 
 export function parseSemanticLabels(totalLines: number): SemanticRange[] {
   labels = [];
-  
+
   // 边界情况处理
   if (lineToSemanticMap.size === 0 || totalLines <= 0) {
     return labels;
   }
-  
+
   const labeledLines = Array.from(lineToSemanticMap.keys())
     .sort((a, b) => a - b)
     .filter(line => line <= totalLines); // 过滤掉超过总行数的标签行
-  
+
   if (labeledLines.length === 0) {
     return labels;
   }
-  
+
   let currentName = lineToSemanticMap.get(labeledLines[0])!;
   let startLine = Number(labeledLines[0]);
-  
+
   for (let i = 1; i < labeledLines.length; i++) {
     const currentLabeledLine = labeledLines[i];
     const endLine = currentLabeledLine - 1;
     const nextName = lineToSemanticMap.get(currentLabeledLine)!;
-    
+
     // 确保结束行不小于开始行
     if (endLine >= startLine && currentName !== nextName) {
       labels.push({
@@ -76,10 +89,10 @@ export function parseSemanticLabels(totalLines: number): SemanticRange[] {
       });
       startLine = Number(currentLabeledLine);
     }
-    
+
     currentName = nextName;
   }
-  
+
   // 最后一个范围结束于总行数
   if (startLine <= totalLines) {
     labels.push({
@@ -88,6 +101,6 @@ export function parseSemanticLabels(totalLines: number): SemanticRange[] {
       endLine: totalLines
     });
   }
-  
+
   return labels;
 }

@@ -21,6 +21,7 @@ import SearchEntry from '../../components/comGraph/searchEntry.vue';
 import SearchMode from '../../components/comGraph/searchMode.vue';
 import SimpleComGraph from '../../components/comGraph/simpleComGraph.vue';
 import ThreeColumn from '../../components/threeColumn/threeColumn.vue';
+import CceColumn from '../../components/threeColumn/cceColumn.vue';
 import RundataModal from '../../components/threeColumn/rundataModal.vue';
 import { comGraphStore } from '../../service/com-graph-store';
 import { useViewServer } from '../../core/use-view-server';
@@ -185,14 +186,8 @@ function setupComWatchers(server: any) {
     jsonContent.value = newValue.data;
     shouldUpdateComGraphHashList.value = false;
   });
-  watch(server.InitData, (newValue) => {
-    pushState({
-      fsPath: newValue.fsPath,
-      funcHash: newValue.funcHash,
-      magicName: newValue.magicName,
-      pathName: newValue.pathName,
-    });
-  });
+  // 注：原 watch(server.InitData) 已移除 —— 服务端从未声明/推送该 ref，
+  // watch 源恒为 undefined（Vue: Invalid watch source），且其 body 从未执行。
 }
 
 function setupThreeWatchers(server: any) {
@@ -211,12 +206,13 @@ function setupThreeWatchers(server: any) {
   watch(server.returnInitPath, async (path) => {
     if (server.returnInitPath.value) {
       let { swimPath, comPath } = path.data;
+      const forceEmpty = path.data?.forceEmpty === true;
       const state = pullState();
       if (!swimPath) {
-        swimPath = state.swimDataPath
+        swimPath = forceEmpty ? '' : state.swimDataPath
       }
       if (!comPath) {
-        comPath = state.comPath
+        comPath = forceEmpty ? '' : state.comPath
       }
       filePaths.value = { swimPath: swimPath || '', comPath: comPath || '' };
       if (swimPath) {
@@ -476,6 +472,9 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
   </template>
   <template v-else>
     <ThreeColumn v-if="graphType === 'threeColumnGraph'" :shared-swim-data="sharedSwimData">
+      <template #extra>
+        <CceColumn />
+      </template>
       <template #comGraph>
         <ErrorView v-if="comErrorMessage" :jsonContent="comErrorMessage" :errorLog="errorLog" />
         <SimpleComGraph v-else-if="!noComFile" :jsonContent="jsonContent" :loadingStep="loadingStep"

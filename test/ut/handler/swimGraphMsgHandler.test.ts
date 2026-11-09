@@ -245,7 +245,7 @@ describe('SwimGraphMsgHandler.getOtherData', () => {
     expect(result.isMsProf).toBe(true);
   });
 
-  it('uses label colorRending for ThreeColumn server', async () => {
+  it('uses default colorRending for ThreeColumn server in getOtherData', async () => {
     mocks.fs.accessSync.mockReturnValue(undefined);
     mocks.util.getCachePath.mockReturnValue('/cache.json');
     mocks.util.readSwim2ComGraphMap.mockReturnValue({});
@@ -253,7 +253,7 @@ describe('SwimGraphMsgHandler.getOtherData', () => {
     mocks.registerCommand.getBasenameWithoutExt.mockReturnValue('swim');
     const server = createServer({ constructor: { name: 'ThreeColumnServer' } });
     const result = await SwimGraphMsgHandler.getOtherData(server);
-    expect(result.configuration.kernelColorRending).toBe('label');
+    expect(result.configuration.kernelColorRending).toBe('subGraph');
   });
 
   it('uses name colorRending for isMsProf query', async () => {

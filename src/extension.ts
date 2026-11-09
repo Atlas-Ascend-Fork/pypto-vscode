@@ -26,6 +26,7 @@ import { RegisterCommand } from './command/registerCommand';
 import { globalConfig } from './config/config';
 import { initRequestServer } from './core/request-server';
 import { SQLiteCache } from './core/sqliteCache';
+import { Util } from './util';
 import { clearAllStores, initStores } from './core/store';
 import { hismartliteEx } from './hismarliteEx';
 import { closeAllServices, serviceApis, startAllServices } from './services';
@@ -165,6 +166,7 @@ async function initDB(context: ExtensionContext) {
     if (pick !== yes) return;
     await SQLiteCache.getInstance().deleteForCommand();
     await clearAllStores();
+    Util.writeJsonCache(Util.getCachePath('threeViewFiles.json'), {});
     vscode.window.showInformationMessage(t('pypto.cacheAlreadyCleared'));
   });
 

@@ -56,6 +56,23 @@ interface ComGraphData {
   searchLevel: string;
   isLeaf: boolean;
   runningNodeId: string; // 内存可视化运行中节点的id
+  /**
+   * 四联动节点级视觉状态（比 selectedNodeSemanticLabel 的 label 粒度更细，可区分同 label 组内的 B 与 b）：
+   * focus = 需要高亮的节点（CCE 悬停时与该行同 opmagic 的 B）
+   * dim   = 需要置灰的节点（CCE 点击时与 B 同 label 的其余节点 b）
+   * rect  = 当前按 id 框选的节点集合，仅用于变更检测，避免重复增删 rect 元素
+   * 三者为空数组时所有视图行为与改动前完全一致。
+   */
+  fourColFocusNodeIds: string[];
+  fourColDimNodeIds: string[];
+  fourColRectNodeIds: string[];
+  /**
+   * 四联动 py 行匹配（leafHash+opmagic 定位到当前子图）的两级配色：
+   * matched = 整组（明度向远端调一档），active = 当前节点（保持原色，组内最浅/最亮）。
+   * 空数组时不影响任何现有视觉。
+   */
+  fourColMatchedNodeIds: string[];
+  fourColActiveNodeIds: string[];
   renderMinimapFunc?: (root?:SModelRoot)=> void;
   centerNodeActionFunc?: (elementIdsPara: string[], animatePara?: boolean, retainZoomPara?: boolean, zoomScalePara?: number)=> void;
   updateModelActionFunc?: ( animate?: boolean, cause?: boolean)=> void;
@@ -100,6 +117,11 @@ export const comGraphStore: DataStore = reactive({
     isLeaf: false,
     isCached: false,
     nodeCount: 0,
+    fourColFocusNodeIds: [],
+    fourColDimNodeIds: [],
+    fourColRectNodeIds: [],
+    fourColMatchedNodeIds: [],
+    fourColActiveNodeIds: [],
   },
 
   setData(key: string, value: any) {

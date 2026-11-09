@@ -23,6 +23,31 @@ const darkThemeLightColors = darkThemeColors.lightColorList;
 const lightThemeBaseColors = lithtThemeColors.baseColorList;
 const lightThemeLightColors = lithtThemeColors.lightColorList;
 
+// 用于三栏初始化时决定是否默认 label 着色
+export const hasLabelInEvents = (): boolean => {
+  for (const process of swimDataManager.getAllProcesses().values()) {
+    if (process.type === 'aicpu' || !process.isRendered) {
+      continue;
+    }
+    for (const thread of process.threads.values()) {
+      for (const eventId of thread.eventIds) {
+        const event = swimDataManager.getEventById(eventId);
+        if (!event || event.originalThreadName || event.isCounter) {
+          continue;
+        }
+        const labelPart = event.name && event.name.match(/\((?<label>[^)]+)\)/);
+        if (labelPart && labelPart.groups.label.trim()) {
+          return true;
+        }
+        if (event.args?.color) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
 export const getHashOrderGroup = (event: any, hashOrderType='') => {
   let hashOrderGroup = '';
   if (event.args['hashOrder-hint'] !== undefined || event.args.hashorder !== undefined) {
@@ -84,11 +109,12 @@ export const getBaseColor = (event, dep) => {
   if (!event) {
     return '#666666';
   }
-  const { kernelColorRending, isDarkTheme } = dep;
+  const { kernelColorRending, isDarkTheme, userConfig } = dep;
   if (!event.color || !event.color.dark) {
     const process = Array.from(swimDataManager.getAllProcesses().values()).find((p: any) => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
-    event.color = getEventColorByMode(event, kernelColorRending.value, processType);
+    const fallback = userConfig?.value && userConfig.value.kernelColorRending !== 'label' ? userConfig.value.kernelColorRending : '';
+    event.color = getEventColorByMode(event, kernelColorRending.value, processType, '', fallback);
   }
   if (isDarkTheme.value) {
     return event.color.dark.base;
@@ -101,11 +127,12 @@ export const getLightColor = (event, dep) => {
   if (!event) {
     return '#666666';
   }
-  const { kernelColorRending, isDarkTheme } = dep;
+  const { kernelColorRending, isDarkTheme, userConfig } = dep;
   if (!event.color.dark) {
     const process = Array.from(swimDataManager.getAllProcesses().values()).find((p: any) => p.pid === event.pid);
     const processType = process?.type || process?.args?.type || 'kernel';
-    event.color = getEventColorByMode(event, kernelColorRending.value, processType);
+    const fallback = userConfig?.value && userConfig.value.kernelColorRending !== 'label' ? userConfig.value.kernelColorRending : '';
+    event.color = getEventColorByMode(event, kernelColorRending.value, processType, '', fallback);
   }
   if (isDarkTheme.value) {
     return event.color.dark.light;
@@ -114,7 +141,7 @@ export const getLightColor = (event, dep) => {
   }
 };
 
-export const getEventColorByMode = (event: any, mode: string, processType = 'kernel', hashOrderType='') => {
+export const getEventColorByMode = (event: any, mode: string, processType = 'kernel', hashOrderType='', fallbackMode = '') => {
   let dBaseColor: string, dLightColor: string, lBaseColor: string, lLightColor: string;
   const isPerfSwimMode = mode === 'perfName' || processType === 'PerfSwim';
   const isByNameSwim = mode === 'name' || processType === 'aicpu';
@@ -161,6 +188,10 @@ export const getEventColorByMode = (event: any, mode: string, processType = 'ker
     let labelname = labelPart ? labelPart.groups.label.trim() : '';
     if (labelname === '') {
       labelname = event.args?.color || '';
+    }
+    // 三栏模式：label 模式下若无事件label，回退到面板选择的 fallbackMode
+    if (!labelname && fallbackMode && fallbackMode !== 'label') {
+      return getEventColorByMode(event, fallbackMode, processType, hashOrderType);
     }
     const dres = getColorByString(labelname, darkThemeBaseColors, darkThemeLightColors);
     const lres = getColorByString(labelname, lightThemeBaseColors, lightThemeLightColors);

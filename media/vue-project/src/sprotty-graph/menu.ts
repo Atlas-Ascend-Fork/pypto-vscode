@@ -90,6 +90,11 @@ export class AstgrContextMenuService implements IContextMenuService {
       nodeWrap.onclick = () => {
         const newNodeId = findDestNode(selectedNodeId, buttonPos, nodeId);
         (window as any).ascEventBus.emit('jump2SiblingNode', newNodeId);
+        // 四栏联动：按相邻 op 跳转并联动（stepOp → activeLockFromCom）
+        const opMagic = this.extractNodeMagic(selectedNodeId);
+        if (opMagic != null) {
+          (window as any).ascEventBus.emit('stepComOp', { opMagic, direction: buttonPos === 'left' ? -1 : 1 });
+        }
       }
     }
     return nodeWrap;

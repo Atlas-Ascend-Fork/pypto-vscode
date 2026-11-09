@@ -124,6 +124,7 @@
   "PyPTOToolkit.workspace.controlFlowName": "Result Overview",
   "PyPTOToolkit.workspace.computeGraphName": "Compute Graph",
   "PyPTOToolkit.workspace.swimlaneGraphName": "Swimlane Graph",
+  "PyPTOToolkit.workspace.threeColumnGraphName": "Linked View",
   "PyPTOToolkit.workspace.ptoNewConfig": "Add new running configuration",
   "pypto.threeCol.notTraceFormat": "The three-column view only allows selection of swimlane plots using the Google Trace Array Format.",
   "pypto.swimGraph.validate.processWithPid": "Missing Required keys in process pid:{{pid}}",

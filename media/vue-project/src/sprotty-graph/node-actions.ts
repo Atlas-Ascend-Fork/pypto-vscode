@@ -108,6 +108,9 @@ export function useNodeActions(ctx: SprottyContext) {
   };
 
   const createSelectNodesRect = async (semanticLabel: string, isLocate: boolean) => {
+    // 进入 label 粒度框选即退出四联动的节点级 focus/dim，避免两套视觉叠加残留
+    comGraphStore.setData('fourColFocusNodeIds', []);
+    comGraphStore.setData('fourColDimNodeIds', []);
     const selectedNodes = findNodeIdsBySemanticLabel(ctx.currentData as Object, semanticLabel);
     if (selectedNodes.length <= 0) {
       removeSelectNodesRect();
@@ -145,10 +148,50 @@ export function useNodeActions(ctx: SprottyContext) {
     cancelRectAnimation();
     comGraphStore.data.stableRect = false;
     comGraphStore.data.selectedNodeSemanticLabel = '';
+    comGraphStore.setData('fourColRectNodeIds', []);
+    comGraphStore.setData('fourColFocusNodeIds', []);
+    comGraphStore.setData('fourColDimNodeIds', []);
     const modelRoot = (ctx.modelSource as any).currentRoot;
     if (modelRoot?.children?.some((t: { id: string }) => t.id === 'show-node-rect')) {
       await ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: modelRoot.id }]);
     }
+  };
+
+  /**
+   * 四联动：按显式节点 id 列表框选。不经过 semanticLabel，也不设置 selectedNodeSemanticLabel，
+   * 因此不会把框外节点连带置灰——置灰由 fourColDimNodeIds 精确控制（见 views.tsx getFourColNodeStyle）。
+   * 渐变/蓝色由 isNodeRectLock 经 getRectStrokeColor 决定，与 createSelectNodesRect 同一套视觉。
+   */
+  const createSelectNodesRectByIds = async (nodeIds: string[], isLocate: boolean) => {
+    if (!nodeIds?.length) {
+      removeSelectNodesRect();
+      return;
+    }
+    const prevKey = (comGraphStore.data.fourColRectNodeIds ?? []).join('|');
+    if (prevKey !== nodeIds.join('|') || comGraphStore.data.selectedNodeSemanticLabel !== '') {
+      const modelRoot = (ctx.modelSource as any).currentRoot;
+      (ctx.modelSource.model as any).notNeedLayout = true;
+
+      ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: modelRoot.id }]);
+      comGraphStore.data.selectedNodeSemanticLabel = '';
+      comGraphStore.setData('fourColRectNodeIds', [...nodeIds]);
+      const newRect = {
+        id: 'show-node-rect',
+        type: 'rect',
+        position: { x: 0, y: 0 },
+        size: { width: 120, height: 80 },
+        customSize: { width: 0, height: 0 },
+        selectedNodes: nodeIds,
+        needCalPostion: true,
+      };
+      await ctx.modelSource.addElements([{ element: newRect, parentId: modelRoot.id }]);
+    }
+    const fitAction = createFitAction({ maxZoom: 2.0, padding: 50, elementIds: nodeIds, animate: false });
+    isLocate && ctx.modelSource.actionDispatcher.dispatch(fitAction).then(() => {
+      syncFitScreenViewport();
+    });
+
+    startRectAnimation(ctx.modelSource);
   };
 
   const jump2SiblingNodeListener = (nodeId: string) => {
@@ -186,6 +229,11 @@ export function useNodeActions(ctx: SprottyContext) {
       return;
     }
     (window as any).ascEventBus.emit('jump2SiblingNode', newNodeId);
+    // 四栏联动：按相邻 op 跳转并联动（stepOp → activeLockFromCom）
+    const opMagicMatch = selectedNodeId?.match(/operation-magic-(\d+)/);
+    if (opMagicMatch) {
+      (window as any).ascEventBus.emit('stepComOp', { opMagic: Number(opMagicMatch[1]), direction: buttonPos === 'left' ? -1 : 1 });
+    }
   };
 
   const searchModeOpenListener = (nodeMagic: number) => {
@@ -296,6 +344,7 @@ export function useNodeActions(ctx: SprottyContext) {
     selectAction,
     getSelectedNodeId,
     createSelectNodesRect,
+    createSelectNodesRectByIds,
     removeSelectNodesRect,
     jump2SiblingNodeListener,
     jump2SiblingNodeByHotKeyListener,

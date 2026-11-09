@@ -34,6 +34,8 @@ export interface AbstractGraphData {
   curPath?: string;
   magicName?: string;
   firstExecFuncHash?: string;
+  /** 初始子图钉定：CCE 先打开场景 funcHash 来自 CCE 文件，三栏初始取数不重定向到 firstExecFuncHash */
+  cceInitialPinned?: boolean;
   readFileAndSetCache(fsPath: string): Promise<void>;
   getCompleteData(fsPath: string): Promise<any>;
 }
@@ -45,6 +47,8 @@ export abstract class GraphData {
   calleeOpAttrMap: Record<string, string> = {};
   isUsedDB = false;
   version?: string;
+  /** 初始子图钉定：CCE 先打开场景 funcHash 来自 CCE 文件，三栏初始取数不重定向到 firstExecFuncHash */
+  cceInitialPinned = false;
 
   /** 外部可 await 的“写入+提交”完成信号 */
   public writeDone!: Promise<void>;
@@ -146,7 +150,7 @@ export abstract class GraphData {
         func_magicname: funcItem.func_magicname || null,
         graphtype: funcItem.graphtype ?? null,
       };
-      if (findExecFunc && funcItem.graphtype?.toString() === '2' && funcItem.semantic_label?.[0] !== '') {
+      if (findExecFunc && funcItem.graphtype?.toString() === '2' && (funcItem.operations?.length ?? 0) > 0) {
         this.firstExecFuncHash = hash;
         findExecFunc = false;
       }

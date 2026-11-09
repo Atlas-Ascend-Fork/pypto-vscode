@@ -172,9 +172,8 @@ export abstract class BaseGraphMsgHandler {
     try {
       if (gd.isUsedDB) {
         const result = await getComGraphFuncDataStore().query().filter({ filePath: gd.fsPath }).count();
-        const hashFuncItem = (await getComGraphFuncDataStore().query().filter({ filePath: gd.fsPath }).exec()).filter(
-          t => t.firstEntryHash !== '' && t.funcHash === '0');
-        server.comGraphData.firstExecFuncHash = hashFuncItem?.[0]?.firstEntryHash;
+        const allItems = await getComGraphFuncDataStore().query().filter({ filePath: gd.fsPath }).exec();
+        server.comGraphData.firstExecFuncHash = allItems.find((t) => t.firstEntryHash !== '')?.firstEntryHash;
         if (result === 0) {
           await gd.readFileAndSetCache(gd.fsPath);
         } else {
@@ -508,7 +507,10 @@ export abstract class BaseGraphMsgHandler {
   private static async fetchFuncData(gd: AbstractGraphData, server: any, diffType?: 'before' | 'after'): Promise<string | undefined> {
     let funcHash = gd.funcHash;
     if (server.title === 'multiple graph' && gd.firstExecFuncHash && gd.firstExecFuncHash !== '') {
-      funcHash = gd.firstExecFuncHash;
+      // 三栏初始图默认落到 firstExecFuncHash；CCE 先打开（cceInitialPinned）时钉在 CCE 文件 funcHash
+      if (!gd.cceInitialPinned) {
+        funcHash = gd.firstExecFuncHash;
+      }
       server.comGraphData.firstExecFuncHash = funcHash;
       server.comGraphData.funcHash = funcHash;
     }

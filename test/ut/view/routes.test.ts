@@ -61,8 +61,9 @@ describe('routes', () => {
     expect(routes.diffGraph.title).toBe('Diff Compute Graph');
   });
 
-  it('threeColumnGraph has string title', () => {
-    expect(routes.threeColumnGraph.title).toBe('Three Column Graph');
+  it('threeColumnGraph has function title', () => {
+    expect(typeof routes.threeColumnGraph.title).toBe('function');
+    expect((routes.threeColumnGraph.title as Function)()).toBe('PyPTOToolkit.workspace.threeColumnGraphName');
   });
 
   it('swimGraph has string title', () => {

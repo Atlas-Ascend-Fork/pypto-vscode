@@ -391,7 +391,7 @@ export class CustomMouseListener extends MouseListener {
         (window as any).ascEventBus.emit('showNodeTip', target);
       }
       if (target.id !== 'show-node-rect' && !comGraphStore.data.stableRect) {
-        (window as any).ascEventBus.emit('rect_node_hover', { semanticLabel: target.semanticLabel });
+        (window as any).ascEventBus.emit('rect_node_hover', { semanticLabel: target.semanticLabel, nodeId: target.id });
       }
     }
     return [];
