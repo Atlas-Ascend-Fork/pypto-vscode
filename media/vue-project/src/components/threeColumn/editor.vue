@@ -826,12 +826,15 @@ let lastComOps: { hash: string | null; ops: number[] } | null = null;
 // 之后按 hash+op 锁定代码行
 const applyActiveLock = (args) => {
   const hash = args.hash ?? args.leafHash;
-  const line = hash && args.opMagic != null ? opLocationIndex.get(`${hash}_${args.opMagic}`)?.pyLine : undefined;
+  // 落点须在当前文件（basename 匹配）才算可定位；跨文件自动切换由 activeLockFromCom 处理器的守卫负责
+  const loc = hash && args.opMagic != null ? opLocationIndex.get(`${hash}_${args.opMagic}`) : undefined;
+  const line = loc && loc.pyFile.split(/[\/\\]/).pop() === initCodePath.split(/[\/\\]/).pop() ? loc.pyLine : undefined;
   const targetLabel = args.label ? labels.find((l) => l.name === args.label) : undefined;
 
-  // 精确层锁定目标是 op：无 py 落点即无关联，不锁定（不退化为 label 锁定），
-  // "暂无关联对象"遮罩保持——与悬停遮罩口径一致（ops 未命中即显示，不看 label）
+  // 精确层锁定目标是 op：落点不在当前 py 文件即无关联，不锁定（不退化为 label 锁定、不自动切文件），
+  // 显示"暂无关联对象"遮罩——与悬停遮罩口径一致
   if (line == null) {
+    noAssociatedObject.value = true;
     return;
   }
   // 有落点 → 解除遮罩，进入锁定态
@@ -846,6 +849,10 @@ const applyActiveLock = (args) => {
   } else if (targetLabel) {
     renderBlockHighlights(editor, [[targetLabel.startLine, targetLabel.endLine]], getBlockStyle(true));
   }
+
+  // 锁定的 op 落点行画整行蓝条（锁定态视觉：渐变范围 + op 行蓝条 + 锁图标；renderLineBands
+  // 无 isLocked 守卫，"上一个/下一个 op"步进重锁时蓝条同样随 applyActiveLock 更新）
+  renderLineBands(editor, [line], isDarkTheme.value);
 
   // 按 hash+op 锁定代码行
   isLocked.value = true;
@@ -865,7 +872,9 @@ let pendingActiveLock: any = null;
     return;
   }
   const candidatePy: string | undefined = args.candidate?.py?.[0];
-  if (candidatePy && candidatePy.split(/[\/\\]/).pop() !== initCodePath.split(/[\/\\]/).pop()) {
+  // 自动切换文件仅限当前文件在计算图文件列表中的场景；当前文件不在列表（如以无关 py 打开联动模式）时
+  // 不切换，走 applyActiveLock：落点不在当前文件 → 显示"暂无关联对象"遮罩
+  if (isCurrentFileInGraph() && candidatePy && candidatePy.split(/[\/\\]/).pop() !== initCodePath.split(/[\/\\]/).pop()) {
     pendingActiveLock = args;
     threeColumnServer.switchPyFile({ paramObj: { path: candidatePy } });
     return;
@@ -933,8 +942,23 @@ watch(threeColumnServer.CompleteData, () => {
 });
 
 // 联动 py 文件列表：整表 key 本地派生；存在性走 checkFileExistence（webview 无文件系统）
+// 当前打开的 py 文件是否在计算图文件列表中（basename 匹配，整表 key 可能是编译机路径）
+const isCurrentFileInGraph = () => {
+  const base = initCodePath.split(/[\/\\]/).pop();
+  if (!base) {
+    return false;
+  }
+  return Object.keys(pyOpmagicMap).some((p) => p.split(/[\/\\]/).pop() === base);
+};
+
+// 联动 py 文件列表：当前文件在计算图文件列表中才显示下拉（fileSelect 空列表自动隐藏下拉图标）；
+// 不在则清空——当前文件与计算图无文件级关联，不提供切换入口。存在性走 checkFileExistence
 const refreshPyFileList = () => {
   const paths = Object.keys(pyOpmagicMap);
+  if (!isCurrentFileInGraph()) {
+    pyFileList.value = [];
+    return;
+  }
   pyFileList.value = paths.map((filePath) => ({
     path: filePath,
     name: filePath.split(/[\/\\]/).pop() ?? filePath,
@@ -1008,6 +1032,8 @@ watch(threeColumnServer.PyCode, (newValue) => {
   initCodePath = codePath;
   // 文件切换后重算本地索引（行集合依赖当前文件，顺带重建逆索引，整表量级重建耗时可忽略）
   rebuildLocalIndexes();
+  // 文件切换后重新判定下拉框显隐（当前文件是否在计算图文件列表中）
+  refreshPyFileList();
   editorFileName.value = initCodePath.split(/[\/\\]/).pop();
   initTotalLine = code.split('\n').length;
   loading.value = false;
