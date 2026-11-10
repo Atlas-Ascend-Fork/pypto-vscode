@@ -53,6 +53,7 @@ import {
   getCceFile,
   getCceFilesByLeaf,
   getCceLocation,
+  getLabel,
   getLabelsByCceFile,
   getLeafOpsByLabel,
   getOpByCceTree,
@@ -782,14 +783,20 @@ export class ThreeColumnServer
       return null;
     }
     const loc = await getCceLocation(programId, hash, String(opmagic));
-    const tree = await getOpByCceTree(programId, loc?.fileName ?? '', loc?.lines?.[0] ?? 0);
+    // loc 为空（不产码 / ROOT 层 op）时反查必然落空，跳过空查询
+    const tree = loc ? await getOpByCceTree(programId, loc.fileName, loc.lines?.[0] ?? 0) : null;
     // candidate 全集：py = 该 leaf 命中 op 的去重文件；cce = 主块在前 + 尾块
     const [candidatePy, candidateCce] = await Promise.all([getPyFilesByLeaf(programId, hash), getCceFilesByLeaf(programId, hash)]);
-    // 来源明确给了 label（泳道 task 的 color）时以来源为准，getOpByCceTree 反查不到时也不会退化成 null
+    // label 优先级：来源明确给出（泳道 task 的 color）→ 落点反查 → py_semantic 按 op 键查询。
+    // 最后一级保证 op 无精确落点（不产码 / ROOT 层 op）时载荷仍带 label，供 CCE 栏按当前文件兜底定位
+    const label = message.label || tree?.label || (await getLabel(programId, hash, String(opmagic)));
     return {
       hash,
       opMagic: opmagic,
-      label: message.label || tree?.label || null,
+      label: label || null,
+      // op 精确落点文件（尾块优先，与子图强绑同口径）；CCE 栏锁定须加载 op 实际所在的副本，
+      // candidate.cce[0]（主块）可能缺该 op 行或 funcHash 不一致，导致锁定静默失败
+      cce: loc?.fileName ?? null,
       candidate: { py: candidatePy, cce: candidateCce },
     };
   };
