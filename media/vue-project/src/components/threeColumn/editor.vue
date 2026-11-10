@@ -17,8 +17,8 @@
 <div class="container editor-container">
   <Loading v-if="loading" :loadingText="loadingText" warningText="" />
   <div v-show="!loading" ref="containerRef" class="editor-container" @mouseleave="handleMouseLeave" @mouseenter="handleMouseEnter">
-    <!-- 锁图标悬浮框（遮罩层显示时不出现） -->
-    <div v-if="!isLocked && lockPosition && !noAssociatedObject"
+    <!-- 本版本不展示锁图标（点击代码行上锁），图标交互后续版本恢复 -->
+    <div v-if="false"
          class="lock-indicator"
          @mouseenter="lockMouseEnter"
          @mouseleave="lockMouseLeave"
@@ -577,8 +577,11 @@ const setupHoverListeners = () => {
     handleMouseMove(e);
   });
 
-  // 鼠标点击事件
+  // 鼠标点击事件（仅左键可锁定，右键保留给上下文菜单）
   editor.onMouseDown(async (e) => {
+    if (e.event?.buttons !== undefined && e.event.buttons !== 1) {
+      return;
+    }
     const { position } = e.target;
     if (position) {
       // 清除之前的标签信息装饰

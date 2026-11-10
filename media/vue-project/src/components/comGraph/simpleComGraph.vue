@@ -413,8 +413,14 @@ function findOpNodeInGraph(opmagic: number | string): { nodeId: string; label: s
   return { nodeId: `operation-magic-${op.opmagic}-${subgraphid}`, label: op.semantic_label?.label ?? '' };
 }
 
+// 联动驱动的切图标记：drillToLeaf（py/CCE/泳道的锁定或悬停下钻）置位，
+// 「联动切图」（新锁定回声 activeLockFromCom 在途，不广播解锁）与
+// 「手动切图」（旧锁定目标与新子图强绑冲突，广播解锁）
+let lockDrivenDrill = false;
+
 /** 下钻到指定 leaf。跨 leaf 时目标节点根本不在当前图里，必须先切图 */
 function drillToLeaf(leafHash: string) {
+  lockDrivenDrill = true;
   const name = (comGraphStore.data.calleeMap?.[leafHash]?.func_magicname ?? leafHash).replace(/^TENSOR_/i, '');
   rootHash.value = leafHash;
   onHashChange({ value: leafHash, name });
@@ -683,6 +689,8 @@ function generateHashList(hashList?: string[]) {
 }
 
 const handleHashChange = (val) => {
+  // 下拉手动切换子图：清除联动切图标记，锁定冲突时 CCE 栏照常广播解锁
+  lockDrivenDrill = false;
   const selectedItem = rootHashList.value.find(item =>
     String(item.name) === String(val)
   );
@@ -989,7 +997,8 @@ watch(
       const newHash = val.hash != null ? String(val.hash) : '';
       if (newHash && newHash !== lastNotifiedSubgraphHash) {
         lastNotifiedSubgraphHash = newHash;
-        (window as any).ascEventBus.emit('subgraphHashChanged', { hash: newHash });
+        (window as any).ascEventBus.emit('subgraphHashChanged', { hash: newHash, lockDriven: lockDrivenDrill });
+        lockDrivenDrill = false;
       }
       const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
       const funcMagicName = comGraphStore.data.calleeMap?.[val.hash] ?? '';

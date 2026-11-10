@@ -557,6 +557,9 @@ const setupCceInteraction = () => {
     }
   });
   editor.onMouseDown((e) => {
+    if (e.event?.buttons !== undefined && e.event.buttons !== 1) {
+      return;
+    }
     const line = e.target?.position?.lineNumber;
     if (!line) {
       return;
@@ -671,7 +674,7 @@ watch(
 
 // 计算图子图切换（hash 变化）→ 按 hash 强绑 CCE 文件：优先尾块（非 _main），无尾块回退主块；
 // 当前文件 funcHash 已一致（含用户刚选定主/尾块副本）时不重复加载；无关联文件时遮罩提示
-const onSubgraphHashChanged = async (args: { hash?: string }) => {
+const onSubgraphHashChanged = async (args: { hash?: string; lockDriven?: boolean }) => {
   const hash = args?.hash;
   if (!hash) {
     return;
@@ -690,10 +693,13 @@ const onSubgraphHashChanged = async (args: { hash?: string }) => {
       // 锁定目标属于新子图：保留锁定，新文件加载后重新定位到目标行
       pendingLock = { ...lockedOp };
       switchLockPending = true;
-    } else {
-      // 锁定目标属于其它子图：与新子图强绑冲突，广播解锁
+    } else if (!args?.lockDriven) {
+      // 手动切图，锁定目标属于其它子图：与新子图强绑冲突，广播解锁
       (window as any).ascEventBus.emit('deactivateLock');
     }
+    // 联动驱动的切图（lockDriven，如 py 行点击下钻）：新锁定目标即将随
+    // activeLockFromCom 到达并覆盖 lockedOp，广播解锁会解除其它栏正在建立的
+    // 锁定（py 栏忽略自回声、解除后无法回锁），静默跳过
   }
   const res = await Promise.resolve(threeColumnServer.getCceFileBySubgraph?.({ hash })).catch(() => null);
   const target = res?.fileName;
