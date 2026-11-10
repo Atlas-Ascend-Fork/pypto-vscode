@@ -352,6 +352,16 @@ export async function isProgramLoaded(programId: string): Promise<boolean> {
   return !!row;
 }
 
+/** cce_opmagic_map.json 的第一个 leafhash（取表中首行，非 main 排前故与文件首条一致） */
+export async function getFirstLeafHash(programId: string): Promise<string | null> {
+  const [row] = await getFourcolCceOpmagicStore()
+    .query()
+    .filter({ programId: normalizeProgramPath(programId) })
+    .slice(0, 1)
+    .exec();
+  return row?.leafhash ?? null;
+}
+
 /** 删除该 program 的加载指纹，下次 load 强制全量重灌（test4col 用例用于确定性制造指纹 miss） */
 export async function removeLoadFingerprint(programId: string): Promise<void> {
   await getFourcolMetaStore().delete({ key: fingerprintKey(normalizeProgramPath(programId)) });

@@ -17,19 +17,26 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import {
   FourcolLoadStats,
+  buildPyOpmagicMap,
+  expandLines,
   getCceFile,
   getCceFileList,
+  getCceFilesByLeaf,
   getCceLocation,
+  getFirstLeafHash,
   getLabel,
   getLabelByCceLine,
   getLabelsByCceFile,
+  getLeafOpsByLabel,
   getOpSelectionByImplPyLine,
   getOpSelectionByPyLine,
   getOpByCceLine,
   getOpByCceTree,
+  getOpSequence,
   getOpsByPyInfo,
   getOpsByPyLine,
   getPyFileList,
+  getPyFilesByLeaf,
   getPyLocationByOps,
   isProgramLoaded,
   loadFourColData,
@@ -37,6 +44,8 @@ import {
   normalizeProgramPath,
   pyPathToProgramId,
   removeLoadFingerprint,
+  toBaseName,
+  toProgramId,
 } from './index';
 
 // A（所选 program = sum_lstm）定死的查询条件（来自 dev/4_col/data/sum_lstm 真实数据）
@@ -198,6 +207,66 @@ export async function runFourColTest(pyPath: string): Promise<{ pass: number; fa
           [true, true, true],
         );
         check('getOpSelectionByImplPyLine 声明行不命中', await getOpSelectionByImplPyLine(programIdA, pyFile, TEST_PY_LINE), []);
+
+        // ── 纯函数 ──
+        check('toBaseName Windows 路径', toBaseName('M:\\a\\dir\\b.py'), 'b.py');
+        check('toBaseName Unix 路径', toBaseName('/x/y/z.py'), 'z.py');
+        check('toBaseName 混合分隔符', toBaseName('M:\\a/b\\c.py'), 'c.py');
+        check('toProgramId 盘符归一', toProgramId('m:/x/program.json'), 'M:/x');
+        check('toProgramId 已大写不变', toProgramId('M:/x/program.json'), 'M:/x');
+        check('expandLines 简单数组', expandLines([21, 30]), [21, 30]);
+        check('expandLines 嵌套区间', expandLines([38, [42, 45], [74, 77], 80]), [38, 42, 43, 44, 45, 74, 75, 76, 77, 80]);
+        check('expandLines 空数组', expandLines([]), []);
+        check('expandLines 非数组', expandLines('not-array'), []);
+
+        // ── buildPyOpmagicMap（实现行逆映射） ──
+        const opmagicMap = await buildPyOpmagicMap(programIdA);
+        const opmagicFiles = Object.keys(opmagicMap);
+        const opmagicLeafCount = opmagicFiles.reduce((sum, f) => sum + Object.keys(opmagicMap[f]).length, 0);
+        const opmagicOpCount = opmagicFiles.reduce((sum, f) => sum + Object.values(opmagicMap[f]).reduce((s, ops) => s + Object.keys(ops).length, 0), 0);
+        check(
+          'buildPyOpmagicMap 结构',
+          [opmagicFiles.length, opmagicFiles[0]?.endsWith('sum_lstm.py'), opmagicLeafCount, opmagicOpCount],
+          [1, true, 5, 8],
+        );
+        check(
+          'buildPyOpmagicMap 121 行 opmagic 值',
+          opmagicMap[opmagicFiles[0]]?.['530342627983503388']?.['10001'],
+          121,
+        );
+
+        // ── getCceFilesByLeaf（candidate 用，主块在前） ──
+        check(
+          'getCceFilesByLeaf 主块在前去重',
+          (await getCceFilesByLeaf(programIdA, TEST_LEAF_HASH)).map((f) => f.replace(/^.*hiddenfunc_6_/, '...')),
+          ['...17003207903596263872_0_aiv_main.cpp', '...17003207903596263872_0_aiv.cpp'],
+        );
+
+        // ── getPyFilesByLeaf（candidate 用，去重保序） ──
+        check(
+          'getPyFilesByLeaf 去重文件',
+          (await getPyFilesByLeaf(programIdA, TEST_LEAF_HASH)).map((f) => path.basename(f)),
+          ['sum_lstm.py'],
+        );
+
+        // ── getFirstLeafHash（cce_opmagic_map.json 首条 leafhash） ──
+        check('getFirstLeafHash 正向', await getFirstLeafHash(programIdA), TEST_LEAF_HASH);
+        check('getFirstLeafHash 空 programId', await getFirstLeafHash(path.join(path.dirname(dataDir), '__no_such_program__')), null);
+
+        // ── getOpSequence（CCE 行序导航） ──
+        const opSeq = await getOpSequence(programIdA, TEST_LEAF_HASH);
+        check('getOpSequence 总数', opSeq.length, 9);
+        check('getOpSequence 行序前5', opSeq.slice(0, 5).map((s) => [s.opmagic, s.line]), [
+          ['11163', 18],
+          ['10879', 21],
+          ['11159', 22],
+          ['11160', 23],
+          ['11164', 24],
+        ]);
+
+        // ── getLeafOpsByLabel ──
+        check('getLeafOpsByLabel 带 label（gelu_activation_core 2）', await getLeafOpsByLabel(programIdA, TEST_LEAF_HASH, 'gelu_activation_core 2'), ['10632']);
+        check('getLeafOpsByLabel 不带 label（走产码表）', (await getLeafOpsByLabel(programIdA, TEST_LEAF_HASH)).length, 9);
 
         check(
           'getOpByCceLine 正向',
