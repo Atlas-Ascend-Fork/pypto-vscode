@@ -29,15 +29,7 @@
         <i :class="[isCceFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleCceFullscreen"></i>
       </div>
       <div ref="containerRef" class="cce-container" @mouseleave="handleMouseLeave">
-        <!-- 锁图标：悬浮可锁定行显示开锁（点击锁定），锁定后显示闭锁（点击解锁） -->
-        <div
-          v-if="!isLocked && lockPosition"
-          class="lock-indicator"
-          @click="lockClick"
-          :style="{ top: lockPosition.top + 'px', left: lockPosition.left + 'px' }"
-        >
-          <d-icon name="lock-open"></d-icon>
-        </div>
+        <!-- 锁图标：点击行锁定后显示蓝色闭锁（点击解锁）；悬浮不显示 -->
         <div
           v-if="isLocked && lockPosition"
           class="lock-indicator locked"
@@ -102,11 +94,11 @@ let cceLabelBlocks: Array<{ label: string; lines: number[] }> = [];
 // label 块所属文件路径：切文件后旧 label 行号无效，锁定渐变框需按此过滤
 let cceLabelBlocksPath = '';
 let lastHoverLine = 0;
-// 悬浮锁：可锁定行（opMagic + funcHash）悬浮时行左侧显示锁；点击发送 activeLockFromCce，
+// 行锁定：点击可锁定行（opMagic + funcHash）发送 activeLockFromCce，
 // 监听到 activeLockFromCom 后锁定（闭锁 + 蓝条 + 同 label 渐变框），锁定期间 hover 不响应
 const isLocked = ref(false);
 const lockPosition = ref<{ top: number; left: number } | null>(null);
-// 锁图标当前关联行：未锁定时为悬浮目标行，锁定后为锁定行
+// 锁定行（蓝色闭锁图标跟随的目标行）
 let lockLine = 0;
 // 跨栏锁定（activeLockFromCom）待显示目标：所需文件就绪后按 opMagic 定位行；
 // label 供 op 无精确落点时的兜底定位（文档 2.3：ops 有 cce 行，或当前文件 hash+label 定位到区间）
@@ -361,7 +353,7 @@ const sendMsg = (command: string, param: unknown) => {
   (window as any).ascEventBus.emit(command, param);
 };
 
-// ==================== 锁图标（悬浮/锁定） ====================
+// ==================== 锁图标（锁定） ====================
 
 // 锁图标定位：与目标行垂直居中；锁定态下目标行滚出视口时吸附编辑器上/下边缘保持可见
 const updateLockPosition = (line: number) => {
@@ -445,13 +437,6 @@ const deactivateLock = () => {
   sendMsg('deactivateLock', '');
 };
 
-const lockClick = (e: MouseEvent) => {
-  e.stopPropagation();
-  if (lockLine) {
-    requestLockAtLine(lockLine);
-  }
-};
-
 const unLockClick = (e: MouseEvent) => {
   e.stopPropagation();
   deactivateLock();
@@ -496,8 +481,6 @@ const handleMouseLeave = () => {
   sendMsg('returnSemanticLabelFromCce', { label: '' });
   clearLineBands(editor);
   clearBlockHighlights(editor);
-  lockLine = 0;
-  lockPosition.value = null;
 };
 
 const createEditor = (code: string) => {
@@ -543,20 +526,12 @@ const setupCceInteraction = () => {
       return;
     }
     lastHoverLine = line;
-    // 锁定态下 hover 不响应：不联动、不渲染悬浮反馈、悬浮锁不跟随
+    // 锁定态下 hover 不响应：不联动、不渲染悬浮反馈
     if (isLocked.value) {
       return;
     }
     const text = editor!.getModel()?.getLineContent(line) ?? '';
     const opMagic = extractOpMagic(text);
-    // 悬浮锁：可锁定行左侧显示锁图标
-    if (opMagic != null && currentFuncHash) {
-      lockLine = line;
-      updateLockPosition(line);
-    } else {
-      lockLine = 0;
-      lockPosition.value = null;
-    }
     // label 事件先发（渐变框 + label 首行定位），op 事件后发（蓝条 + op 行定位覆盖）：
     // 跨栏悬停 op 行滚动优先；且 op 行无 label 块时，label 空串的清除先于蓝条渲染，避免误清
     const label = findLabelByLine(line);
