@@ -77,6 +77,12 @@ export interface Store<Item extends Data, P extends keyof Item, Q extends keyof 
   delete(primaryConditions: { [key in P]: Item[key] }): Promise<boolean>;
 
   /**
+   * 批量删除：按条件一次 SELECT 收集文件名 → 并行删数据文件 → 一条 DELETE SQL
+   * @param condition 查询条件（支持非主键列，如 programId）
+   */
+  bulkDelete(condition: Partial<Item>): Promise<number>;
+
+  /**
    * 清空当前存储库
    */
   clear(): Promise<void>;

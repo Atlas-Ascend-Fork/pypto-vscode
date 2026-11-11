@@ -58,6 +58,7 @@ interface ProgramFunction {
 
 interface ProgramJson {
   functions?: ProgramFunction[];
+  entryhash?: string;
 }
 
 export interface FourcolLoadStats {
@@ -295,31 +296,31 @@ export async function loadFourColData(programId: string, graphPath?: string): Pr
     .sort()
     .map((fileName) => ({ programId, fileName }));
 
-  // 四张表各自独立的 DB 与数据目录，并行清空（仅该 programId 的行）并重灌
+  // 五表并行 bulkDelete + batchSet
   await Promise.all([
     (async () => {
       const store = getFourcolCceOpmagicStore();
-      await store.query().filter({ programId }).delete();
+      await store.bulkDelete({ programId } as Partial<FourcolCceOpmagicItem>);
       await store.batchSet(cceOpmagicItems);
     })(),
     (async () => {
       const store = getFourcolCceLabelStore();
-      await store.query().filter({ programId }).delete();
+      await store.bulkDelete({ programId } as Partial<FourcolCceLabelItem>);
       await store.batchSet(labelItems);
     })(),
     (async () => {
       const store = getFourcolPySemanticStore();
-      await store.query().filter({ programId }).delete();
+      await store.bulkDelete({ programId } as Partial<FourcolPySemanticItem>);
       await store.batchSet(opItems);
     })(),
     (async () => {
       const store = getFourcolCceFileStore();
-      await store.query().filter({ programId }).delete();
+      await store.bulkDelete({ programId } as Partial<FourcolCceFileItem>);
       await store.batchSet(cceFileItems);
     })(),
     (async () => {
       const store = getFourcolPyImplStore();
-      await store.query().filter({ programId }).delete();
+      await store.bulkDelete({ programId } as Partial<FourcolPyImplItem>);
       await store.batchSet(pyImplItems);
     })(),
   ]);
@@ -331,6 +332,7 @@ export async function loadFourColData(programId: string, graphPath?: string): Pr
     pyImplItems.length,
   ]) };
   await metaStore.set(metaItem);
+  await metaStore.set({ key: `entryHash:${programId}`, value: program.entryhash ?? '' });
 
   return {
     programId,
@@ -360,6 +362,15 @@ export async function getFirstLeafHash(programId: string): Promise<string | null
     .slice(0, 1)
     .exec();
   return row?.leafhash ?? null;
+}
+
+/** 入库时缓存的 entryhash（meta 表查询，毫秒级；未入库时返回 undefined，调用方回退流式解析） */
+export async function getCachedEntryHash(programId: string): Promise<string | undefined> {
+  const [row] = await getFourcolMetaStore()
+    .query()
+    .filter({ key: `entryHash:${normalizeProgramPath(programId)}` })
+    .exec();
+  return row?.value || undefined;
 }
 
 /** 删除该 program 的加载指纹，下次 load 强制全量重灌（test4col 用例用于确定性制造指纹 miss） */

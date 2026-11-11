@@ -134,28 +134,28 @@ let pyImplStore: Store<FourcolPyImplItem, 'programId' | 'leafhash' | 'opmagic' |
 
 export function getFourcolCceOpmagicStore(): Store<FourcolCceOpmagicItem, 'programId' | 'leafhash' | 'opmagic' | 'cce' | 'line'> {
   if (!cceOpmagicStore) {
-    cceOpmagicStore = new SqlStore('fourcol_cce_opmagic', FOURCOL_CCE_OPMAGIC_ATTRIBUTES);
+    cceOpmagicStore = new SqlStore('fourcol_cce_opmagic', FOURCOL_CCE_OPMAGIC_ATTRIBUTES, { memoryOnly: true });
   }
   return cceOpmagicStore;
 }
 
 export function getFourcolCceLabelStore(): Store<FourcolCceLabelItem, 'programId' | 'leafhash' | 'label' | 'cce'> {
   if (!cceLabelStore) {
-    cceLabelStore = new SqlStore('fourcol_cce_label', FOURCOL_CCE_LABEL_ATTRIBUTES);
+    cceLabelStore = new SqlStore('fourcol_cce_label', FOURCOL_CCE_LABEL_ATTRIBUTES, { memoryOnly: true });
   }
   return cceLabelStore;
 }
 
 export function getFourcolPySemanticStore(): Store<FourcolPySemanticItem, 'programId' | 'leafhash' | 'opmagic' | 'pyBasename' | 'pyLine'> {
   if (!pySemanticStore) {
-    pySemanticStore = new SqlStore('fourcol_py_semantic', FOURCOL_PY_SEMANTIC_ATTRIBUTES);
+    pySemanticStore = new SqlStore('fourcol_py_semantic', FOURCOL_PY_SEMANTIC_ATTRIBUTES, { memoryOnly: true });
   }
   return pySemanticStore;
 }
 
 export function getFourcolPyImplStore(): Store<FourcolPyImplItem, 'programId' | 'leafhash' | 'opmagic' | 'pyFile' | 'pyLine'> {
   if (!pyImplStore) {
-    pyImplStore = new SqlStore('fourcol_py_impl', FOURCOL_PY_IMPL_ATTRIBUTES);
+    pyImplStore = new SqlStore('fourcol_py_impl', FOURCOL_PY_IMPL_ATTRIBUTES, { memoryOnly: true });
   }
   return pyImplStore;
 }
@@ -165,7 +165,7 @@ let metaStore: Store<FourcolMetaItem, 'key'>;
 
 export function getFourcolCceFileStore(): Store<FourcolCceFileItem, 'programId' | 'fileName'> {
   if (!cceFileStore) {
-    cceFileStore = new SqlStore('fourcol_cce_file', FOURCOL_CCE_FILE_ATTRIBUTES);
+    cceFileStore = new SqlStore('fourcol_cce_file', FOURCOL_CCE_FILE_ATTRIBUTES, { memoryOnly: true });
   }
   return cceFileStore;
 }

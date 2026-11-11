@@ -56,6 +56,7 @@ import {
   getFirstLeafHash,
   getLabel,
   getLabelsByCceFile,
+  getCachedEntryHash,
   getLeafOpsByLabel,
   getOpByCceTree,
   getOpSelectionByImplPyLine,
@@ -191,14 +192,14 @@ export class ThreeColumnServer
 
   @viewApi()
   public getInitialData = async () => {
-    void this.ensureFourcolLoaded();
+    await this.ensureFourcolLoaded();
     this.setRef('SetThreeColumnMode', '');
     await ComGraphHandler.getInitialData(this);
     await SwimGraphMsgHandler.getInitialData(this);
   };
   @viewApi()
   public getInitialComData = async () => {
-    void this.ensureFourcolLoaded();
+    await this.ensureFourcolLoaded();
     this.setRef('SetThreeColumnMode', '');
     await ComGraphHandler.getInitialData(this);
   };
@@ -1068,9 +1069,15 @@ export class ComGraphHandler extends SingleGraphHandler {
     const gd = server.comGraphData as SingleGraphData;
 
     try {
-      const { entryhash } = await SingleGraphData.getEntryHash(gd.fsPath);
+      const programId = toProgramId(gd.fsPath);
+      const cached = await getCachedEntryHash(programId);
+      let entryhash: string | undefined;
+      if (cached) {
+        entryhash = cached;
+      } else {
+        entryhash = (await SingleGraphData.getEntryHash(gd.fsPath)).entryhash;
+      }
       server.entryHash = entryhash;
-      // CCE 先打开：初始子图定位到 CCE 文件的 funcHash（不在图中时回退 entry）
       gd.funcHash = await ComGraphHandler.resolveInitialFuncHash(server, entryhash);
     } catch (err: any) {
       if (err.code === 'FILE_READ_ERROR') {
@@ -1137,7 +1144,6 @@ export class ComGraphHandler extends SingleGraphHandler {
    * 属辅助信息，不因图文件不可读/解析失败中断联动初始化）。打开联动与切换 py 文件均经此推送。
    */
   static async pushSemanticObj(server: any, graphPath?: string): Promise<void> {
-    const startTime = Date.now();
     const pathToLoad = graphPath ?? this.getGrahpDataExtend(server)?.fsPath ?? server.comPath;
     if (!pathToLoad) {
       return;
@@ -1150,14 +1156,12 @@ export class ComGraphHandler extends SingleGraphHandler {
     const cached = await getSemanticFromCache(pathToLoad);
     if (cached) {
       server.setRef('CompleteData', { semanticObj: cached });
-      console.log(`[semantic-cache] 命中 ${pathToLoad}，耗时 ${Date.now() - startTime}ms`);
       return;
     }
     try {
       const semanticObj = await readAndBuildSemanticObj(pathToLoad, workspaces[0].uri.fsPath);
       server.setRef('CompleteData', { semanticObj });
       await saveSemanticToCache(pathToLoad, semanticObj);
-      console.log(`[semantic-cache] 未命中，单遍解析 ${pathToLoad}，耗时 ${Date.now() - startTime}ms`);
     } catch (error) {
       server.setRef('CompleteData', { semanticObj: {} });
       console.error(`[semantic-cache] 构建失败，降级为空映射 ${pathToLoad}:`, error);

@@ -11,65 +11,61 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-
  */
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 
 import type { Data } from '../types';
 
 import { SqlStoreManager } from './sql-store-manager';
-import { isFileUriExists } from '../../../utils/file-system';
 
 export class DataFileController<Item extends Data> {
   private _storeDirUri: vscode.Uri;
+  private _storeDirPath: string;
 
   constructor(storeName: string) {
     this._storeDirUri = SqlStoreManager.getInstance().toUri(storeName);
+    this._storeDirPath = this._storeDirUri.fsPath;
     vscode.workspace.fs.createDirectory(this._storeDirUri);
   }
 
   public async read(fileName: string): Promise<Item | undefined> {
-    const fileUri = vscode.Uri.joinPath(this._storeDirUri, fileName);
-    if (!(await isFileUriExists(fileUri))) {
-      return;
-    }
-    const fileContent = (await vscode.workspace.fs.readFile(fileUri)).toString();
+    const filePath = path.join(this._storeDirPath, fileName);
     try {
-      return JSON.parse(fileContent, reviveDateInJson);
+      const content = await fs.promises.readFile(filePath, 'utf8');
+      return JSON.parse(content, reviveDateInJson);
     } catch {
       return;
     }
   }
 
   public async write(item: Item, fileName: string): Promise<void> {
-    const fileUri = vscode.Uri.joinPath(this._storeDirUri, fileName);
-    await vscode.workspace.fs.writeFile(fileUri, Buffer.from(JSON.stringify(item), 'utf8'));
+    const filePath = path.join(this._storeDirPath, fileName);
+    await fs.promises.writeFile(filePath, JSON.stringify(item), 'utf8');
     return;
   }
 
   public async delete(fileName: string): Promise<void> {
-    const fileUri = vscode.Uri.joinPath(this._storeDirUri, fileName);
-    await vscode.workspace.fs.delete(fileUri);
+    const filePath = path.join(this._storeDirPath, fileName);
+    await fs.promises.unlink(filePath);
     return;
   }
 
   public async clear(): Promise<void> {
-    // 目录可能被并发清理（多个视图/服务同时重灌）或尚未创建，删除失败不应中断上层流程
     try {
-      if (await isFileUriExists(this._storeDirUri)) {
-        await vscode.workspace.fs.delete(this._storeDirUri, { recursive: true });
-      }
+      await fs.promises.rm(this._storeDirPath, { recursive: true, force: true });
     } catch {
-      // ignore: 目录已不存在
+      // 目录可能已被并发清理
     }
-    await vscode.workspace.fs.createDirectory(this._storeDirUri);
+    await fs.promises.mkdir(this._storeDirPath, { recursive: true });
     return;
   }
 }
 
 const DATE_STR_REG_EXP = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/;
 
-function reviveDateInJson(_: string, value: unknown) {
+function reviveDateInJson(_: string, value: unknown): unknown {
   if (typeof value === 'string') {
     const matches = DATE_STR_REG_EXP.exec(value);
     if (matches) {

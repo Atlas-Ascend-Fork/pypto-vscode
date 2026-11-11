@@ -28,10 +28,13 @@ import { SqlStoreDatabase, SqlStoreManager } from './sql-store-manager';
 export type SqlStoreOptions = {
   /** 数据库版本，需要清空sql时指定更大的值强制升版 */
   version?: number;
+  /** 纯内存模式：完整 JSON 存 _itemJson 列，跳过全部数据文件读写（适合重建快、无需跨会话存活的缓存） */
+  memoryOnly?: boolean;
 };
 
 const DEFAULT_OPTIONS: Required<SqlStoreOptions> = {
   version: 0,
+  memoryOnly: false,
 };
 
 /**
@@ -47,6 +50,8 @@ export class SqlStore<
   implements Store<Item, P, Q> {
   /** 数据库版本，需要清空sql时指定更大的值强制升版 */
   public readonly version: number;
+  /** 纯内存模式标记 */
+  public readonly memoryOnly: boolean;
 
   private _db: Promise<SqlStoreDatabase>;
 
@@ -72,6 +77,7 @@ export class SqlStore<
     }
     const requiredOptions = options ? { ...DEFAULT_OPTIONS, ...options } : { ...DEFAULT_OPTIONS };
     this.version = requiredOptions.version;
+    this.memoryOnly = requiredOptions.memoryOnly;
     this._manager = SqlStoreManager.getInstance();
     this._attributeResolver = new SqlAttributesResolver<Item>(attributes);
     this._tableController = new SqlTableController<Item>(storeName, this._attributeResolver);
@@ -103,9 +109,15 @@ export class SqlStore<
 
   public async set(item: Item): Promise<void> {
     const conditions = this._attributeResolver.itemToPrimaryConditions(item);
+    const columns = this._attributeResolver.toColumnNames();
+    if (this.memoryOnly) {
+      const itemJson = JSON.stringify(item).replace(/'/g, "''");
+      const values = [...this._attributeResolver.itemToSqlValues(item), `'${itemJson}'`];
+      await this._runAndSave(`INSERT OR REPLACE INTO ${this.storeName}(${columns.join(',')}) VALUES(${values})`);
+      return;
+    }
     const savingFileName = this.makeUniqueFileName(conditions.join(''));
     await this._dataFileController.write(item, savingFileName);
-    const columns = this._attributeResolver.toColumnNames();
     const values = [...this._attributeResolver.itemToSqlValues(item), `'${savingFileName}'`];
     await this._runAndSave(`INSERT OR REPLACE INTO ${this.storeName}(${columns.join(',')}) VALUES(${values})`);
     return;
@@ -120,48 +132,41 @@ export class SqlStore<
     if (!items || items.length === 0) return;
 
     const db = await this._db;
-    const columns = this._attributeResolver.toColumnNames();
-    const columnStr = columns.join(',');
-
-    // 用于收集生成的文件名，以便后续统一保存文件
+    const columnStr = this._attributeResolver.toColumnNames().join(',');
     const fileSavePromises: Promise<void>[] = [];
 
     try {
-      // 关闭自动提交，由我们手动控制整个大流程的事务边界
-      // （注意：如果 sql.js 没有直接的 setAutoCommit(false)，
-      // 则依靠最外层的 BEGIN TRANSACTION 包裹即可）
-      
       for (let i = 0; i < items.length; i += batchSize) {
-        // 1. 安全切片，防止越界
         const chunk = items.slice(i, i + batchSize);
-        
-        // 2. 开启当前批次的子事务
         db.run("BEGIN TRANSACTION");
 
         for (const item of chunk) {
-          // 3. 准备文件存储信息并异步写入文件
-          const conditions = this._attributeResolver.itemToPrimaryConditions(item);
-          const savingFileName = this.makeUniqueFileName(conditions.join(''));
-          fileSavePromises.push(this._dataFileController.write(item, savingFileName));
-
-          // 4. 拼接单条 VALUES 并在当前批次内执行
-          const values = [...this._attributeResolver.itemToSqlValues(item), `'${savingFileName}'`];
-          const sql = `INSERT OR REPLACE INTO ${this.storeName}(${columnStr}) VALUES(${values.join(',')})`;
+          let sql: string;
+          if (this.memoryOnly) {
+            const itemJson = JSON.stringify(item).replace(/'/g, "''");
+            const values = [...this._attributeResolver.itemToSqlValues(item), `'${itemJson}'`];
+            sql = `INSERT OR REPLACE INTO ${this.storeName}(${columnStr}) VALUES(${values.join(',')})`;
+          } else {
+            const conditions = this._attributeResolver.itemToPrimaryConditions(item);
+            const savingFileName = this.makeUniqueFileName(conditions.join(''));
+            fileSavePromises.push(this._dataFileController.write(item, savingFileName));
+            const values = [...this._attributeResolver.itemToSqlValues(item), `'${savingFileName}'`];
+            sql = `INSERT OR REPLACE INTO ${this.storeName}(${columnStr}) VALUES(${values.join(',')})`;
+          }
           db.run(sql);
         }
 
-        // 5. 提交当前批次的事务
         db.run("COMMIT");
       }
 
-      // 6. 等待所有文件并发写入完成
-      await Promise.all(fileSavePromises);
-
-      // 7. 【核心】所有批次完成后，统一将 SQLite 内存状态持久化到磁盘
+      if (!this.memoryOnly) {
+        await Promise.all(fileSavePromises);
+      }
       db.save();
 
     } catch (error) {
-      // 发生异常时回滚当前批次的事务
+      // 等飞行中的文件写入落地再抛出，避免文件句柄未释放导致后续清理失败
+      await Promise.allSettled(fileSavePromises);
       db.run("ROLLBACK");
       console.error('Batch set failed and rolled back:', error);
       throw error;
@@ -171,10 +176,12 @@ export class SqlStore<
   public async delete(primaryConditions: { [key in P]: Item[key] }): Promise<boolean> {
     const conditions = this._attributeResolver.itemToPrimaryConditions(primaryConditions as Partial<Item>);
     const selectResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} WHERE ${conditions.join(' and ')}`);
-    const savingFile = this._attributeResolver.getFileNamesFromQueryResult(selectResult)[0];
     if (selectResult) {
-      if (savingFile) {
-        await this._dataFileController.delete(savingFile);
+      if (!this.memoryOnly) {
+        const savingFile = this._attributeResolver.getFileNamesFromQueryResult(selectResult)[0];
+        if (savingFile) {
+          await this._dataFileController.delete(savingFile);
+        }
       }
       await this._runAndSave(`DELETE FROM ${this.storeName} WHERE ${conditions.join(' and ')}`);
       return true;
@@ -182,8 +189,39 @@ export class SqlStore<
     return false;
   }
 
+  /**
+   * 批量删除：一条 SELECT 收集数据文件名 → 并行删文件 → 一条 DELETE SQL → 一次 save。
+   * memoryOnly 模式下只执行 SQL DELETE。
+   */
+  public async bulkDelete(condition: Partial<Item>): Promise<number> {
+    const conditions = this._attributeResolver.itemToQueryConditions(condition as Partial<Item>);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const db = await this._db;
+    if (this.memoryOnly) {
+      const countResult = await this._execOneSelect(`SELECT count(*) as cnt FROM ${this.storeName} ${whereClause}`);
+      const count = Number(countResult?.values[0][0] ?? 0);
+      if (count === 0) {
+        return 0;
+      }
+      db.run(`DELETE FROM ${this.storeName} ${whereClause}`);
+      db.save();
+      return count;
+    }
+    const queryResult = await this._execOneSelect(`SELECT * FROM ${this.storeName} ${whereClause}`);
+    const fileNames = queryResult ? this._attributeResolver.getFileNamesFromQueryResult(queryResult) : [];
+    if (fileNames.length === 0) {
+      return 0;
+    }
+    await Promise.all(fileNames.map((fileName) => this._dataFileController.delete(fileName)));
+    db.run(`DELETE FROM ${this.storeName} ${whereClause}`);
+    db.save();
+    return fileNames.length;
+  }
+
   public async clear(): Promise<void> {
-    await this._dataFileController.clear();
+    if (!this.memoryOnly) {
+      await this._dataFileController.clear();
+    }
     await this._runAndSave(`DELETE FROM ${this.storeName}`);
     this._clearListeners.forEach((callback) => callback());
     return;
@@ -194,17 +232,14 @@ export class SqlStore<
   }
 
   /**
-   * 初始化数据表
+   * 初始化数据表。memoryOnly 与文件模式共用同一 schema（最后一列存 JSON 或文件名），无需区分。
    */
   private _initializeTable(db: Database) {
-    // 无数据表时新建
     const tableInfoFromDb = db.exec(`PRAGMA table_info(${this.storeName})`)[0]?.values;
     if (!tableInfoFromDb) {
       this._tableController.createTable(db);
       return;
     }
-
-    // 数据表字段发生变化时，清空重建
     const tableInfoFromAttribute = this._attributeResolver.toTableColumnInfo();
     const hasDiffColumn = tableInfoFromDb.some(
       (columnFromDb, index) => JSON.stringify(columnFromDb.slice(1)) !== JSON.stringify(tableInfoFromAttribute[index]),
@@ -272,11 +307,23 @@ export class SqlStore<
   }
 
   /**
-   * 从查询结果读取数据对象
+   * 从查询结果读取数据对象。memoryOnly 模式下最后一列存 JSON 字符串（复用文件名列位置），直接反序列化。
    */
   private async _getItemsFromQueryResult(queryResult: QueryExecResult | undefined): Promise<Item[]> {
     if (!queryResult) {
       return [];
+    }
+    if (this.memoryOnly) {
+      const jsonIndex = queryResult.columns.length - 1;
+      return queryResult.values
+        .map((row) => {
+          try {
+            return JSON.parse(String(row[jsonIndex])) as Item;
+          } catch {
+            return undefined;
+          }
+        })
+        .filter((item): item is Item => item !== undefined);
     }
     const savingFileNames = this._attributeResolver.getFileNamesFromQueryResult(queryResult);
     const readingPromises = savingFileNames.map((fileName) => this._dataFileController.read(fileName));
