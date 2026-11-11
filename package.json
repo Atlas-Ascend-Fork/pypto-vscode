@@ -267,7 +267,7 @@
   "dependencies": {
     "@material/material-color-utilities": "^0.3.0",
     "@pypto/data-compress": "^0.0.8",
-    "@pypto/native-layout": "^0.0.1",
+    "@pypto/native-layout": "^0.0.2",
     "@types/vscode": "^1.52.0",
     "core-js": "^3.47.0",
     "csv-parse": "^7.0.2",
