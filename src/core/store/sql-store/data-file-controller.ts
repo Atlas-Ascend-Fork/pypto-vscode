@@ -27,7 +27,7 @@ export class DataFileController<Item extends Data> {
   constructor(storeName: string) {
     this._storeDirUri = SqlStoreManager.getInstance().toUri(storeName);
     this._storeDirPath = this._storeDirUri.fsPath;
-    vscode.workspace.fs.createDirectory(this._storeDirUri);
+    fs.mkdirSync(this._storeDirPath, { recursive: true });
   }
 
   public async read(fileName: string): Promise<Item | undefined> {

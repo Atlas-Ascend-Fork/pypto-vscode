@@ -18,6 +18,11 @@ import * as vscode from 'vscode';
 import { DataFileController } from '../../../../../src/core/store/sql-store/data-file-controller';
 import { SqlStoreManager } from '../../../../../src/core/store/sql-store/sql-store-manager';
 
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs')>();
+  return { ...actual, mkdirSync: vi.fn() };
+});
+
 describe('DataFileController', () => {
   let mockStoreManager: any;
 
@@ -35,7 +40,7 @@ describe('DataFileController', () => {
     it('should create store directory', () => {
       new DataFileController('test_store');
       expect(mockStoreManager.toUri).toHaveBeenCalledWith('test_store');
-      expect(vscode.workspace.fs.createDirectory).toHaveBeenCalled();
+      expect(fs.mkdirSync).toHaveBeenCalledWith('/store/test_store', { recursive: true });
     });
   });
 
