@@ -50,10 +50,12 @@
         :has-border-top="showLeft"
         :is-fullscreen="currentFullscreenBlock === 'bottomLeft'"
       >
-        <div class="block-drag-handle">
-          <DragIcon />
-        </div>
         <div class="three-column-block extra-block">
+          <!-- 拖拽图标随块移动：交换时 onDrop 只搬运 .three-column-block，
+               图标必须在块内（与 py/comGraph/swim 的图标位置口径一致），否则交换后原位残留/目标块叠加 -->
+          <div class="block-drag-handle">
+            <DragIcon />
+          </div>
           <slot name="extra">
             <div class="extra-placeholder">Under Development</div>
           </slot>
@@ -552,6 +554,7 @@ provide('threeColumnState', { isDarkTheme, editorFileName, pyFileList });
     }
 
     .extra-block {
+      position: relative; /* block-drag-handle 绝对定位锚点（图标移入块内后随交换移动） */
       display: flex;
       flex-direction: column;
       box-sizing: border-box;

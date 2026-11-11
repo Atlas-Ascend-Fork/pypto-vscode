@@ -351,6 +351,36 @@ const applyOpsHighlight = (hash: string, ops: number[]) => {
   editor.revealPositionInCenter({ lineNumber: lines[0], column: 1 });
 };
 
+// 泳道 task 悬停（source:'swim'）→ 按 ops 反查 CCE 行，行号去重排序后合并连续区间渲染渐变块
+// （与 py 栏 highlightOpmagicLines 同口径，不画蓝条、不按 label 扩展）。
+// hash 与当前文件 funcHash 一致才渲染：泳道同一 label 可对应多个 hash（多个 leaf），
+// opmagic 跨 leaf 可能重号，hash 不匹配时不得按行命中渲染（会误染其它 hash 文件的行）；
+// 锁定态不响应；hash 不匹配按激活块定遮罩、空 ops/无落点清除，均与 com/py 悬停同规则
+const applySwimOpsHighlight = (hash: string, ops: number[]): boolean => {
+  if (!editor || isLocked.value) {
+    return false;
+  }
+  if (hash && hash !== currentFuncHash) {
+    noAssociatedObject.value = BlockToGraphMap[currentActiveBlock.value] !== 'cce';
+  }
+  if (!hash || !ops?.length || hash !== currentFuncHash) {
+    clearLineBands(editor);
+    clearBlockHighlights(editor);
+    return false;
+  }
+  const lines = ops.flatMap((opMagic) => opMagicLineIndex.get(opMagic) ?? []);
+  if (!lines.length) {
+    clearLineBands(editor);
+    clearBlockHighlights(editor);
+    return false;
+  }
+  const ranges = linesToRanges(lines);
+  noAssociatedObject.value = false;
+  renderBlockHighlights(editor, ranges);
+  editor.revealPositionInCenter({ lineNumber: ranges[0][0], column: 1 });
+  return true;
+};
+
 const sendMsg = (command: string, param: unknown) => {
   (window as any).ascEventBus.emit(command, param);
 };
@@ -789,11 +819,14 @@ const onActiveLock = (args: { label?: string }) => {
 };
 (window as any).ascEventBus.on('activeLock', onActiveLock);
 
-// 计算图 op 悬停(source:'com') / py 行悬停(source:'py') → CCE 行高亮 + 同 label 渐变框；其它来源/空 ops 清除
-// 锁定态忽略泳道来源的清除事件（py 栏同规则），保持闭锁/蓝条/渐变框
+// 计算图 op 悬停(source:'com') / py 行悬停(source:'py') → CCE 行高亮 + 同 label 渐变框；
+// 泳道 task 悬停(source:'swim') → 按 ops 行渲染渐变块；其它来源/空 ops 清除。
+// 锁定态在两个渲染函数内部统一不响应，保持闭锁/蓝条/渐变框
 const onReturnOpsFromCom = (args: { source?: string; hash?: string; ops?: number[] }) => {
   if (args?.source === 'com' || args?.source === 'py') {
     applyOpsHighlight(args.hash ?? '', args.ops ?? []);
+  } else if (args?.source === 'swim') {
+    applySwimOpsHighlight(args.hash ?? '', args.ops ?? []);
   } else if (!isLocked.value) {
     clearLineBands(editor);
     clearBlockHighlights(editor);
