@@ -53,6 +53,7 @@ import {
   getCceFile,
   getCceFilesByLeaf,
   getCceLocation,
+  getFirstLeafHash,
   getLabel,
   getLabelsByCceFile,
   getLeafOpsByLabel,
@@ -245,13 +246,17 @@ export class ThreeColumnServer
     const selectedFile = isDir ? undefined : path;
     const hadComPath = !!this.comPath;
     const hadSwimPath = !!this.swimDataPath;
-    // CCE 先打开：展示目标（所选文件/目录默认文件）的 funcHash 随补全的计算图路径下发，
-    // 图初始加载直接定位该子图；complement 内 refreshColumnMode 推的默认文件先落地，
-    // 最后推送所选目录/文件作为最终展示
-    const target = this.resolveCceTarget(dir, selectedFile);
-    const cceFuncHash = target ? readCceFuncHash(join(dir, target)) : '';
-    this.complementPathsFromCceDir(dir, cceFuncHash);
-    this.pushCceDir(dir, selectedFile);
+    // 首次选择：初始子图与默认 CCE 文件统一走 cce_opmagic_map 首个
+    // leafHash（refreshColumnMode → pushDefaultCceCode / resolveInitialFuncHash），与计算图
+    // 入口选择数据的首屏 hash 一致；所选文件/目录不参与初始定位（查看特定文件在加载完成后
+    // 经 CCE 下拉切换，由 cceFileSwitched 完成图同步）。
+    // 重选（图已加载）不触发初始加载，立即推送所选；补全失败（无 program.json）维持 _main 兜底
+    const pickedFile = selectedFile ? basename(selectedFile) : undefined;
+    this.complementPathsFromCceDir(dir, '');
+    const firstSelect = !hadComPath && !!this.comPath;
+    if (!firstSelect) {
+      this.pushCceDir(dir, pickedFile);
+    }
     // 路径未变化（图已加载时重选 CCE 文件/目录）不重推 returnSearchPath：重推会触发图重初始化，
     // 把 cceFileSwitched 的下钻覆盖回 firstExecFuncHash；此场景由文件切换事件完成图同步
     if ((!hadComPath && this.comPath) || (!hadSwimPath && this.swimDataPath)) {
@@ -596,14 +601,14 @@ export class ThreeColumnServer
       this.columnMode = 4;
       this.cceDir = undefined;
       this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
-      this.pushDefaultCceCode();
+      void this.pushDefaultCceCode();
       return;
     }
     const result = detectColumnMode(this.comPath);
     this.columnMode = result.columnMode;
     this.cceDir = result.cceDir;
     this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
-    this.pushDefaultCceCode();
+    void this.pushDefaultCceCode();
     void this.ensureFourcolLoaded();
   }
   resetLinkedPanes() {
@@ -616,13 +621,20 @@ export class ThreeColumnServer
     this.setRef('SetVscodeState', { codePath: this.codePath, comPath: '', swimDataPath: '' });
     this.setRef('returnInitPath', { data: { swimPath: '', comPath: '', forceEmpty: true } });
   }
-  pushDefaultCceCode() {
+  /**
+   * 四栏默认 CCE 文件：cce_opmagic_map.json 首个 leafHash 绑定的 CCE 文件（尾块优先）；
+   * 索引未就绪/无绑定时回退 _main/字典序首个
+   */
+  async pushDefaultCceCode() {
     if (this.columnMode !== 4 || !this.cceDir) {
       this.setRef('CceFileList', { data: { files: [] } });
       this.setRef('CceCode', { data: { code: '', fileName: '', filePath: '' } });
       return;
     }
-    this.pushCceDir(this.cceDir);
+    await this.ensureFourcolLoaded();
+    const leafHash = await getFirstLeafHash(this.fourcolProgramId);
+    const target = leafHash ? await getCceFile(this.fourcolProgramId, leafHash) : null;
+    this.pushCceDir(this.cceDir, target ?? undefined);
   }
   /**
    * 联动模式下后台预载四联动索引（幂等、防重入、指纹跳过，per-program）。只要 comPath 就绪
@@ -1031,18 +1043,6 @@ function removeSuffix(input: string): string {
   }
 }
 
-// CCE 文件头部 funcHash 注释（与 CCE 栏前端 FUNC_HASH_RE 同源）
-const CCE_FUNC_HASH_RE = /\/\/\s*funcHash:\s*(\d+)/;
-
-/** 读 CCE 文件的 funcHash 注释；无注释/读取失败返回空串（图初始子图回退默认行为） */
-function readCceFuncHash(filePath: string): string {
-  try {
-    return CCE_FUNC_HASH_RE.exec(readFileSync(filePath, 'utf8'))?.[1] ?? '';
-  } catch {
-    return '';
-  }
-}
-
 class codeMsgHandler {
   static getPyCode(server: any) {
     const codePath = server.codePath;
@@ -1086,16 +1086,24 @@ export class ComGraphHandler extends SingleGraphHandler {
     return true
   }
 
-  /** CCE 先打开场景的初始子图：一次性消费待定的 CCE funcHash，hash 不在图中时回退 entryhash（可为 undefined） */
+  /**
+   * 初始子图决策（一次性）：CCE 先打开场景消费待定的 CCE funcHash；
+   * 四栏且未指定时定位到 cce_opmagic_map 首个 leafHash（等待索引就绪，未命中回退）。
+   * hash 不在图中时回退 entryhash（可为 undefined）
+   */
   static async resolveInitialFuncHash(server: any, entryhash?: string): Promise<string | undefined> {
-    const cceFuncHash = server.cceInitialFuncHash;
+    let cceFuncHash: string | undefined = server.cceInitialFuncHash;
     server.cceInitialFuncHash = undefined;
+    if (!cceFuncHash && server.columnMode === 4 && server.comPath && typeof server.ensureFourcolLoaded === 'function') {
+      await server.ensureFourcolLoaded();
+      cceFuncHash = (await getFirstLeafHash(server.fourcolProgramId)) ?? undefined;
+    }
     if (!cceFuncHash || !server.comPath) {
       return entryhash;
     }
     const inGraph = await ComGraphHandler.graphContainsFuncHash(server.comPath, cceFuncHash);
     if (inGraph) {
-      // 钉定标记：fetchFuncData 据此跳过三栏 firstExecFuncHash 重定向，初始图保持在 CCE 文件 funcHash
+      // 钉定标记：fetchFuncData 据此跳过三栏 firstExecFuncHash 重定向，初始图保持在指定 funcHash
       server.comGraphData.cceInitialPinned = true;
       return cceFuncHash;
     }
