@@ -110,6 +110,8 @@ let lockedOp: { hash: string; opMagic: number } | null = null;
 let lockedLabelName = '';
 // 切文件待定位标记：新文件加载后按 lockedOp 定位，失败时解锁
 let switchLockPending = false;
+// 泳道锁定切换在途的目标 leafHash：下钻引起的 subgraphHashChanged 命中它时不得广播解锁
+let pendingLockSwitchHash = '';
 // 用户主动切换的目标文件路径（'*' 表示文件选择器场景，路径加载前未知）：
 // 加载到该文件时按内容 funcHash 反向绑定计算图子图；锁定/子图绑定等程序化加载路径不同不会消费它
 let pendingUserSwitchPath = '';
@@ -427,6 +429,7 @@ const clearLockState = () => {
 };
 
 const deactivateLock = () => {
+  pendingLockSwitchHash = '';
   if (!isLocked.value && !lockedOp && !lockedLabelName) {
     return;
   }
@@ -672,6 +675,12 @@ watch(
   { immediate: true },
 );
 
+// 泳道锁定切换：记录目标 leafHash，供下钻引起的 subgraphHashChanged 判定「锁定切换在途」
+const onLockSwitchFromSwim = (args: { leafHash?: string }) => {
+  pendingLockSwitchHash = String(args?.leafHash ?? '');
+};
+(window as any).ascEventBus.on('activeLockFromSwim', onLockSwitchFromSwim);
+
 // 计算图子图切换（hash 变化）→ 按 hash 强绑 CCE 文件：优先尾块（非 _main），无尾块回退主块；
 // 当前文件 funcHash 已一致（含用户刚选定主/尾块副本）时不重复加载；无关联文件时遮罩提示
 const onSubgraphHashChanged = async (args: { hash?: string; lockDriven?: boolean }) => {
@@ -693,6 +702,8 @@ const onSubgraphHashChanged = async (args: { hash?: string; lockDriven?: boolean
       // 锁定目标属于新子图：保留锁定，新文件加载后重新定位到目标行
       pendingLock = { ...lockedOp };
       switchLockPending = true;
+    } else if (pendingLockSwitchHash && pendingLockSwitchHash === hash) {
+      // 锁定切换在途：新锁定回声会更新 lockedOp，此处不得广播解锁
     } else if (!args?.lockDriven) {
       // 手动切图，锁定目标属于其它子图：与新子图强绑冲突，广播解锁
       (window as any).ascEventBus.emit('deactivateLock');
@@ -734,6 +745,8 @@ const onActiveLockFromCom = (args: {
   if (pendingUserSwitchPath === '*') {
     pendingUserSwitchPath = '';
   }
+  // 新锁定回声已到达：锁定切换在途标记作废
+  pendingLockSwitchHash = '';
   // 锁定目标文件取 op 精确落点（尾块优先，与子图强绑同口径）；无落点（不产码 op）回退 candidate
   // 时也优先尾块：主块可能缺该 op 行或 funcHash 不一致，且主块自身无 label 行时
   // getCceLabels 的副本回退会带回尾块行号，在主块文件上按 label 兜底会锁错行
@@ -793,6 +806,7 @@ const onReturnOpsFromCom = (args: { source?: string; hash?: string; ops?: number
 const onDeactivateLockMsg = () => {
   pendingLock = null;
   switchLockPending = false;
+  pendingLockSwitchHash = '';
   if (!isLocked.value && !lockedOp && !lockedLabelName) {
     return;
   }
@@ -812,6 +826,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  (window as any).ascEventBus.remove('activeLockFromSwim', onLockSwitchFromSwim);
   (window as any).ascEventBus.remove('activeLockFromCom', onActiveLockFromCom);
   (window as any).ascEventBus.remove('activeLock', onActiveLock);
   (window as any).ascEventBus.remove('subgraphHashChanged', onSubgraphHashChanged);

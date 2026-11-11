@@ -13,11 +13,12 @@
  * limitations under the License.
  -->
 <template>
+  <!-- 联动锁定态隐藏依赖画布：避免异步清理晚于重绘时旧依赖线闪现 -->
   <canvas
     ref="globalConnectionCanvas"
     class="global-connection-canvas"
     :data-global-connection="true"
-    :style="{ left: layout.processLabelWidth + 'px' }"
+    :style="{ left: layout.processLabelWidth + 'px', visibility: isLockStatus ? 'hidden' : 'visible' }"
   ></canvas>
 </template>
 
@@ -31,6 +32,7 @@ import { getEventColor } from './render/utils';
 import { calcResolution } from './render/mipmapRender';
 import { canvasPool } from '../render/canvasPool';
 const { isDarkTheme } = inject('root');
+const { isLockStatus } = inject('swimGraphState', {});
 const props = defineProps({
   containerWidth: {
     type: Number,

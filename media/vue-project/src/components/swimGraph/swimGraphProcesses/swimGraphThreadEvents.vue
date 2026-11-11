@@ -14,7 +14,8 @@
  -->
 <template>
   <div ref="containerRef" class="thread-events" :data-process-container="processKey" tabindex="0" @keydown="handleMountedKeyDown" @keyup="handleMountedKeyup" @mouseenter="handleMouseEnter">
-    <div v-if="isThreeColumn && !isLockStatus && lockPosition" 
+    <!-- 联动模式改为仅点击节点锁定，hover 锁定按钮暂不启用，后续需要时恢复
+    <div v-if="isThreeColumn && !isLockStatus && lockPosition"
          class="lock-indicator"
          @click="lockClick"
          :style="{
@@ -27,7 +28,8 @@
          }">
       <d-icon name="lock-open"></d-icon>
     </div>
-    <div v-if="isThreeColumn && isLockStatus && lockPosition" 
+    -->
+    <div v-if="isThreeColumn && isLockStatus && lockPosition"
          class="lock-indicator"
          @click="unLockClick"
          :style="{
@@ -55,7 +57,9 @@
       @contextmenu="handleCanvasRightClick"
     ></canvas>
     <canvas class="ui-events-canvas" :data-ui-process-key="processKey" style="pointer-events: none"></canvas>
-    <canvas class="dependency-events-canvas" :data-dep-process-key="processKey" style="pointer-events: none"></canvas>
+    <!-- 联动锁定态隐藏依赖画布：避免异步清理晚于重绘时旧依赖线闪现 -->
+    <canvas class="dependency-events-canvas" :data-dep-process-key="processKey"
+      :style="{ pointerEvents: 'none', visibility: isThreeColumn && isLockStatus ? 'hidden' : 'visible' }"></canvas>
     <canvas class="hover-events-canvas" :data-hover-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="background-events-canvas" :data-background-process-key="processKey" style="pointer-events: none"></canvas>
     <canvas class="wrap-container-canvas" :data-wrap-container-process-key="processKey" style="pointer-events: none"></canvas>
@@ -108,7 +112,12 @@ let boundaries = [];
 let preLabel = '';
 let preLeafHash = '';
 let lockedLabel = '';
+// CCE 最近一次 hover 的语义 label：非空时按 label 画框，op hash 不再覆盖
+let cceHoverLabel = '';
 let drawColorDatas = {};
+// 最近一次圈选目标：画布尺寸变化后据此重算 boundaries（旧坐标会随画布缩放偏移）
+let lastSelectionLabel = '';
+let lastSelectionLeafHash = '';
 let isHoverLockStatus = ref(false);
 // 计算图驱动的 leafHash 高亮：命中 hash 集合的事件高亮，其余置灰；为空表示未激活
 let leafHashHighlightSet = ref(new Set());
@@ -369,22 +378,25 @@ const handleCanvasClick = (e) => {
       measureState.isMeasureFixed = false;
       isClickedPath.value = true;
       // 三栏锁定状态下：点击任意事件都更新详情面板 + 切换锁定 label + 重建跨视图联动
-      if (isThreeColumn && clickedEvent.args?.color) {
-        const clickedLabel = clickedEvent.args?.color;
-        const eventHintStr = clickedEvent.args?.['event-hint'] ?? '';
-        const rootHashList = [getRootHashList(eventHintStr)].filter(Boolean);
-        const leafHash = getLeafHashList(eventHintStr);
-        // 防抖：同 label 同 leafHash 重复点击跳过，避免重复渲染和消息发送
-        if (lockedLabel === clickedLabel && preLeafHash === leafHash) {
+      // 有 label 按 label 锁定；无 label 但有 leafHash 时按 leafHash 锁定（hash-only 事件）
+      const clickedLabel = clickedEvent.args?.color || '';
+      const eventHintStr = clickedEvent.args?.['event-hint'] ?? '';
+      const rootHashList = [getRootHashList(eventHintStr)].filter(Boolean);
+      const leafHash = getLeafHashList(eventHintStr);
+      if (isThreeColumn && (clickedLabel || leafHash)) {
+        // 锁定标识：label 优先，hash-only 时用 leafHash
+        const lockKey = clickedLabel || leafHash;
+        // 防抖：同锁定目标重复点击跳过，避免重复渲染和消息发送
+        if (lockedLabel === lockKey && preLeafHash === leafHash) {
           if (!e.ctrlKey) {
-            selectEvent(clickedEvent, props.processKey);
-            // 联动模式下点击锁定节点只绘制依赖节点和依赖线
+            // 联动锁定：只记录选中事件，不绘制依赖节点/依赖线，也不弹详情面板
+            selectEvent(clickedEvent, props.processKey, true, false, false, true);
             detailsPanelExpanded.value = false;
           }
           return;
         }
-        // 切换锁定 label 到被点击事件的 label，并重绘高亮区域
-        lockedLabel = clickedLabel;
+        // 切换锁定目标到被点击事件，并重绘高亮区域
+        lockedLabel = lockKey;
         preLabel = clickedLabel;
         preLeafHash = leafHash;
         // 渲染：框内同 leafHash 高度、框内其余置灰、框外置灰 + 画边界框
@@ -392,8 +404,8 @@ const handleCanvasClick = (e) => {
         // 进入锁定态
         isLockStatus.value = true;
         if (!e.ctrlKey) {
-          // 联动模式下点击锁定节点只绘制依赖节点和依赖线
-          selectEvent(clickedEvent, props.processKey);
+          // 联动锁定：只记录选中事件，不绘制依赖节点/依赖线，也不弹详情面板
+          selectEvent(clickedEvent, props.processKey, true, false, false, true);
           detailsPanelExpanded.value = false;
         };
         // 发送联动消息，启动保护，防止回传覆盖本地渲染
@@ -402,6 +414,7 @@ const handleCanvasClick = (e) => {
         sendMsg('activeLockFromSwim', { label: clickedLabel, opmagic: '', leafHash });
         sendMsg('sendHashList', { rootHashList: rootHashList?.length ? rootHashList : [] });
       } else {
+        // 未进入联动锁定：label 和 leafHash 都为空，事件无关联对象
         if (!e.ctrlKey) {
           selectEvent(clickedEvent, props.processKey)
         };
@@ -1522,8 +1535,12 @@ const handleHoverEvent = (hoveredEvent) => {
     startLocalActionGuard();
     sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [], leafHash });
   }
-  preLabel = color;
-  preLeafHash = leafHash;
+  // 锁定态 hover 不得覆盖锁定目标：否则 resize/全屏重绘会拿 hover 节点的 leafHash 做三态高亮，
+  // 与锁定目标不一致时框内节点全部置灰（高亮消失）
+  if (!isLockStatus.value) {
+    preLabel = color;
+    preLeafHash = leafHash;
+  }
   return true;
 };
 const shouldUpdateOutline = (color, leafHash) => {
@@ -1727,6 +1744,8 @@ const calcRowBoundaries = (nodes) => {
   });
 };
 
+// 联动模式改为仅点击节点锁定，hover 锁定按钮暂不启用，后续需要时恢复
+/*
 const lockClick = (e) => {
   lockedLabel = preLabel;
   e.stopPropagation();
@@ -1762,6 +1781,7 @@ const lockClick = (e) => {
   const rootHashList = [...new Set(rootHashArray)];
   sendMsg('sendHashList', { rootHashList });
 };
+*/
 
 const unLockClick = (e) => {
   lockedLabel = '';
@@ -1791,7 +1811,24 @@ const resizeDrawBoundary = () => {
   }
   // 锁定态保留三栏渲染
   if (isLockStatus.value && lockedLabel) {
-    drawThreeStateHighlight(drawColorDatas, preLeafHash, true);
+    // 全屏/分割线调整后画布尺寸变化，事件坐标已更新：按锁定目标重算边界，避免沿用旧坐标导致框和锁图标偏移
+    const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
+    if (lastSelectionLeafHash) {
+      setSelectedData(boundRange, '', lastSelectionLeafHash);
+    } else if (lastSelectionLabel) {
+      setSelectedData(boundRange, lastSelectionLabel);
+    }
+    boundaries = calcRowBoundaries(points);
+    if (!boundaries.length) {
+      return;
+    }
+    const highlightLeafHash = preLeafHash || lastSelectionLeafHash;
+    if (highlightLeafHash) {
+      drawThreeStateHighlight(drawColorDatas, highlightLeafHash, true);
+    } else {
+      // label 层锁定无 leafHash：框内保持原色、框外置灰，与 drawSelection 的锁定渲染一致
+      drawThreeStateHighlight(drawColorDatas, '', false);
+    }
   } else {
     drawThreeStateHighlight(drawColorDatas, '', true, (event, eventCtx, processKey) => {
       onSelectionEvent(event, eventCtx, processKey, false);
@@ -3088,7 +3125,13 @@ const clearDependencyLines = (processKey) => {
   if (!dependencyCanvasRef) { return false };
   
   const dependencyCtx = dependencyCanvasRef.getContext('2d');
-  clearWholeProcess(dependencyCtx, viewState, processKey);
+  // 依赖画布带 scale/offset 变换，clearWholeProcess 的 clearRect 覆盖不全会残留旧线；
+  // 用 dpr 变换清整张画布，避免解锁/重绘瞬间旧依赖线闪现
+  const dpr = getDevicePixelRatio();
+  dependencyCtx.save();
+  dependencyCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  dependencyCtx.clearRect(0, 0, dependencyCanvasRef.width / dpr, dependencyCanvasRef.height / dpr);
+  dependencyCtx.restore();
   return dependencyCtx;
 };
 
@@ -4164,6 +4207,8 @@ const focusWrap = (wrapId, pathLocked = false) => {
 };
 
 const setSelectedData = (boundRange, label, matchLeafHash) => {
+  lastSelectionLabel = label ?? '';
+  lastSelectionLeafHash = matchLeafHash ?? '';
   points = [];
   drawColorDatas = {};
   swimDataManager.getAllProcesses().forEach((process, processKey) => {
@@ -4341,11 +4386,12 @@ const handleOutlineByLeafHash = (leafHash, needTransform = true) => {
  * 框内非同 leafHash 节点渲染由 dimInBoxOthers 参数控制：hover 用原始色，click置灰
 */
 const drawLabelBoxWithLeafHashHighlight = (label, leafHash, needTransform = true, dimInBoxOthers = false) => {
-  if (!label || !viewState.canvasCssWidth) {
+  // 有 label 按 label 圈选；无 label 但有 leafHash 时按 leafHash 圈选（hash-only 事件）
+  if ((!label && !leafHash) || !viewState.canvasCssWidth) {
     return;
   }
   const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
-  setSelectedData(boundRange, label);
+  setSelectedData(boundRange, label, label ? undefined : leafHash);
   boundaries = calcRowBoundaries(points);
   if (!boundaries.length) {
     clearSelectionCanvas('data-three-column-process-key');
@@ -4378,21 +4424,44 @@ window.ascEventBus.on('returnSemanticLabelFromCom', (payload) => {
 // 四联动：计算图点击 op / CALL 节点 → 按 leafHash 圈选该 leaf 的全部 task（不回发消息，避免环路）
 // 已锁定允许重新圈选 label：切换锁定目标
 // 防抖：若新 leafHash 与当前锁定目标一致，直接跳过避免重复动画
-window.ascEventBus.on('activeLockFromCom', ({ hash, leafHash }) => {
+window.ascEventBus.on('activeLockFromCom', ({ source, hash, leafHash }) => {
+  // 泳道自身发起的锁定已本地完成三态渲染，跳过回声，避免回声用两态/空 hash 覆盖锁定高亮
+  if (source === 'swim') {
+    return;
+  }
   const targetLeafHash = leafHash ?? hash;
   if (!targetLeafHash) {
     return;
   }
   const nextLabel = String(targetLeafHash);
   if (isLockStatus.value && lockedLabel === nextLabel) {
+    // 同一锁定目标重复点击：锁定框/高亮不变，但仍要清掉旧选中与依赖画布，
+    // 避免后续 transform/render 按旧 selectedEvent 补画依赖线/依赖节点
+    selectedEvent.value = null;
+    lastSelected.value = null;
+    canvasclickedEvent.value = null;
+    for (const [key] of swimDataManager.getAllProcesses().entries()) {
+      clearDependencyLines(key);
+    }
+    if (globalConnectionCanvas.value) {
+      globalConnectionCanvas.value.clearCanvas();
+    }
     return;
   }
   lockedLabel = nextLabel;
+  // leafHash 层锁定按 hash 圈选，清掉上一次的 label 层 leafHash 目标
+  preLeafHash = '';
+  // 先进入锁定态再重绘：handleOutlineByLeafHash 内部会 transformCanvas→transform，
+  // 若此时 isLockStatus 仍为 false，transform 会按旧 selectedEvent 补画依赖线/依赖节点
+  isLockStatus.value = true;
+  // 切换锁定目标时清掉旧选中，避免 transform 按旧 selectedEvent 画依赖
+  selectedEvent.value = null;
+  lastSelected.value = null;
+  canvasclickedEvent.value = null;
   if (localActionGuard) {
     return;
   }
   handleOutlineByLeafHash(nextLabel, true);
-  isLockStatus.value = true;
 });
 // 计算图悬停离开（returnOpsFromCom 空 ops）→ 清除 leaf 圈选
 window.ascEventBus.on('returnOpsFromCom', ({ source, ops }) => {
@@ -4405,6 +4474,8 @@ window.ascEventBus.on('returnOpsFromCom', ({ source, ops }) => {
 });
 window.ascEventBus.on('activeLock', ({ label }) => {
   lockedLabel = label;
+  // label 层锁定按 label 圈选，清掉上一次的 leafHash 目标，避免 resize 时按旧 hash 高亮
+  preLeafHash = '';
   if (localActionGuard) {
     return;
   }
@@ -4412,12 +4483,21 @@ window.ascEventBus.on('activeLock', ({ label }) => {
   isLockStatus.value = true;
 });
 // 泳道图发出的锁定广播，同步其他泳道实例（携带 opmagic/leafHash, 泳道侧暂不使用）
-window.ascEventBus.on('activeLockFromSwim', ({ label }) => {
-  lockedLabel = label;
+window.ascEventBus.on('activeLockFromSwim', ({ label, leafHash }) => {
+  // hash-only 锁定用 leafHash 作为锁定标识，保证 resize 时 lockedLabel 判据成立
+  lockedLabel = label || leafHash || '';
+  // 同步锁定目标 leafHash：resize 重绘三态时依赖它，缺失会把框内节点全部置灰（高亮消失）
+  preLeafHash = leafHash ?? '';
+  // 锁定走三态渲染，清掉 hover 遗留的 leafHash 高亮集合，避免 handleOutline 误走两态分支
+  leafHashHighlightSet.value = new Set();
   if (localActionGuard) {
     return;
   }
-  handleOutline(label, false, true, true);
+  if (label) {
+    handleOutline(label, false, true, true);
+  } else if (leafHash) {
+    handleOutlineByLeafHash(leafHash, false);
+  }
   isLockStatus.value = true;
 });
 window.ascEventBus.on('deactivateLock', () => {
@@ -4426,9 +4506,24 @@ window.ascEventBus.on('deactivateLock', () => {
   noAssociatedObject.value = false;
   // 解锁即清除锁定框画布与边界（hover 消息在锁定态被守卫，不能再依赖其顺带清框）
   boundaries = [];
+  preLeafHash = '';
+  lastSelectionLabel = '';
+  lastSelectionLeafHash = '';
+  cceHoverLabel = '';
   clearSelectionCanvas('data-three-column-process-key');
   // 解锁时清除 leafHash 高亮
   leafHashHighlightSet.value = new Set();
+  // 清除锁定点击留下的选中态：否则解锁后 isLockStatus 为 false，
+  // 下一次 transform/render 会按 selectedEvent 补画之前锁定节点的依赖线
+  selectedEvent.value = null;
+  lastSelected.value = null;
+  canvasclickedEvent.value = null;
+  for (const [key] of swimDataManager.getAllProcesses().entries()) {
+    clearDependencyLines(key);
+  }
+  if (globalConnectionCanvas.value) {
+    globalConnectionCanvas.value.clearCanvas();
+  }
   if (localActionGuard) {
     return;
   }
@@ -4465,9 +4560,34 @@ window.ascEventBus.on('returnOpsFromCom', (data) => {
   }
   drawLeafHashHighlight();
 });
+// CCE 回传语义 label：有效 label 优先按 label 圈选；无 label 时交给 returnOpFromCce 按 hash 画框
+window.ascEventBus.on('returnSemanticLabelFromCce', (payload) => {
+  if (isLockStatus.value) {
+    return;
+  }
+  const label = payload?.label ?? '';
+  const hadLabel = cceHoverLabel !== '';
+  cceHoverLabel = label;
+  if (localActionGuard) {
+    return;
+  }
+  if (label) {
+    // label 优先：清空 op hash 高亮集合，避免 handleOutline 走 hash 高亮分支
+    leafHashHighlightSet.value = new Set();
+    handleOutline(label, true, false);
+  } else if (hadLabel) {
+    // label 失效先清 label 框；同一次 hover 若仍有 op hash，随后由 returnOpFromCce 重画
+    leafHashHighlightSet.value = new Set();
+    handleOutline('', true, false);
+  }
+});
 // CCE 回传 op: 按 hash 高亮匹配 leafHash 的事件，其余置灰, 按 hash 画框
 window.ascEventBus.on('returnOpFromCce', (data) => {
   if (isLockStatus.value) {
+    return;
+  }
+  // 同一次 hover 已有有效 label：按 label 画框，op hash 不再覆盖
+  if (cceHoverLabel) {
     return;
   }
   const hash = data?.hash;
@@ -4489,6 +4609,10 @@ window.ascEventBus.on('returnOpFromCce', (data) => {
 });
 // 计算图回传锁定：按 hash 高亮匹配 leafHash 的事件，其余置灰（label/opMagic/candidate 泳道侧暂不使用）
 window.ascEventBus.on('activeLockFromCom', (data) => {
+  // 泳道自身锁定的回声不再走 leafHash 两态高亮，由本地三态渲染维护
+  if (data?.source === 'swim') {
+    return;
+  }
   const hash = data?.hash;
   const hashSet = new Set();
   if (hash != null && hash !== '') {
@@ -4517,7 +4641,37 @@ const sendMsg = (command, param) => {
   });
 };
 const drawLockedOutline = () => {
-  handleOutline(lockedLabel, true, true, true);
+  // 锁定态按记录的选择目标重绘三态与范围框：lockedLabel 可能被跨栏回声改写为 hash，
+  // 且 handleOutline 走两态渲染会丢掉框内非同 leafHash 节点的原始色
+  if (!isLockStatus.value || (!lastSelectionLabel && !lastSelectionLeafHash)) {
+    handleOutline(lockedLabel, true, true, true);
+    return;
+  }
+  if (!viewState.canvasCssWidth) {
+    return;
+  }
+  const boundRange = { minX: Infinity, maxX: 0, startT: Infinity, endT: 0, minY: Infinity, maxY: 0 };
+  if (lastSelectionLeafHash) {
+    setSelectedData(boundRange, '', lastSelectionLeafHash);
+  } else {
+    setSelectedData(boundRange, lastSelectionLabel);
+  }
+  boundaries = calcRowBoundaries(points);
+  if (!boundaries.length) {
+    return;
+  }
+  transformCanvas(boundRange);
+  const highlightLeafHash = preLeafHash || lastSelectionLeafHash;
+  if (highlightLeafHash) {
+    drawThreeStateHighlight(drawColorDatas, highlightLeafHash, true);
+  } else {
+    // label 层锁定无 leafHash：框内保持原色、框外置灰
+    drawThreeStateHighlight(drawColorDatas, '', false);
+  }
+  threeRender.enableAnimate();
+  threeRender.drawBoundary(boundaries, props.processKey);
+  threeRender.animate();
+  toggleLock();
 };
 
 const renderMixModeEvents = (process, processKey, ctx) => {
@@ -4918,7 +5072,10 @@ watch(isDarkTheme, () => {
     const ctx = ctxInfo.eventCtx;
     renderProcessText(props.process, ctx, props.processKey);
   }
-  drawDependencyLines(props.process, props.processKey, viewState.depMode);
+  // 联动锁定态不绘制依赖线，只保留锁定三态高亮与范围框
+  if (!(isThreeColumn && isLockStatus.value)) {
+    drawDependencyLines(props.process, props.processKey, viewState.depMode);
+  }
   flagRender();
 });
 const listenExtensionMessage = async () => {

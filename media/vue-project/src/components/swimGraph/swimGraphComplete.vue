@@ -1036,50 +1036,76 @@ const transform = (needClean=false) => {
   if (needClean) {
     return;
   }
+  // 三栏联动锁定态：只保留锁定三态高亮与范围框，不绘制依赖节点/依赖线
+  const skipDependency = props.isThreeColumn && isLockStatus.value;
   clearTimeout(depLinesTimer);
-  depLinesTimer = setTimeout(() => {
-    if (freezeVisibleRange.value) {
-      if (globalConnectionCanvas.value) {
-        globalConnectionCanvas.value.clearCanvas();
+  if (!skipDependency) {
+    depLinesTimer = setTimeout(() => {
+      // 定时器可能在锁定/解锁后触发：锁定态跳过；无选中时清空依赖画布，避免补画旧依赖线
+      if (props.isThreeColumn && isLockStatus.value && !isPathLockStatus.value) {
+        return;
       }
-    } else {
-      renderDependencyLines();
-      drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
-      for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
-        const shouldHighlightAicpu = processExpanded.get(processKey) && selectedEvent.value && (process.type === 'aicpu' || selectedEvent.value.originalThreadName);
-        if (shouldHighlightAicpu) {
-          highlightAicpu(process, processKey, true);
+      if (!selectedEvent.value && !searchedEvent.value) {
+        if (globalConnectionCanvas.value) {
+          globalConnectionCanvas.value.clearCanvas();
+        }
+        // 路径锁定的依赖由 pathLockedEvent 单独绘制，不能在这里清
+        if (!isPathLockStatus.value) {
+          for (const [key] of swimDataManager.getAllProcesses().entries()) {
+            childContextMap.threadEvent.clearDependencyLines(key);
+          }
+        }
+        return;
+      }
+      if (freezeVisibleRange.value) {
+        if (globalConnectionCanvas.value) {
+          globalConnectionCanvas.value.clearCanvas();
+        }
+      } else {
+        renderDependencyLines();
+        drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
+        for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
+          const shouldHighlightAicpu = processExpanded.get(processKey) && selectedEvent.value && (process.type === 'aicpu' || selectedEvent.value.originalThreadName);
+          if (shouldHighlightAicpu) {
+            highlightAicpu(process, processKey, true);
+          }
         }
       }
-    }
-  }, 50);
+    }, 50);
+  }
 
   if (globalConnectionCanvas.value) {
     globalConnectionCanvas.value.clearCanvas();
   }
 
+  // 联动锁定时清空依赖画布与依赖高亮，避免残留上一次选择的依赖线
   for (const [key] of swimDataManager.getAllProcesses().entries()) {
     if (processExpanded.get(key)) {
       childContextMap.threadEvent.clearDependencyLines(key);
     }
   }
-
-  const depKey = selectedEvent.value?.pid?.toString();
-  if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
-    const depCanvas = document.querySelector(`[data-dep-process-key="${depKey}"]`);
-    if (depCanvas) {
-      const depCtx = depCanvas.getContext('2d');
-      depCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-      depCtx.clearRect(0, 0, depCanvas.width / devicePixelRatio, depCanvas.height / devicePixelRatio);
-      updateEventPosition(selectedEvent.value);
-      childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
-    }
+  if (skipDependency) {
+    dependencyHighlightEvent.value = null;
   }
-  drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
-  for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
-    const shouldHighlightAicpu = processExpanded.get(processKey) && selectedEvent.value && (process.type === 'aicpu' || selectedEvent.value.originalThreadName);
-    if (shouldHighlightAicpu) {
-      highlightAicpu(process, processKey, true);
+
+  if (!skipDependency) {
+    const depKey = selectedEvent.value?.pid?.toString();
+    if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
+      const depCanvas = document.querySelector(`[data-dep-process-key="${depKey}"]`);
+      if (depCanvas) {
+        const depCtx = depCanvas.getContext('2d');
+        depCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+        depCtx.clearRect(0, 0, depCanvas.width / devicePixelRatio, depCanvas.height / devicePixelRatio);
+        updateEventPosition(selectedEvent.value);
+        childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
+      }
+    }
+    drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
+    for (const [processKey, process] of swimDataManager.getAllProcesses().entries()) {
+      const shouldHighlightAicpu = processExpanded.get(processKey) && selectedEvent.value && (process.type === 'aicpu' || selectedEvent.value.originalThreadName);
+      if (shouldHighlightAicpu) {
+        highlightAicpu(process, processKey, true);
+      }
     }
   }
   if (isPathLockStatus.value && canvasclickedEvent.value) {
@@ -1118,9 +1144,23 @@ const renderEvent = () => {
 };
 
 const renderDependencyLines = (processKey) => {
+  // 三栏联动锁定态只保留锁定三态与范围框：任何入口（含延迟定时器/详情面板）都不得再绘制依赖线
+  if (props.isThreeColumn && isLockStatus.value && !isPathLockStatus.value) {
+    if (globalConnectionCanvas.value) {
+      globalConnectionCanvas.value.clearCanvas();
+    }
+    return;
+  }
   if (!processKey && !selectedEvent.value && !searchedEvent.value) {
     if (globalConnectionCanvas.value) {
       globalConnectionCanvas.value.clearCanvas();
+    }
+    // 无选中时把所有进程的依赖画布一并清掉，避免解锁后残留旧依赖线；
+    // 路径锁定的依赖由 pathLockedEvent 单独绘制，不能在这里清
+    if (!isPathLockStatus.value) {
+      for (const [key] of swimDataManager.getAllProcesses().entries()) {
+        childContextMap.threadEvent.clearDependencyLines(key);
+      }
     }
     return;
   }
@@ -1183,7 +1223,10 @@ const render = () => {
   resetState();
   renderTwoTimeline();
   renderEvent();
-  renderDependencyLines();
+  // 联动锁定态不绘制依赖线，只保留锁定三态高亮与范围框
+  if (!(props.isThreeColumn && isLockStatus.value)) {
+    renderDependencyLines();
+  }
   if (detailsPanelExpanded.value) {
     const event = isPathLockStatus.value ? canvasclickedEvent.value : selectedEvent.value;
     detailComponent?.value.showDependencies(event, 'both');
@@ -1797,7 +1840,7 @@ const updateOtherProcesses = (processKey) => {
   }
 };
 
-const selectEvent = (event, processKey, showkernelDetail = true, forceExec = false, pathLocked = false) => {
+const selectEvent = (event, processKey, showkernelDetail = true, forceExec = false, pathLocked = false, skipDependency = false) => {
   updatePanelState(event, processKey, showkernelDetail);
   const noChange = (event && event.id === lastSelected.value) || (!event && !lastSelected.value);
   if (!forceExec && noChange) {
@@ -1814,13 +1857,33 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
   globalConnectionCanvas?.value?.clearCanvas();
   selectedEvent.value = event;
   canvasclickedEvent.value = event;
-  
+
+  // 联动锁定场景：只记录选中事件，依赖节点/依赖线由锁定三态渲染负责，不在此绘制
+  if (skipDependency) {
+    if (event) {
+      lastSelected.value = event.id;
+    } else {
+      clearTimeout(resizeFullRenderTimer);
+    }
+    // 清除上一次选择残留的依赖线与依赖高亮
+    dependencyHighlightEvent.value = null;
+    if (globalConnectionCanvas.value) {
+      globalConnectionCanvas.value.clearCanvas();
+    }
+    for (const [key] of swimDataManager.getAllProcesses().entries()) {
+      if (processExpanded.get(key)) {
+        childContextMap.threadEvent.clearDependencyLines(key);
+      }
+    }
+    return;
+  }
+
   if (event) {
     ++resetScheduleToken;
     lastSelected.value = event.id;
     const process = swimDataManager.getProcess(processKey);
     const isAicpuEvent = process.type === 'aicpu' || event.originalThreadName;
-    
+
     if (isAicpuEvent) {
       if (!isPathLockStatus.value) {
         highlightedPaths.clear();
@@ -1838,7 +1901,7 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
     } else {
       handleNormalEventClick(event, processKey);
     }
-    
+
     if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
       pinnedthreadsComponent.value.changePinnedColor(true);
       pinnedthreadsComponent.value.highlightPinnedEvent(event);
@@ -1847,7 +1910,7 @@ const selectEvent = (event, processKey, showkernelDetail = true, forceExec = fal
     clearTimeout(resizeFullRenderTimer);
     clearSelection(processKey);
   }
-  
+
   updateOtherProcesses(processKey);
   if (isPathLockStatus.value && event) {
     renderDependencyLines();
@@ -2602,6 +2665,8 @@ const resetState = () => {
 let resizeRafId = null;
 let resizeFullRenderTimer = null;
 let resizeObserver = null;
+// 上一次触发重绘时的泳道容器宽度：拖动三栏/四栏分割线不改变 window.innerWidth，需用容器宽度判断
+let lastResizeContainerWidth = 0;
 
 const doResizeFastPhase = () => {
   const currentDevicePixelRatio = getDevicePixelRatio();
@@ -2632,9 +2697,13 @@ const doResizeFastPhase = () => {
   }
 
   transform();
-  for (const [key] of swimDataManager.getAllProcesses().entries()) {
-    if (processExpanded.get(key)) {
-      childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
+  // 三栏锁定态下 transform() 内的 resizeDrawBoundary() 已按 leafHash 完成三态重绘，
+  // 再 changeNodeColor 会统一置灰/恢复原始色，覆盖锁定高亮
+  if (!(props.isThreeColumn && isLockStatus.value)) {
+    for (const [key] of swimDataManager.getAllProcesses().entries()) {
+      if (processExpanded.get(key)) {
+        childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
+      }
     }
   }
 };
@@ -2653,9 +2722,13 @@ const doResizeFullPhase = () => {
   selectedEvent.value = savedSelected;
   searchedEvent.value = savedSearched;
   transform();
-  for (const [key] of swimDataManager.getAllProcesses().entries()) {
-    if (processExpanded.get(key)) {
-      childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
+  // 三栏锁定态下 transform() 内的 resizeDrawBoundary() 已按 leafHash 完成三态重绘，
+  // 再 changeNodeColor 会统一置灰/恢复原始色，覆盖锁定高亮
+  if (!(props.isThreeColumn && isLockStatus.value)) {
+    for (const [key] of swimDataManager.getAllProcesses().entries()) {
+      if (processExpanded.get(key)) {
+        childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
+      }
     }
   }
   if (pinnedthreadsComponent && pinnedthreadsComponent.value) {
@@ -2688,10 +2761,19 @@ const doResizeRender = () => {
 const scheduleResizeRender = () => {
   const currentDevicePixelRatio = getDevicePixelRatio();
   const currentWindowWidth = window.innerWidth;
+  // 拖动三栏/四栏分割线只改变容器宽度，window.innerWidth 不变，需以容器实际宽度作为变化判据
+  const currentContainerWidth = swimlaneContainer.value?.getBoundingClientRect().width ?? 0;
+  const containerWidthChanged = currentContainerWidth !== lastResizeContainerWidth;
   // 如果只是纵向内容被遮盖且没有缩放变化，不需要重绘
-  if (currentWindowWidth === viewState.windowWidth && currentDevicePixelRatio === devicePixelRatio && !isSwimGraphActive.value) {
+  if (
+    !containerWidthChanged &&
+    currentWindowWidth === viewState.windowWidth &&
+    currentDevicePixelRatio === devicePixelRatio &&
+    !isSwimGraphActive.value
+  ) {
     return;
   }
+  lastResizeContainerWidth = currentContainerWidth;
   doResizeRender();
 };
 
@@ -2736,31 +2818,37 @@ const transformVerticalScroll = () => {
     }
   }
   clearTimeout(depLinesTimer);
-  renderDependencyLines();
+  // 联动锁定态不绘制依赖线，只保留锁定三态高亮与范围框
+  if (!(props.isThreeColumn && isLockStatus.value)) {
+    renderDependencyLines();
+  }
   timelineComponent.value.flagRender();
   if (props.isThreeColumn) {
     childContextMap.threadEvent.resizeDrawBoundary();
     childContextMap.threadEvent.toggleLock();
   }
-  const depKey = selectedEvent.value?.pid?.toString();
-  if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
-    const process = swimDataManager.getProcess(depKey);
-    if (process && (process.type === 'aicpu' || selectedEvent.value?.originalThreadName)) {
-      highlightAicpu(process, depKey, true);
-    } else {
-      const depCanvas = document.querySelector(`[data-dep-process-key="${depKey}"]`);
-      if (depCanvas) {
-        const depCtx = depCanvas.getContext('2d');
-        depCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-        childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
+  // 联动锁定态不绘制依赖节点/依赖线，只保留锁定三态高亮与范围框
+  if (!(props.isThreeColumn && isLockStatus.value)) {
+    const depKey = selectedEvent.value?.pid?.toString();
+    if (depKey && processExpanded.get(depKey) && selectedEvent.value) {
+      const process = swimDataManager.getProcess(depKey);
+      if (process && (process.type === 'aicpu' || selectedEvent.value?.originalThreadName)) {
+        highlightAicpu(process, depKey, true);
+      } else {
+        const depCanvas = document.querySelector(`[data-dep-process-key="${depKey}"]`);
+        if (depCanvas) {
+          const depCtx = depCanvas.getContext('2d');
+          depCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+          childContextMap.threadEvent.highlightEvent(depCtx, selectedEvent.value, depKey, true);
+        }
       }
     }
+    drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
   }
   if (mulDetailsExpanded.value && !isMeasureModel.value) {
     childContextMap.threadEvent.drawSelectionBox();
     childContextMap.threadEvent.drawSelectionHightlight();
   }
-  drawDependencyHighlightEvent(dependencyHighlightEvent.value, processExpanded, globalConnectionCanvas.value, { updateEventPosition, highlightEvent: childContextMap.threadEvent.highlightEvent });
   perfLogger.timeEnd('time of transformVerticalScroll');
   drawMeasureTime();
 };
