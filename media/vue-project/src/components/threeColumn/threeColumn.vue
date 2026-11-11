@@ -15,17 +15,18 @@
  -->
 <template>
   <ThreeColumnHeader />
-  <div ref="containerEl" :class="['three-column-content', currentLayoutMode, resizing && 'resizing']" :style="[gridStyle, { width: sharedSwimData.performanceVisible ? `calc(100% - ${sharedSwimData.performanceWidth}px)` : '100%' }]">
-    <ItemBlock
-      class="grid-py"
-      block-name="left"
-      width="100%"
-      height="100%"
-      :has-border-right="showRight"
-      :is-fullscreen="currentFullscreenBlock === 'left'"
-    >
-      <div class="three-column-block editor-block">
-        <div class="sticky-block">
+  <div ref="containerEl" :class="['three-column-content', currentLayoutMode, isFourColumn && 'four-column', resizing && 'resizing']" :style="[gridStyle, { width: sharedSwimData.performanceVisible ? `calc(100% - ${sharedSwimData.performanceWidth}px)` : '100%' }]">
+    <div class="three-column-side side-left" :style="leftSideStyle">
+      <ItemBlock
+        class="grid-py"
+        block-name="left"
+        width="100%"
+        height="100%"
+        :has-border-right="showRight"
+        :is-fullscreen="currentFullscreenBlock === 'left'"
+      >
+        <div class="three-column-block editor-block">
+          <div class="sticky-block">
             <fileSelect
               :file-name="editorFileName"
               :show-dropdown="true"
@@ -33,56 +34,59 @@
               :current-path="editorFilePath"
               @file-select="onPyFileSwitch"
             />
-          <DragIcon />
-          <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
+            <DragIcon />
+            <i :class="[isEditorFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleEditorFullscreen"></i>
+          </div>
+          <editor ref="editorRef" />
         </div>
-        <editor ref="editorRef" />
-      </div>
-    </ItemBlock>
-    <ItemBlock
-      v-if="isFourColumn"
-      class="grid-cce"
-      block-name="bottomLeft"
-      width="100%"
-      height="100%"
-      :has-border-right="showRight"
-      :has-border-top="showLeft"
-      :is-fullscreen="currentFullscreenBlock === 'bottomLeft'"
-    >
-      <div class="block-drag-handle">
-        <DragIcon />
-      </div>
-      <div class="three-column-block extra-block">
-        <slot name="extra">
-          <div class="extra-placeholder">Under Development</div>
-        </slot>
-      </div>
-    </ItemBlock>
-    <ItemBlock
-      class="grid-graph"
-      block-name="right"
-      width="100%"
-      height="100%"
-      :has-border-left="showLeft"
-      :is-fullscreen="currentFullscreenBlock === 'right'"
-    >
-      <div class="three-column-block">
-        <slot name="comGraph" />
-      </div>
-    </ItemBlock>
-    <ItemBlock
-      class="grid-swim"
-      block-name="bottomRight"
-      width="100%"
-      height="100%"
-      :has-border-left="showLeft && isFourColumn"
-      :has-border-top="showRight"
-      :is-fullscreen="currentFullscreenBlock === 'bottomRight'"
-    >
-      <div class="three-column-block swim-block">
-        <slot name="swimGraph" />
-      </div>
-    </ItemBlock>
+      </ItemBlock>
+      <ItemBlock
+        v-if="isFourColumn"
+        class="grid-cce"
+        block-name="bottomLeft"
+        width="100%"
+        height="100%"
+        :has-border-right="showRight"
+        :has-border-top="showLeft"
+        :is-fullscreen="currentFullscreenBlock === 'bottomLeft'"
+      >
+        <div class="block-drag-handle">
+          <DragIcon />
+        </div>
+        <div class="three-column-block extra-block">
+          <slot name="extra">
+            <div class="extra-placeholder">Under Development</div>
+          </slot>
+        </div>
+      </ItemBlock>
+    </div>
+    <div class="three-column-side side-right" :style="rightSideStyle">
+      <ItemBlock
+        class="grid-graph"
+        block-name="right"
+        width="100%"
+        height="100%"
+        :has-border-left="showLeft"
+        :is-fullscreen="currentFullscreenBlock === 'right'"
+      >
+        <div class="three-column-block">
+          <slot name="comGraph" />
+        </div>
+      </ItemBlock>
+      <ItemBlock
+        class="grid-swim"
+        block-name="bottomRight"
+        width="100%"
+        height="100%"
+        :has-border-left="showLeft && isFourColumn"
+        :has-border-top="showRight"
+        :is-fullscreen="currentFullscreenBlock === 'bottomRight'"
+      >
+        <div class="three-column-block swim-block">
+          <slot name="swimGraph" />
+        </div>
+      </ItemBlock>
+    </div>
     <div
       v-show="showColumnResizeBar"
       class="column-resize-bar"
@@ -182,15 +186,27 @@ const isCceFullscreen = ref(false);
 const currentActiveBlock = ref<BlockType>('');
 const currentFullscreenBlock = ref<BlockType>('');
 const dragStartBlock = ref<BlockType>('');
-const showColumnResizeBar = computed(() => showLeft.value && showRight.value);
-const showLeftRowResizeBar = computed(() => showLeft.value && showBottomLeft.value);
-const showRightRowResizeBar = computed(() => showRight.value && showBottomRight.value);
+const showColumnResizeBar = computed(() => (isFourColumn.value
+  ? (showLeft.value || showBottomLeft.value) && (showRight.value || showBottomRight.value)
+  : showLeft.value && showRight.value));
+const showLeftRowResizeBar = computed(() => (isFourColumn.value
+  ? showLeft.value || showBottomLeft.value
+  : showLeft.value && showBottomLeft.value));
+const showRightRowResizeBar = computed(() => (isFourColumn.value
+  ? showRight.value || showBottomRight.value
+  : showRight.value && showBottomRight.value));
 const gridStyle = computed(() => ({
   display: 'grid',
   gridTemplateColumns: `${currentWidth.value} calc(100% - ${currentWidth.value})`,
-  gridTemplateRows: `${currentHeight.value} calc(100% - ${currentHeight.value})`,
-  gridTemplateAreas: isFourColumn.value ? '"py graph" "cce swim"' : '"py graph" "swim swim"',
+  gridTemplateRows: isFourColumn.value ? '100%' : `${currentHeight.value} calc(100% - ${currentHeight.value})`,
+  gridTemplateAreas: isFourColumn.value ? '"left right"' : '"py graph" "swim swim"',
 }));
+const leftSideStyle = computed(() => (isFourColumn.value
+  ? { display: 'grid', gridTemplateColumns: '100%', gridTemplateRows: `${currentHeight.value} calc(100% - ${currentHeight.value})` }
+  : { display: 'contents' }));
+const rightSideStyle = computed(() => (isFourColumn.value
+  ? { display: 'grid', gridTemplateColumns: '100%', gridTemplateRows: `${currentHeightRight.value} calc(100% - ${currentHeightRight.value})` }
+  : { display: 'contents' }));
 const props = defineProps({
   sharedSwimData: {
     type: Object,
@@ -445,20 +461,35 @@ provide('threeColumnState', { isDarkTheme, editorFileName, pyFileList });
     user-select: none;
   }
 
-  .grid-py {
-    grid-area: py;
+  &:not(.four-column) {
+    .grid-py {
+      grid-area: py;
+    }
+
+    .grid-cce {
+      grid-area: cce;
+    }
+
+    .grid-graph {
+      grid-area: graph;
+    }
+
+    .grid-swim {
+      grid-area: swim;
+    }
   }
 
-  .grid-cce {
-    grid-area: cce;
+  .three-column-side {
+    min-width: 0;
+    min-height: 0;
   }
 
-  .grid-graph {
-    grid-area: graph;
+  .side-left {
+    grid-area: left;
   }
 
-  .grid-swim {
-    grid-area: swim;
+  .side-right {
+    grid-area: right;
   }
 
   .block-drag-handle {

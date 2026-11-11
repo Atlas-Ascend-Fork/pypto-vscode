@@ -63,7 +63,7 @@ const rootEl = ref<HTMLElement>();
 const showDropArea = ref(false);
 
 function onDragend() {
-  const parentEl = rootEl.value.parentElement;
+  const parentEl = rootEl.value?.closest('.three-column-content');
   showDropArea.value = false;
   dragStartBlock.value = '';
   if (parentEl) {
