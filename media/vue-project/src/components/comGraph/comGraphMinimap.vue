@@ -21,6 +21,15 @@
     <div class="empty-rect"> </div>
     <button class="icon-location-new location-icon" :class="{active: isActive}" style="width: 16px; height: 16px; margin-left: 8px;" :title="t('resizeWindow')" @click="fitScreen"></button>
   </div>
+  <div
+    v-if="showRelatedNav && relatedNodeCount > 1"
+    class="related-node-nav"
+    :style="{ right: `${offsetRight + 15}px`, bottom: `${52 + height}px` }"
+  >
+    <div class="icon-arrow-up-l related-node-nav-btn" :title="t('previousRelatedNode')" @click="stepRelatedNode(-1)"></div>
+    <div class="icon-arrow-down-l related-node-nav-btn" :title="t('nextRelatedNode')" @click="stepRelatedNode(1)"></div>
+    <span class="related-node-nav-label">{{ t('relatedNodeLabel') }}</span>
+  </div>
   <div ref="minimapContainerEl" class="com-graph-minimap-container" :style="{width: `${width}px`, height: `${height}px`, right: `${offsetRight + 15}px`}" @click="minimapClick">
     <div class="com-graph-minimap" :id="`${type}_minimap`">
     </div>
@@ -39,6 +48,7 @@
 import { onMounted, ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { PropType } from 'vue';
+import { comGraphStore } from '../../service/com-graph-store';
 
 const props = defineProps({
   offsetRight: {
@@ -56,6 +66,11 @@ const props = defineProps({
   height: {
     type: Number,
     default: 160
+  },
+  /** 是否在小地图上方展示相关节点的上一/下一个切换按钮（仅四栏联动使用） */
+  showRelatedNav: {
+    type: Boolean,
+    default: false
   }
 });
 const emits = defineEmits(['mousedown', 'mousemove', 'mouseup']);
@@ -73,6 +88,21 @@ const inputValue = ref(10);
 const isActive = ref(false);
 const minimapContainerEl = ref<HTMLElement>();
 const moveRectEl = ref<HTMLElement>();
+
+// 当前锁定态命中的相关节点总数：active 为当前节点，matched 为同组其余待切换节点
+const relatedNodeCount = computed(() => {
+  if (!comGraphStore.data.isNodeRectLock) {
+    return 0;
+  }
+  const matched = comGraphStore.data.fourColMatchedNodeIds.length;
+  const active = comGraphStore.data.fourColActiveNodeIds.length;
+  return matched + active;
+});
+
+// 交给计算图侧在当前锁定的相关节点集合内切换
+function stepRelatedNode(direction: -1 | 1) {
+  (window as any).ascEventBus.emit('stepRelatedOpNode', { direction });
+}
 
 let minimapWidth = props.width;
 let minimapHeight = props.height;
@@ -429,6 +459,44 @@ onMounted(() => {
     width: 100%;
     overflow: hidden;
     pointer-events: none;
+  }
+}
+
+.related-node-nav {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  pointer-events: auto;
+
+  .related-node-nav-btn {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    color: var(--devui-thread-text);
+    text-align: center;
+    border: 1px solid var(--devui-thread-text);
+    border-radius: 4px;
+    cursor: pointer;
+
+    & + .related-node-nav-btn {
+      margin-left: 4px;
+    }
+
+    // 图标字体的字形默认带 vertical-align: -0.125em 基线偏移，这里改用整块行高居中
+    &::before {
+      display: block;
+      font-size: 12px;
+      line-height: 18px;
+    }
+  }
+
+  .related-node-nav-label {
+    margin-left: 8px;
+    color: var(--devui-thread-text);
+    font-size: 12px;
+    line-height: 20px;
+    white-space: nowrap;
   }
 }
 

@@ -73,7 +73,7 @@
       <div id="sprotty"></div>
     </div>
     <NodeDetail v-model="showNodeDetail" :node-id="nodeId" :json-content="props.jsonContent" :height="containerHeight" />
-    <ComGraphMinimap ref="minimapEl" :width="200" :height="124"></ComGraphMinimap>
+    <ComGraphMinimap ref="minimapEl" :width="200" :height="124" :show-related-nav="true"></ComGraphMinimap>
     <Loading v-if="isLoading" :loadingText="loadingText" :warningText="warningText" />
     <div v-if="showGuideAnchor" id="guideThreeColumn" class="guide-three-column-anchor"></div>
   </div>
@@ -854,7 +854,19 @@ function setOpNodeHighlight(nodeIds: string[], mode: 'hover' | 'lock' | 'none') 
   }
 }
 
-// 锁定态下用上下键在匹配到的节点间切换当前节点
+// 锁定态下在匹配到的节点间循环切换当前节点（上下键 / 小地图上方的上一个、下一个按钮共用）
+function stepLockedOpNode(step: -1 | 1) {
+  if (!comGraphStore.data.isNodeRectLock || lockedOpNodeIds.length < 2) {
+    return;
+  }
+  lockedOpActiveIndex = (lockedOpActiveIndex + step + lockedOpNodeIds.length) % lockedOpNodeIds.length;
+  renderLockedOpHighlight();
+  const activeId = lockedOpNodeIds[lockedOpActiveIndex];
+  centerNodeAction?.([activeId]);
+  selectAction?.([activeId]);
+  updateModelAction?.();
+}
+
 function onFourColArrowKey(event: KeyboardEvent) {
   if (!comGraphStore.data.isNodeRectLock || lockedOpNodeIds.length < 2) {
     return;
@@ -868,13 +880,15 @@ function onFourColArrowKey(event: KeyboardEvent) {
     return;
   }
   event.preventDefault();
-  const step = event.key === 'ArrowDown' ? 1 : -1;
-  lockedOpActiveIndex = (lockedOpActiveIndex + step + lockedOpNodeIds.length) % lockedOpNodeIds.length;
-  renderLockedOpHighlight();
-  const activeId = lockedOpNodeIds[lockedOpActiveIndex];
-  centerNodeAction?.([activeId]);
-  selectAction?.([activeId]);
-  updateModelAction?.();
+  stepLockedOpNode(event.key === 'ArrowDown' ? 1 : -1);
+}
+
+// 小地图上方按钮触发的上一/下一个相关节点切换
+function onStepRelatedOpNode(args: { direction?: number }) {
+  const direction = args?.direction;
+  if (direction === 1 || direction === -1) {
+    stepLockedOpNode(direction);
+  }
 }
 
 // 代码行 → 计算图：优先高亮本图已有的落点，本图没有则切到能匹配 (hash, opmagic) 的子图再高亮。
@@ -1142,6 +1156,7 @@ onMounted(() => {
   }
   document.addEventListener('click', onDocumentClick);
   window.addEventListener('keydown', onFourColArrowKey);
+  (window as any).ascEventBus.on('stepRelatedOpNode', onStepRelatedOpNode);
   (window as any).ascEventBus.on('lockToggleChange', onLockClick);
   (window as any).ascEventBus.on('resetComGraphToFirst', resetToFirstStep);
   (window as any).ascEventBus.on('cceFileSwitched', onCceFileSwitched);
@@ -1152,6 +1167,7 @@ onBeforeUnmount(() => {
   }
   document.removeEventListener('click', onDocumentClick);
   window.removeEventListener('keydown', onFourColArrowKey);
+  (window as any).ascEventBus.remove('stepRelatedOpNode', onStepRelatedOpNode);
   (window as any).ascEventBus.remove('lockToggleChange', onLockClick);
   (window as any).ascEventBus.remove('resetComGraphToFirst', resetToFirstStep);
   (window as any).ascEventBus.remove('cceFileSwitched', onCceFileSwitched);

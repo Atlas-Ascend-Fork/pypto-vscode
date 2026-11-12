@@ -15,6 +15,9 @@
 export default {
    'previous': '上一个',
    'next': '下一个',
+   'previousRelatedNode': '上一个相关节点',
+   'nextRelatedNode': '下一个相关节点',
+   'relatedNodeLabel': '上一个 / 下一个相关节点',
    'simulatedExecutionMemoryAllocation': '模拟执行内存分配',
    'pleaseSelectClockOnTimeline': '请选择时间轴上的Clock查看事件',
    'eventDetail': '事件详情',
@@ -457,7 +460,7 @@ export default {
         navigationSystem: '导航系统',
         computationGraph: '计算图',
         swimlaneChart: '泳道图',
-        step3Title: '查看三联动视图',
+        step3Title: '查看联动视图',
         step3Content: '通过构建一个统一的语义关联框架，建立算子源码、计算图视图、性能分析视图（泳道图）之间的双向或多向关联与可视化联动',
         goToView: '去查看',
         nextStep: '下一步',
@@ -566,14 +569,14 @@ export default {
         },
         // 三栏视图
         threeColumnGraph: {
-          groupName: '三联动视图',
+          groupName: '联动视图',
           step1: {
-            title: '查看三联动视图',
-            content: '在一个页面视图里同时展示代码、计算图和泳道图，三者通过语义标签关联，帮助开发者快速理解从代码实现到对应的计算图表达，再到上板泳道图最终的性能表现的整个过程。'
+            title: '查看联动视图',
+            content: '在一个页面视图里同时展示代码、计算图和泳道图，通过语义标签关联，帮助开发者快速理解从代码实现到对应的计算图表达，再到上板泳道图最终的性能表现的整个过程。'
           },
           step2: {
             title: '联动体验',
-            content: '在三栏视图的任一视图（本引导以泳道图为例）悬浮节点即可与其他两个视图联动。切换锁图标即可切换锁定状态。'
+            content: '在联动视图的任一视图（本引导以泳道图为例）悬浮节点即可与其他视图联动。切换锁图标即可切换锁定状态。'
           },
         }
       },

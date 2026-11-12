@@ -126,7 +126,7 @@
   "PyPTOToolkit.workspace.swimlaneGraphName": "泳道图",
   "PyPTOToolkit.workspace.threeColumnGraphName": "联动视图",
   "PyPTOToolkit.workspace.ptoNewConfig": "新增运行配置",
-  "pypto.threeCol.notTraceFormat": "三栏视图只能选择 Google Trace Array Format 的泳道图",
+  "pypto.threeCol.notTraceFormat": "联动视图只能选择 Google Trace Array Format 的泳道图",
   "pypto.swimGraph.validate.processWithPid": "processes 缺少关键字段 pid:{{pid}}",
   "pypto.swimGraph.validate.process": "processes 缺少关键字段 ",
   "pypto.entry.fileTooLarge": "文件过大，使用命令无法获取文件信息，请在 json 文件右键，选择“PyPTO Toolkit: 打开文件”菜单进行可视化",

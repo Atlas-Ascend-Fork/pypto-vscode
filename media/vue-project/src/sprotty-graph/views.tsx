@@ -1102,7 +1102,9 @@ export class AstgrRectView extends RectangularNodeView {
     const strokeWidth = comGraphStore.data.isNodeRectLock
       ? (zoom >= 1 ? 1.5 : 1 / zoom)
       : (zoom >= 1 ? 1 : 1 / zoom);
-    const imgSize = zoom >= 1 ? 12 : zoom < 0.45 ? (12 / 0.45) : (12 / zoom);
+    // 图标随 zoom 反向缩放，保证屏幕上的锁定按钮尺寸恒定（zoom 未就绪时按 1 处理）
+    const safeZoom = zoom > 0 ? zoom : 1;
+    const imgSize = 12 / safeZoom;
 
     const nodeRectLockColor = comGraphStore.data.isNodeRectLock ? 'rgba(49,122,247,1)' : 'var(--devui-tooltip-bg)';
     const strokeColor = getRectStrokeColor();

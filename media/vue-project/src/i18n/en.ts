@@ -15,6 +15,9 @@
 export default {
     'previous': 'Previous',
     'next': 'Next',
+    'previousRelatedNode': 'Previous Related Node',
+    'nextRelatedNode': 'Next Related Node',
+    'relatedNodeLabel': 'Previous / Next Related Node',
     'simulatedExecutionMemoryAllocation': 'Simulated Execution Memory Allocation',
     'pleaseSelectClockOnTimeline': 'Please select Clock on timeline to view events',
     'eventDetail': 'Event Detail',
