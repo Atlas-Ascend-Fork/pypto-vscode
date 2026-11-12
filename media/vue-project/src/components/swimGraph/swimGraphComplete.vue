@@ -1126,6 +1126,10 @@ const transform = (needClean=false) => {
     childContextMap.threadEvent.drawSelectionHightlight();
   }
   perfLogger.timeEnd('time of transform');
+  // 缩放/水平滚动后鼠标物理位置未变，浏览器不补发 mousemove：主动重检 hover 命中
+  if (props.isThreeColumn && !isLockStatus.value) {
+    childContextMap.threadEvent.retriggerHoverAtMousePosition();
+  }
 };
 
 const renderTwoTimeline = () => {
@@ -2112,7 +2116,7 @@ const findEventAtPosition = (x, y, processKey, isfindMixSubEvents = true) => {
   };
   const process = swimDataManager.getProcess(processKey);
   if (!process) return null;
-  
+
   if (isMixMode.value && swimDataManager.hasMixConfig() && isfindMixSubEvents) {
     const result = findSubEventAtPosition(x, y);
     if (result) {
@@ -2123,7 +2127,7 @@ const findEventAtPosition = (x, y, processKey, isfindMixSubEvents = true) => {
       return processObj;
     }
   }
-  
+
   // 用于记录最后一个有效的间隙（仅当无吸附时使用）
   let fallbackAltClickData = null;
   for (const [threadKey, thread] of process.threads.entries()) {
@@ -2851,6 +2855,10 @@ const transformVerticalScroll = () => {
   }
   perfLogger.timeEnd('time of transformVerticalScroll');
   drawMeasureTime();
+  // 垂直滚动后鼠标物理位置未变，浏览器不补发 mousemove：主动重检 hover 命中
+  if (props.isThreeColumn && !isLockStatus.value) {
+    childContextMap.threadEvent.retriggerHoverAtMousePosition();
+  }
 };
 
 const onVerticalScroll = throttle(() => {
