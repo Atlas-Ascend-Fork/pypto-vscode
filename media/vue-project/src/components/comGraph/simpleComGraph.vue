@@ -158,6 +158,7 @@ let removeSelectNodesRect;
 let updateModelAction;
 let initComDocText;
 let resetModelSource;
+let resetModel;
 let fitToScreenAction;
 // 跨 leaf 下钻是异步的（innerGetSubgraph → 重新渲染 → layoutEnding），
 // 待渲染完成后执行的视觉动作统一挂这里（py 精确选中 / CCE hover / CCE 锁定共用）
@@ -217,7 +218,7 @@ window.addEventListener('message', (event) => {
   comGraphStore.setData('fourColFocusNodeIds', []);
   comGraphStore.setData('fourColDimNodeIds', []);
   // isLocate=true：与其余跨栏入口（泳道悬停/锁定/py 行悬停）一致，框选后 fit 视口保证整个框可见
-  createSelectNodesRectByIds?.(ids, true);
+  createSelectNodesRectByIds?.(ids, true, resetModel);
   updateModelAction?.();
 });
 
@@ -313,7 +314,7 @@ function applySwimVisual(label: string, leafHash: string, mode: 'hover' | 'lock'
       comGraphStore.setData('fourColFocusNodeIds', label ? [...sets.a] : []);
       comGraphStore.setData('fourColDimNodeIds', []);
     }
-    createSelectNodesRectByIds?.(ids, true);
+    createSelectNodesRectByIds?.(ids, true, resetModel);
     selectAction?.([]);
     updateModelAction?.();
   };
@@ -451,7 +452,7 @@ function applyCceVisual(opmagic: number | string, leafHash: string, mode: 'hover
       comGraphStore.data.isNodeRectLock = true;
       drillDownPathIcon.disableBack = true;
     }
-    createSelectNodesRectByIds?.(group, isLock);
+    createSelectNodesRectByIds?.(group, isLock, resetModel);
     selectAction?.(isLock ? [] : [hit.nodeId]);
     updateModelAction?.();
   };
@@ -932,7 +933,7 @@ function applyOpsSelection(ops: OpSelection[], opts: { stable: boolean; label?: 
         prevent = true;
         comGraphStore.data.isNodeRectLock = true;
         drillDownPathIcon.disableBack = true;
-        createSelectNodesRectByIds?.(nodeIds, true);
+        createSelectNodesRectByIds?.(nodeIds, true, resetModel);
         setOpNodeHighlight(nodeIds, 'lock');
         hoverFeedbackAction?.();
       } else {
@@ -1055,6 +1056,7 @@ watch(
       updateModelAction = sprottyLoadResult.updateModelAction;
       hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
       resetModelSource = sprottyLoadResult.resetModelSource;
+      resetModel = sprottyLoadResult.resetModel;
       fitToScreenAction = sprottyLoadResult.fitToScreenAction;
       comGraphStore.setData('jsonData', jsonValue);
       comGraphStore.setData('comGraphConfig', {

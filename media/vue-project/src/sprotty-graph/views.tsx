@@ -1115,7 +1115,7 @@ export class AstgrRectView extends RectangularNodeView {
     return (
       <g>
         <defs>
-          <linearGradient id="rainbow" gradientUnits="userSpaceOnUse" x1={v[0][0]} y1={v[0][1]} x2={v[1][0]} y2={v[1][1]}>
+          <linearGradient id="rainbow" gradientUnits="userSpaceOnUse">
             <stop offset="0%"  stop-color="rgba(164, 179, 251, 0.2)"/>
             <stop offset="50%" stop-color="rgba(164, 179, 251, 0.9)"/>
             <stop offset="100%" stop-color="rgba(164, 179, 251, 0.2)"/>

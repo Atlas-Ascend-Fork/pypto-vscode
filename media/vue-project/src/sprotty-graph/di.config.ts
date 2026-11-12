@@ -110,7 +110,8 @@ class CustomElkLayoutEngine extends ElkLayoutEngine {
     super(elkFactory, filter, configurator, preprocessor, postprocessor);
   }
   override layout(sgraph: SGraph, index?: SModelIndex): SGraph | Promise<SGraph> {
-    if (sgraph.notNeedLayout) {
+    if (sgraph.notNeedLayout || (comGraphStore.data as any).notNeedLayout) {
+      (comGraphStore.data as any).notNeedLayout = false;
       return sgraph;
     }
     if (this.getBasicType(sgraph) !== 'graph') {

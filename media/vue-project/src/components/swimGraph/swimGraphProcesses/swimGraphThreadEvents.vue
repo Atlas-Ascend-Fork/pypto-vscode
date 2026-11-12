@@ -4631,7 +4631,7 @@ window.ascEventBus.on('clearSearchEvent', () => {
   }
   const { color } = selectedEvent.value.args;
   const isDimmed = lockedLabel !== color;
-  drawEvent([selectedEvent.value.drawData], eventCtx, isDimmed);
+  eventRenderer.drawEvent([selectedEvent.value.drawData], eventCtx, isDimmed);
   selectedEvent.value = null;
   lastSelected.value = null;
 });

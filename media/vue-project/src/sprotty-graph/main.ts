@@ -77,6 +77,7 @@ export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'afte
     updateGraph: renderer.updateGraph,
     getSelectedNodeId: nodeActions.getSelectedNodeId,
     setModelDirection: renderer.setModelDirection,
+    resetModel: renderer.resetModel,
     syncDiffView: nodeActions.syncDiffView,
     createSelectNodesRect: nodeActions.createSelectNodesRect,
     createSelectNodesRectByIds: nodeActions.createSelectNodesRectByIds,

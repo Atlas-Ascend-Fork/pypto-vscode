@@ -25,6 +25,7 @@ import type { SprottyContext } from './context';
 import type { HotKeyEvent, SubGraphEvent } from './types';
 
 export function useNodeActions(ctx: SprottyContext) {
+  let isUpdatingRect = false;
   const syncFitScreenViewport = async () => {
     try {
       const viewInfo = await ctx.modelSource.getViewport();
@@ -108,20 +109,22 @@ export function useNodeActions(ctx: SprottyContext) {
   };
 
   const createSelectNodesRect = async (semanticLabel: string, isLocate: boolean) => {
+    if(isUpdatingRect) {
+      return;
+    }
     // 进入 label 粒度框选即退出四联动的节点级 focus/dim，避免两套视觉叠加残留
     comGraphStore.setData('fourColFocusNodeIds', []);
     comGraphStore.setData('fourColDimNodeIds', []);
     const selectedNodes = findNodeIdsBySemanticLabel(ctx.currentData as Object, semanticLabel);
     if (selectedNodes.length <= 0) {
-      removeSelectNodesRect();
+      await removeSelectNodesRect();
       return;
     }
 
     if (comGraphStore.data.selectedNodeSemanticLabel !== semanticLabel) {
-      const modelRoot = (ctx.modelSource as any).currentRoot;
-      (ctx.modelSource.model as any).notNeedLayout = true;
-
-      ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: modelRoot.id }]);
+      isUpdatingRect = true;
+      try {
+         (comGraphStore.data as any).notNeedLayout = true;
       comGraphStore.data.selectedNodeSemanticLabel = semanticLabel;
       const newRect = {
         id: 'show-node-rect',
@@ -132,9 +135,10 @@ export function useNodeActions(ctx: SprottyContext) {
         selectedNodes,
         needCalPostion: true,
       };
-      // 挂载到 root children 末尾（append 即最后渲染），保证高亮框不被节点遮挡；
-      // 不依赖图数据自身的 children 顺序（布局缓存中的旧图顺序可能未更新）
-      await ctx.modelSource.addElements([{ element: newRect, parentId: modelRoot.id }]);
+      await upsertRect(newRect);
+    } finally {
+       isUpdatingRect = false;
+    }
     }
     const fitAction = createFitAction({ maxZoom: 2.0, padding: 50, elementIds: selectedNodes, animate: false });
     isLocate && ctx.modelSource.actionDispatcher.dispatch(fitAction).then(() => {
@@ -143,8 +147,28 @@ export function useNodeActions(ctx: SprottyContext) {
 
     startRectAnimation(ctx.modelSource);
   };
-
+  const upsertRect = async (newRect: Record<string, any>, resetModel?: () => void) => {
+    const modelRoot = (ctx.modelSource as any).currentRoot;
+    const rootId = modelRoot.id;
+    const rootIndex = (modelRoot as any).index;
+    if (modelRoot?.children) {
+      modelRoot.children = modelRoot.children.filter((t: { id: string }) => {
+        if (t.id === newRect.id) {
+          rootIndex?.remove(t);
+          return false;
+        }
+        return true;
+      });
+    }
+    resetModel?.();
+    await (ctx.modelSource as any).applyMatches([
+      { left: { id: newRect.id }, leftParentId: rootId, right: newRect, rightParentId: rootId },
+    ]);
+  };
   const removeSelectNodesRect = async () => {
+    if(isUpdatingRect){
+      return;
+    }
     cancelRectAnimation();
     comGraphStore.data.stableRect = false;
     comGraphStore.data.selectedNodeSemanticLabel = '';
@@ -153,7 +177,15 @@ export function useNodeActions(ctx: SprottyContext) {
     comGraphStore.setData('fourColDimNodeIds', []);
     const modelRoot = (ctx.modelSource as any).currentRoot;
     if (modelRoot?.children?.some((t: { id: string }) => t.id === 'show-node-rect')) {
-      await ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: modelRoot.id }]);
+      const rootIndex = (modelRoot as any).index;
+         modelRoot.children = modelRoot.children.filter((t:{id: string}) => {
+        if(t.id === 'show-node-rect'){
+          rootIndex?.remove(t);
+          return false;
+        }
+        return true;
+      });
+      await (ctx.modelSource as any).applyMatches([{ left: {id: 'show-node-rect'}, leftParentId: modelRoot.id }]);
     }
   };
 
@@ -162,17 +194,19 @@ export function useNodeActions(ctx: SprottyContext) {
    * 因此不会把框外节点连带置灰——置灰由 fourColDimNodeIds 精确控制（见 views.tsx getFourColNodeStyle）。
    * 渐变/蓝色由 isNodeRectLock 经 getRectStrokeColor 决定，与 createSelectNodesRect 同一套视觉。
    */
-  const createSelectNodesRectByIds = async (nodeIds: string[], isLocate: boolean) => {
+  const createSelectNodesRectByIds = async (nodeIds: string[], isLocate: boolean, resetModel?: () => void) => {
+    if (isUpdatingRect) {
+      return;
+    }
     if (!nodeIds?.length) {
-      removeSelectNodesRect();
+      await removeSelectNodesRect();
       return;
     }
     const prevKey = (comGraphStore.data.fourColRectNodeIds ?? []).join('|');
     if (prevKey !== nodeIds.join('|') || comGraphStore.data.selectedNodeSemanticLabel !== '') {
-      const modelRoot = (ctx.modelSource as any).currentRoot;
-      (ctx.modelSource.model as any).notNeedLayout = true;
-
-      ctx.modelSource.removeElements([{ elementId: 'show-node-rect', parentId: modelRoot.id }]);
+      isUpdatingRect = true;
+      try {
+        (comGraphStore.data as any).notNeedLayout = true;
       comGraphStore.data.selectedNodeSemanticLabel = '';
       comGraphStore.setData('fourColRectNodeIds', [...nodeIds]);
       const newRect = {
@@ -184,7 +218,10 @@ export function useNodeActions(ctx: SprottyContext) {
         selectedNodes: nodeIds,
         needCalPostion: true,
       };
-      await ctx.modelSource.addElements([{ element: newRect, parentId: modelRoot.id }]);
+      await upsertRect(newRect, resetModel);
+    } finally {
+      isUpdatingRect = false;
+    }
     }
     const fitAction = createFitAction({ maxZoom: 2.0, padding: 50, elementIds: nodeIds, animate: false });
     isLocate && ctx.modelSource.actionDispatcher.dispatch(fitAction).then(() => {
