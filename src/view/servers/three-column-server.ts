@@ -46,7 +46,7 @@ import {
   ISwimRefs,
 } from './view-server-interface';
 import { readFirstNLines } from '../../utils/file-system';
-import { detectColumnMode } from '../../services/cce-index';
+import { detectColumnMode, readRecordCceDir } from '../../services/cce-index';
 import { getSemanticFromCache, readAndBuildSemanticObj, saveSemanticToCache } from '../../services/three-column-semantic';
 import {
   buildPyOpmagicMap,
@@ -87,6 +87,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'ColumnMode',
   'CceCode',
   'CceFileList',
+  'ResetPrompt',
   'PyOpmagicMap',
   'GraphSelection',
   'FuncHashFileList',
@@ -149,6 +150,16 @@ export class ThreeColumnServer
   headerTitle?: string
   columnMode: 3 | 4 = 3;
   cceDir?: string;
+  private recordCceDir?: string;
+  private pendingCceSwitch?: { dir: string; selectedFile?: string; cceFuncHash?: string };
+  private pendingApply?: {
+    type: 'cce' | 'replace';
+    dir?: string;
+    selectedFile?: string;
+    cceFuncHash?: string;
+    options?: { swimPath?: string; comPath?: string };
+    missing: string[];
+  };
   /** CCE 先打开场景的初始子图 hash（pickCceFile 流程下发，loadMainData 一次性消费） */
   cceInitialFuncHash?: string;
   /** 正在加载中的 programId，防重入（完成/失败后清空，允许后续指纹复查） */
@@ -218,10 +229,7 @@ export class ThreeColumnServer
     if (!path || !existsSync(path)) {
       return;
     }
-    this.codePath = path;
-    const code = readFileSync(path, 'utf8');
-    this.setRef('PyCode', { data: { code, codePath: path } });
-    this.resetLinkedPanes();
+    await this.reopenWithCodePath(path);
   };
   @viewApi()
   public getCceCode = async (message: any) => {
@@ -242,17 +250,26 @@ export class ThreeColumnServer
     if (!path || !existsSync(path)) {
       return;
     }
+    this.recordCceDir = undefined;
     const isDir = statSync(path).isDirectory();
     const dir = isDir ? path : dirname(path);
     const selectedFile = isDir ? undefined : path;
     const hadComPath = !!this.comPath;
     const hadSwimPath = !!this.swimDataPath;
-    // 首次选择：初始子图与默认 CCE 文件统一走 cce_opmagic_map 首个
-    // leafHash（refreshColumnMode → pushDefaultCceCode / resolveInitialFuncHash），与计算图
-    // 入口选择数据的首屏 hash 一致；所选文件/目录不参与初始定位（查看特定文件在加载完成后
-    // 经 CCE 下拉切换，由 cceFileSwitched 完成图同步）。
-    // 重选（图已加载）不触发初始加载，立即推送所选；补全失败（无 program.json）维持 _main 兜底
     const pickedFile = selectedFile ? basename(selectedFile) : undefined;
+    const candidates = this.findComSwimByCceDir(dir);
+    const conflict = (this.comPath && candidates.comPath && this.comPath !== candidates.comPath)
+      || (this.swimDataPath && candidates.swimPath && this.swimDataPath !== candidates.swimPath);
+    if (conflict) {
+      this.pendingCceSwitch = { dir, selectedFile, cceFuncHash: '' };
+      const replaceMsg = {
+        graphType: 'cce',
+        paths: { swimPath: candidates.swimPath || '', comPath: candidates.comPath || '' },
+        selectPath: path,
+      };
+      this.setRef('returnReplace', { data: replaceMsg });
+      return;
+    }
     this.complementPathsFromCceDir(dir, '');
     const firstSelect = !hadComPath && !!this.comPath;
     if (!firstSelect) {
@@ -266,7 +283,66 @@ export class ThreeColumnServer
         this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
       }
       this.setRef('returnSearchPath', { data: pathMsg });
+      this.updateFilePathsCache(this.swimDataPath, this.comPath, this.headerTitle);
     }
+  };
+  /** 在 [dir, 父目录] 两级内查找配套的计算图/泳道图，找不到返回空串 */
+  findComSwimByCceDir(dir: string): { comPath: string; swimPath: string } {
+    let comPath = '';
+    let swimPath = '';
+    for (const candidate of [dir, dirname(dir)]) {
+      if (!comPath) {
+        const p = join(candidate, 'program.json');
+        if (existsSync(p)) {
+          comPath = p;
+        }
+      }
+      if (!swimPath) {
+        const p = join(candidate, 'merged_swimlane.json');
+        if (existsSync(p)) {
+          swimPath = p;
+        }
+      }
+      if (comPath && swimPath) {
+        break;
+      }
+    }
+    return { comPath, swimPath };
+  }
+  @viewApi()
+  public confirmPendingCceSwitch = async () => {
+    const pending = this.pendingCceSwitch;
+    this.pendingCceSwitch = undefined;
+    if (!pending) {
+      return;
+    }
+    const candidates = this.findComSwimByCceDir(pending.dir);
+    const srcCom = candidates.comPath || undefined;
+    const srcSwim = candidates.swimPath || undefined;
+    const missing = this.planOverwrite(srcCom, srcSwim);
+    if (missing.length > 0) {
+      this.pendingApply = {
+        type: 'cce',
+        dir: pending.dir,
+        selectedFile: pending.selectedFile,
+        cceFuncHash: pending.cceFuncHash,
+        missing,
+      };
+      this.setRef('ResetPrompt', { data: { missing } });
+      return;
+    }
+    this.applyOverwrite(srcCom, srcSwim, false, pending.cceFuncHash);
+    this.pushCceDir(pending.dir, pending.selectedFile);
+  };
+  @viewApi()
+  public cancelPendingCceSwitch = async () => {
+    const pending = this.pendingCceSwitch;
+    this.pendingCceSwitch = undefined;
+    if (!pending) {
+      return;
+    }
+    // 不覆盖：只处理 CCE 自己栏，其他栏保持原状（缺省或已加载都不动）
+    this.pushCceDir(pending.dir, pending.selectedFile);
   };
   complementPathsFromCceDir(dir: string, cceFuncHash?: string) {
     for (const candidate of [dir, dirname(dir)]) {
@@ -538,15 +614,7 @@ export class ThreeColumnServer
     try {
       await this.initPaths();
       this.refreshColumnMode();
-      // 如果路径未初始化成功，有缺省页面
-      if (!this.swimDataPath || !this.comPath) {
-        const pathMsg = { swimPath: this.swimDataPath || "", comPath: this.comPath || "" };
-        this.setRef('returnInitPath', { data: pathMsg });
-        return ;
-      }
-      // 路径初始化成功
-      this.setRef('InitFlag', {runDataTitle: this.headerTitle});
-      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+      this.pushInitResult(false);
     } catch (error) {
       console.log(`Error initializing WebView panel:`, error);
     }
@@ -573,6 +641,7 @@ export class ThreeColumnServer
     try {
       const res = await getRunDataList(params);
       const firstItem = res.data[0];
+      this.recordCceDir = readRecordCceDir(firstItem?.directoryPath);
       if (firstItem.swimlaneGraphFilePath) {
         this.updateSwimData(firstItem.swimlaneGraphFilePath);
       }
@@ -586,6 +655,7 @@ export class ThreeColumnServer
   updateSwimData(path: string) {
     this.swimDataPath = path;
     this.swimData = new SwimData(Uri.file(path), path);
+    this.refreshColumnMode();
   }
   updateComData(path: string, cceFuncHash?: string) {
     this.comPath = path;
@@ -598,29 +668,70 @@ export class ThreeColumnServer
     this.refreshColumnMode();
   }
   refreshColumnMode() {
-    if (!this.comPath) {
+    const anchor = this.comPath || this.swimDataPath;
+    if (!anchor && !this.recordCceDir) {
+      // 无任何锚点：保留已解析的 cceDir（CCE 先选场景），仅补四栏壳与空态推送
       this.columnMode = 4;
-      this.cceDir = undefined;
       this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
       void this.pushDefaultCceCode();
       return;
     }
-    const result = detectColumnMode(this.comPath);
+    const result = detectColumnMode(anchor, this.recordCceDir);
     this.columnMode = result.columnMode;
     this.cceDir = result.cceDir;
     this.setRef('ColumnMode', { columnMode: this.columnMode, cceDir: this.cceDir });
     void this.pushDefaultCceCode();
-    void this.ensureFourcolLoaded();
+    if (anchor) {
+      void this.ensureFourcolLoaded();
+    }
   }
-  resetLinkedPanes() {
+  /** 运行记录标题 → 该记录自己的 rundata 目录（store 里的 directoryPath） */
+  private async findRecordDirByTitle(title: string | undefined): Promise<string | undefined> {
+    if (!title) {
+      return undefined;
+    }
+    try {
+      const res = await getRunDataList({ page: 1, pageSize: 1, isThreeColumnNotNull: true, titleKeyword: title, isExactMatch: true });
+      return res.data[0]?.directoryPath;
+    } catch {
+      return undefined;
+    }
+  }
+  /** 换 py 算子文件 = 用新 codePath 重走一遍右击开启联动的发现流程 */
+  private async reopenWithCodePath(path: string) {
+    this.codePath = path;
+    this.initPath = path;
     this.swimDataPath = undefined;
     this.swimData = undefined;
     this.comPath = undefined;
-    // 联动重置：作废未消费的 CCE 初始子图 hash，避免下次图加载钉到过期 hash
+    this.recordCceDir = undefined;
     this.cceInitialFuncHash = undefined;
-    this.refreshColumnMode();
-    this.setRef('SetVscodeState', { codePath: this.codePath, comPath: '', swimDataPath: '' });
-    this.setRef('returnInitPath', { data: { swimPath: '', comPath: '', forceEmpty: true } });
+    this.pendingCceSwitch = undefined;
+    this.pendingApply = undefined;
+    try {
+      const code = readFileSync(path, 'utf8');
+      this.setRef('PyCode', { data: { code, codePath: path } });
+    } catch (err) {
+      console.error(`${path}读取 py 文件时发生错误`, err);
+    }
+    await this.initPaths();
+    this.pushInitResult(true);
+    await ComGraphHandler.pushSemanticObj(this);
+  }
+  private pushInitResult(forceEmpty: boolean) {
+    if (!this.swimDataPath || !this.comPath) {
+      this.refreshColumnMode();
+      const pathMsg = { swimPath: this.swimDataPath || '', comPath: this.comPath || '', forceEmpty };
+      this.setRef('returnInitPath', { data: pathMsg });
+      return;
+    }
+    this.setRef('InitFlag', { runDataTitle: this.headerTitle });
+    this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+    // 重开（换 py）场景：returnInitPath 的 watcher 只加载当前缺省的栏，已加载的栏要靠
+    // returnSearchPath 才会重载；首开无旧数据，不补推以免双重加载
+    if (forceEmpty) {
+      this.setRef('returnSearchPath', { data: { swimPath: this.swimDataPath || '', comPath: this.comPath || '' } });
+    }
   }
   /**
    * 四栏默认 CCE 文件：cce_opmagic_map.json 首个 leafHash 绑定的 CCE 文件（尾块优先）；
@@ -838,6 +949,8 @@ export class ThreeColumnServer
   @viewApi()
   public selectRunData = async (message: any) => {
     const { swimPath, comPath, runDataTitle } = message.runDataPaths;
+    // 四栏比三栏多读的一个字段：该记录自己的 rundata.json 里的 kernel_aicore_path
+    this.recordCceDir = readRecordCceDir(await this.findRecordDirByTitle(runDataTitle));
 
     if (swimPath) {
       this.updateSwimData(swimPath);
@@ -892,19 +1005,85 @@ export class ThreeColumnServer
   @viewApi()
   public replaceFile = async (message: any) => {
     const options = message.options;
-    const { swimPath, comPath } = options;
-    if (swimPath) {
-      this.updateSwimData(swimPath);
+    const srcCom = options.comPath || undefined;
+    const srcSwim = options.swimPath || undefined;
+    const missing = this.planOverwrite(srcCom, srcSwim);
+    if (missing.length > 0) {
+      this.pendingApply = { type: 'replace', options: { comPath: srcCom, swimPath: srcSwim }, missing };
+      this.setRef('ResetPrompt', { data: { missing } });
+      return;
     }
-    if (comPath) {
-      this.updateComData(comPath);
+    this.applyOverwrite(srcCom, srcSwim, false);
+  };
+  /** 覆盖计划：源侧有值→替换；源侧缺而当前有→记入 missing 待二次确认；双方都缺→不动 */
+  private planOverwrite(srcCom: string | undefined, srcSwim: string | undefined): string[] {
+    const missing: string[] = [];
+    if (!srcCom && this.comPath) {
+      missing.push('comGraph');
+    }
+    if (!srcSwim && this.swimDataPath) {
+      missing.push('swimGraph');
+    }
+    return missing;
+  }
+  private applyOverwrite(srcCom: string | undefined, srcSwim: string | undefined, resetMissing: boolean, cceFuncHash?: string) {
+    this.recordCceDir = undefined;
+    if (resetMissing) {
+      if (!srcCom && this.comPath) {
+        this.comPath = undefined;
+      }
+      if (!srcSwim && this.swimDataPath) {
+        this.swimDataPath = undefined;
+        this.swimData = undefined;
+      }
+    }
+    if (srcCom) {
+      this.updateComData(srcCom, cceFuncHash);
+    }
+    if (srcSwim) {
+      this.updateSwimData(srcSwim);
     }
     if (this.swimDataPath || this.comPath) {
       this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
     }
-    const pathMsg = { swimPath: swimPath || "", comPath: comPath || "" };
-    this.setRef('returnSearchPath', { data: pathMsg });
-    this.updateFilePathsCache(this.swimDataPath, this.comPath);
+    const forceEmpty = resetMissing || (!this.swimDataPath && !this.comPath);
+    this.setRef('returnSearchPath', {
+      data: { swimPath: this.swimDataPath || '', comPath: this.comPath || '', forceEmpty },
+    });
+    this.updateFilePathsCache(this.swimDataPath, this.comPath, this.headerTitle);
+  }
+  @viewApi()
+  public applyResetDecision = async (message: any) => {
+    const pending = this.pendingApply;
+    this.pendingApply = undefined;
+    if (!pending) {
+      return;
+    }
+    const reset = message?.paramObj?.reset === true;
+    if (pending.type === 'cce') {
+      const candidates = this.findComSwimByCceDir(pending.dir!);
+      this.applyOverwrite(candidates.comPath || undefined, candidates.swimPath || undefined, reset, pending.cceFuncHash);
+      this.pushCceDir(pending.dir!, pending.selectedFile);
+    } else {
+      this.applyOverwrite(pending.options?.comPath, pending.options?.swimPath, reset);
+    }
+  };
+  @viewApi()
+  public applySingleSide = async (message: any) => {
+    const { graphType, path } = message.paramObj ?? {};
+    this.recordCceDir = undefined;
+    if (graphType === 'swimGraph' && path) {
+      this.updateSwimData(path);
+    } else if ((graphType === 'comGraph' || graphType === 'computeGraph') && path) {
+      this.updateComData(path);
+    } else {
+      return;
+    }
+    if (this.swimDataPath || this.comPath) {
+      this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+    }
+    this.setRef('returnSearchPath', { data: { swimPath: this.swimDataPath || '', comPath: this.comPath || '' } });
+    this.updateFilePathsCache(this.swimDataPath, this.comPath, this.headerTitle);
   };
   @viewApi()
   public singleSelectFile = async (message: { graphType: string }) => {
@@ -922,8 +1101,7 @@ export class ThreeColumnServer
       }
       switch (message.graphType) {
         case 'editor':
-          await this.handleCodeGraph(path);
-          this.resetLinkedPanes();
+          await this.reopenWithCodePath(path);
           break;
         case 'swimGraph':
           await this.handleSwimGraph(path);

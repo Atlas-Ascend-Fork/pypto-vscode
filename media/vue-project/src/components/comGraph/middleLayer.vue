@@ -64,6 +64,8 @@ const pagetotal = ref(0);
 const disabledSearchMode = computed(() => !(Object.keys(jsonContent.value).length));
 let inThreeColumnMode = false;
 const modalVisible = ref(false);
+const resetModalVisible = ref(false);
+const resetMissingNames = ref('');
 const shouldUpdateComGraphHashList = ref(false);
 const replaceMsg = ref({ graphType: "", paths: { swimPath: "", comPath: "" }, selectPath: "" });
 const sharedSwimData = ref({});
@@ -264,8 +266,22 @@ function setupThreeWatchers(server: any) {
   watch(server.returnReplace, async (path) => {
     modalVisible.value = true;
     replaceMsg.value = path.data;
-    graphName.value = replaceMsg.value.graphType === 'swimGraph' ? $t('comGraphName') : $t('swimGraph');
-    graphNameTemp.value = replaceMsg.value.graphType === 'swimGraph' ? $t('swimGraph') : $t('comGraphName');
+    if (replaceMsg.value.graphType === 'cce') {
+      graphName.value = `${$t('comGraphName')} / ${$t('swimGraph')}`;
+      graphNameTemp.value = 'CCE';
+    } else {
+      graphName.value = replaceMsg.value.graphType === 'swimGraph' ? $t('comGraphName') : $t('swimGraph');
+      graphNameTemp.value = replaceMsg.value.graphType === 'swimGraph' ? $t('swimGraph') : $t('comGraphName');
+    }
+  });
+
+  watch(server.ResetPrompt, (msg) => {
+    const missing: string[] = msg?.data?.missing ?? [];
+    if (missing.length === 0) {
+      return;
+    }
+    resetMissingNames.value = missing.map((m) => (m === 'comGraph' ? $t('comGraphName') : $t('swimGraph'))).join(' / ');
+    resetModalVisible.value = true;
   });
   watch(server.SetVscodeState, async (newValue) => {
     if (newValue.comPath) {
@@ -387,6 +403,10 @@ function entrySearchModeSet() {
 const modelConfirm = async () => {
   modalVisible.value = false;
   const selectPath = replaceMsg.value.selectPath;
+  if (replaceMsg.value.graphType === 'cce') {
+    await server.confirmPendingCceSwitch();
+    return;
+  }
   if (replaceMsg.value.graphType === "swimGraph") {
     const swimPath = replaceMsg.value.paths.swimPath;
     const comPath = selectPath;
@@ -445,15 +465,21 @@ const reloadSwimGraph = async (swimGrahRef, swimErrorMessage, server, threadCach
 
 const modelCancel = async () => {
   modalVisible.value = false;
-  if (replaceMsg.value.graphType === "swimGraph") {
-    const swimPath = replaceMsg.value.paths.swimPath;
-    const comPath = "";
-    await server.replaceFile({ options: { swimPath, comPath } });
-  } else {
-    const comPath = replaceMsg.value.paths.comPath;
-    const swimPath = "";
-    await server.replaceFile({ options: { swimPath, comPath } });
+  if (replaceMsg.value.graphType === 'cce') {
+    await server.cancelPendingCceSwitch();
+    return;
   }
+  // 不覆盖：只处理自己栏，其他栏保持原状
+  if (replaceMsg.value.graphType === "swimGraph") {
+    await server.applySingleSide({ paramObj: { graphType: 'swimGraph', path: replaceMsg.value.paths.swimPath } });
+  } else {
+    await server.applySingleSide({ paramObj: { graphType: 'comGraph', path: replaceMsg.value.paths.comPath } });
+  }
+};
+
+const resetConfirm = async (reset: boolean) => {
+  resetModalVisible.value = false;
+  await server.applyResetDecision({ paramObj: { reset } });
 };
 
 const onInputFocus = (event) => {
@@ -510,6 +536,17 @@ provide('runDataList', {runDataVisible, missGraphType, pagetotal, baseChoose, is
           <d-button variant="solid" color='secondary' @click="modelCancel" @mouseenter="onInputFocus"
             @mouseleave="onInputLeave">{{ $t('no') }}</d-button>
           <d-button variant="solid" color='primary' @click="modelConfirm">{{ $t('yes') }}</d-button>
+        </d-modal-footer>
+      </template>
+    </d-modal>
+  </template>
+  <template>
+    <d-modal v-model="resetModalVisible" :title="$t('confirm')" class="modal-containner" :close-on-click-overlay="false">
+      <div class="modal-background">{{ $t('resetMissingInfo', { graphName: resetMissingNames }) }}</div>
+      <template #footer>
+        <d-modal-footer class="modal-button">
+          <d-button variant="solid" color='secondary' @click="resetConfirm(false)">{{ $t('no') }}</d-button>
+          <d-button variant="solid" color='primary' @click="resetConfirm(true)">{{ $t('yes') }}</d-button>
         </d-modal-footer>
       </template>
     </d-modal>

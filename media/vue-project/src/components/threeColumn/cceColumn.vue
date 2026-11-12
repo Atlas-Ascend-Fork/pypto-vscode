@@ -17,11 +17,10 @@
   <div class="cce-column">
     <template v-if="fileName">
       <div class="cce-header">
-        <fileSelect
-          :file-name="fileName"
-          :show-dropdown="true"
-          :show-file-explorer="false"
-          :file-list="cceFileList"
+      <fileSelect
+        :file-name="fileName"
+        :show-dropdown="true"
+        :file-list="cceFileList"
           :current-path="currentPath"
           :file-paths="filePaths"
           @file-select="onCceFileSwitch"
@@ -46,7 +45,7 @@
     <div v-else class="no-file-container">
       <div><img :src="iconPath" alt="" class="no-file-icon" /></div>
       <div class="no-file-title">{{ $t('noCceFile') }}</div>
-      <d-button variant="solid" class="mt10 no-file-back" @click="onPickCceFile">{{ $t('openFile') }}</d-button>
+      <d-button variant="solid" class="mt10 no-file-back" @click="onPickCceFile">{{ $t('openCceFolder') }}</d-button>
     </div>
   </div>
 </template>

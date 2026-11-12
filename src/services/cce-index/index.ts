@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 
 export interface ColumnModeResult {
@@ -22,56 +22,43 @@ export interface ColumnModeResult {
 
 const CCE_DIR_NAME = 'kernel_aicore';
 const CCE_MAP_FILE = 'cce_opmagic_map.json';
-const RUNDATA_FIXED = join('rundata', 'rundata.json');
-const RUNDATA_LEGACY_PREFIX = 'rundata_';
-const RUNDATA_LEGACY_FILE = 'rundata.json';
 
-function readRundataKernelAicorePath(outputDir: string): string | undefined {
-  const candidates: string[] = [];
-  const fixedPath = join(outputDir, RUNDATA_FIXED);
-  if (existsSync(fixedPath)) {
-    candidates.push(fixedPath);
+/**
+ * 三/四栏判定，两级顺序：
+ * ① 同目录约定：<anchor 目录>/kernel_aicore（与当前加载的 program.json 同源，优先）
+ * ② 保底：运行记录（~/.pypto/run/rundata_<ts>/）自己的 rundata.json 里的 kernel_aicore_path
+ * 两级都要求 cce_opmagic_map.json 存在才判四栏。
+ */
+export function detectColumnMode(anchorPath: string | undefined, fallbackCceDir?: string): ColumnModeResult {
+  if (anchorPath) {
+    const cceDir = join(dirname(anchorPath), CCE_DIR_NAME);
+    if (existsSync(join(cceDir, CCE_MAP_FILE))) {
+      return { columnMode: 4, cceDir };
+    }
+  }
+  if (fallbackCceDir && existsSync(join(fallbackCceDir, CCE_MAP_FILE))) {
+    return { columnMode: 4, cceDir: fallbackCceDir };
+  }
+  return { columnMode: 3 };
+}
+
+/** 从运行记录目录（~/.pypto/run/rundata_<ts>/）自己的 rundata.json 读 kernel_aicore_path，本地存在才返回 */
+export function readRecordCceDir(recordDirPath: string | undefined): string | undefined {
+  if (!recordDirPath) {
+    return undefined;
+  }
+  const recordFile = join(recordDirPath, 'rundata.json');
+  if (!existsSync(recordFile)) {
+    return undefined;
   }
   try {
-    for (const entry of readdirSync(outputDir, { withFileTypes: true })) {
-      if (entry.isDirectory() && entry.name.startsWith(RUNDATA_LEGACY_PREFIX)) {
-        const legacyPath = join(outputDir, entry.name, RUNDATA_LEGACY_FILE);
-        if (existsSync(legacyPath)) {
-          candidates.push(legacyPath);
-        }
-      }
+    const rundata = JSON.parse(readFileSync(recordFile, 'utf8'));
+    const kernelAicorePath = rundata.kernel_aicore_path;
+    if (typeof kernelAicorePath === 'string' && kernelAicorePath && existsSync(kernelAicorePath)) {
+      return kernelAicorePath;
     }
   } catch {
     return undefined;
   }
-  for (const candidate of candidates) {
-    try {
-      const rundata = JSON.parse(readFileSync(candidate, 'utf8'));
-      if (typeof rundata.kernel_aicore_path === 'string' && rundata.kernel_aicore_path.length > 0) {
-        return rundata.kernel_aicore_path;
-      }
-    } catch {
-      continue;
-    }
-  }
   return undefined;
-}
-
-export function detectColumnMode(comPath: string | undefined): ColumnModeResult {
-  if (!comPath) {
-    return { columnMode: 3 };
-  }
-  const outputDir = dirname(comPath);
-  let cceDir = join(outputDir, CCE_DIR_NAME);
-  if (!existsSync(cceDir)) {
-    const rundataCceDir = readRundataKernelAicorePath(outputDir);
-    if (!rundataCceDir || !existsSync(rundataCceDir)) {
-      return { columnMode: 3 };
-    }
-    cceDir = rundataCceDir;
-  }
-  if (!existsSync(join(cceDir, CCE_MAP_FILE))) {
-    return { columnMode: 3 };
-  }
-  return { columnMode: 4, cceDir };
 }

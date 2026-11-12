@@ -144,6 +144,10 @@ export type IThreeApis =
   | 'checkFileExistence'
   | 'getCceCode'
   | 'pickCceFile'
+  | 'confirmPendingCceSwitch'
+  | 'cancelPendingCceSwitch'
+  | 'applyResetDecision'
+  | 'applySingleSide'
   | 'getInitialData'
   | 'askLayout'
   | 'renderLayout'
@@ -191,6 +195,7 @@ export type IThreeRefs = {
   FileExistenceResult: unknown;
   CceCode: unknown;
   CceFileList: unknown;
+  ResetPrompt: unknown;
   CalleeMap: unknown;
   CalleeOpAttrMap: unknown;
   ComData: unknown;

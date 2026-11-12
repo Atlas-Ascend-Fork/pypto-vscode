@@ -178,6 +178,8 @@ function openSelectedFileWindow() {
   }
   if (BlockToGraphMap[currentActiveBlock.value] === 'editor') {
     threeColumnServer.singleSelectFile({ graphType: BlockToGraphMap[currentActiveBlock.value] });
+  } else if (BlockToGraphMap[currentActiveBlock.value] === 'cce') {
+    threeColumnServer.pickCceFile();
   } else {
     const { swimPath, comPath } = props.filePaths;
     threeColumnServer.selectFile({ graphType: BlockToGraphMap[currentActiveBlock.value], options: { swimPath, comPath } });
