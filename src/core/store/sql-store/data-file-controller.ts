@@ -41,6 +41,7 @@ export class DataFileController<Item extends Data> {
   }
 
   public async write(item: Item, fileName: string): Promise<void> {
+    fs.mkdirSync(this._storeDirPath, { recursive: true });
     const filePath = path.join(this._storeDirPath, fileName);
     await fs.promises.writeFile(filePath, JSON.stringify(item), 'utf8');
     return;
