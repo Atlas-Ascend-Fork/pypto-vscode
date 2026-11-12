@@ -309,75 +309,52 @@ const applyLabelLock = (label: string): boolean => {
   return true;
 };
 
-// 计算图 op 悬停（source:'com'）→ CCE 行高亮（整行蓝条 + 同 label 渐变框，滚动定位到当前悬浮 op 的首个命中行）；
-// 锁定态下不响应（与 py 栏一致）
-const applyOpsHighlight = (hash: string, ops: number[]) => {
+// 悬停反馈（com/py/swim 三来源统一）：ops 命中行画整行蓝条，返回的 label 画渐变框。
+// 蓝条按 hash 门槛渲染：hash 与当前文件 funcHash 一致才按 ops 反查行——opmagic 跨 leaf
+// 可能重号，不匹配时按行命中会误染其它 hash 文件的行；label 按名字匹配当前文件的
+// label 块，无重号风险、不受 hash 约束（payload label 为空时从蓝条行反查兜底）。
+// 滚动定位：ops 命中行优先，其次 label 块首行；锁定态不响应（与 py 栏一致）
+const applyOpsHighlight = (hash: string, ops: number[], label?: string) => {
   if (!editor || isLocked.value) {
     return;
   }
-  // hash 不匹配时按激活块定遮罩：CCE 激活（用户正在 CCE 栏操作）撤下不打断，其它激活块置起提示无关联
-  if (hash && hash !== currentFuncHash) {
-    noAssociatedObject.value = BlockToGraphMap[currentActiveBlock.value] !== 'cce';
-  }
-  if (!hash || !ops?.length || hash !== currentFuncHash) {
-    clearLineBands(editor);
-    clearBlockHighlights(editor);
-    return;
-  }
-  const lines = ops.flatMap((opMagic) => opMagicLineIndex.get(opMagic) ?? []);
-  if (!lines.length) {
-    clearLineBands(editor);
-    clearBlockHighlights(editor);
-    return;
-  }
-  // 整行蓝条与 py 栏同源（renderLineBands 主题自适应），与本地悬浮行共用同一渲染态、最近一次交互生效
-  renderLineBands(editor, Array.from(new Set(lines)), isDarkTheme.value);
-  // 与高亮行同 label 的行渐变背景框：label 块按文件路径校验，未就绪/过期不画；
-  // 与本地悬浮、锁定态共用同一渲染通道，最近一次交互生效
-  const labels =
-    cceLabelBlocksPath === currentPath.value
-      ? Array.from(new Set(lines.map((line) => findLabelByLine(line)).filter((label) => label)))
+  // 蓝条（ops）：hash 一致 + 行命中才渲染
+  const bandLines =
+    hash && hash === currentFuncHash && ops?.length
+      ? Array.from(new Set(ops.flatMap((opMagic) => opMagicLineIndex.get(opMagic) ?? [])))
       : [];
-  const sameLabelRanges = labels.flatMap((label) =>
-    cceLabelBlocks.filter((block) => block.label === label).flatMap((block) => linesToRanges(block.lines)),
+  // 渐变框（label）：payload label 优先，为空时从蓝条行反查（与高亮行同 label 的行渐变背景框）
+  let hitLabels: string[] = [];
+  if (cceLabelBlocksPath === currentPath.value) {
+    if (label && cceLabelBlocks.some((block) => block.label === label)) {
+      hitLabels = [label];
+    } else {
+      hitLabels = Array.from(new Set(bandLines.map((line) => findLabelByLine(line)).filter((item) => item)));
+    }
+  }
+  const labelRanges = hitLabels.flatMap((item) =>
+    cceLabelBlocks.filter((block) => block.label === item).flatMap((block) => linesToRanges(block.lines)),
   );
-  if (sameLabelRanges.length) {
-    renderBlockHighlights(editor, sameLabelRanges);
+  if (bandLines.length) {
+    renderLineBands(editor, bandLines, isDarkTheme.value);
+  } else {
+    clearLineBands(editor);
+  }
+  if (labelRanges.length) {
+    renderBlockHighlights(editor, labelRanges);
   } else {
     clearBlockHighlights(editor);
   }
-  // 直接滚动到当前行（当前悬浮 op 的首个命中行），不排序计算首个高亮行
-  editor.revealPositionInCenter({ lineNumber: lines[0], column: 1 });
-};
-
-// 泳道 task 悬停（source:'swim'）→ 按 ops 反查 CCE 行，行号去重排序后合并连续区间渲染渐变块
-// （与 py 栏 highlightOpmagicLines 同口径，不画蓝条、不按 label 扩展）。
-// hash 与当前文件 funcHash 一致才渲染：泳道同一 label 可对应多个 hash（多个 leaf），
-// opmagic 跨 leaf 可能重号，hash 不匹配时不得按行命中渲染（会误染其它 hash 文件的行）；
-// 锁定态不响应；hash 不匹配按激活块定遮罩、空 ops/无落点清除，均与 com/py 悬停同规则
-const applySwimOpsHighlight = (hash: string, ops: number[]): boolean => {
-  if (!editor || isLocked.value) {
-    return false;
+  if (bandLines.length || labelRanges.length) {
+    noAssociatedObject.value = false;
+    // 滚动到当前悬浮 op 的首个命中行；无 ops 落点时定位 label 块首行
+    editor.revealPositionInCenter({ lineNumber: bandLines.length ? bandLines[0] : labelRanges[0][0], column: 1 });
+    return;
   }
+  // 全未命中：hash 不匹配时按激活块定遮罩（CCE 激活撤下不打断，其它激活块置起提示无关联），清空残留装饰
   if (hash && hash !== currentFuncHash) {
     noAssociatedObject.value = BlockToGraphMap[currentActiveBlock.value] !== 'cce';
   }
-  if (!hash || !ops?.length || hash !== currentFuncHash) {
-    clearLineBands(editor);
-    clearBlockHighlights(editor);
-    return false;
-  }
-  const lines = ops.flatMap((opMagic) => opMagicLineIndex.get(opMagic) ?? []);
-  if (!lines.length) {
-    clearLineBands(editor);
-    clearBlockHighlights(editor);
-    return false;
-  }
-  const ranges = linesToRanges(lines);
-  noAssociatedObject.value = false;
-  renderBlockHighlights(editor, ranges);
-  editor.revealPositionInCenter({ lineNumber: ranges[0][0], column: 1 });
-  return true;
 };
 
 const sendMsg = (command: string, param: unknown) => {
@@ -818,18 +795,15 @@ const onActiveLock = (args: { label?: string }) => {
 };
 (window as any).ascEventBus.on('activeLock', onActiveLock);
 
-// 计算图 op 悬停(source:'com') / py 行悬停(source:'py') → CCE 行高亮 + 同 label 渐变框；
-// 泳道 task 悬停(source:'swim') → 按 ops 行渲染渐变块；其它来源/空 ops 清除。
-// 锁定态在两个渲染函数内部统一不响应，保持闭锁/蓝条/渐变框
-const onReturnOpsFromCom = (args: { source?: string; hash?: string; ops?: number[] }) => {
+// 悬停其他三栏（计算图 op / py 行 / 泳道 task）→ 统一按返回的 ops 画蓝条、返回的 label 画渐变框；
+// CCE 自身悬停的回声不覆盖本地蓝条/渐变框；其它来源/空 ops 清除。
+// 锁定态在渲染函数内部统一不响应，保持闭锁/蓝条/渐变框
+const onReturnOpsFromCom = (args: { source?: string; hash?: string; ops?: number[]; label?: string }) => {
   if (args?.source === 'cce') {
-    // CCE 自身悬停的回声不覆盖本地蓝条/渐变框
     return;
   }
-  if (args?.source === 'com' || args?.source === 'py') {
-    applyOpsHighlight(args.hash ?? '', args.ops ?? []);
-  } else if (args?.source === 'swim') {
-    applySwimOpsHighlight(args.hash ?? '', args.ops ?? []);
+  if (args?.source === 'com' || args?.source === 'py' || args?.source === 'swim') {
+    applyOpsHighlight(args.hash ?? '', args.ops ?? [], args?.label);
   } else if (!isLocked.value) {
     clearLineBands(editor);
     clearBlockHighlights(editor);
