@@ -822,6 +822,10 @@ const onActiveLock = (args: { label?: string }) => {
 // 泳道 task 悬停(source:'swim') → 按 ops 行渲染渐变块；其它来源/空 ops 清除。
 // 锁定态在两个渲染函数内部统一不响应，保持闭锁/蓝条/渐变框
 const onReturnOpsFromCom = (args: { source?: string; hash?: string; ops?: number[] }) => {
+  if (args?.source === 'cce') {
+    // CCE 自身悬停的回声不覆盖本地蓝条/渐变框
+    return;
+  }
   if (args?.source === 'com' || args?.source === 'py') {
     applyOpsHighlight(args.hash ?? '', args.ops ?? []);
   } else if (args?.source === 'swim') {

@@ -347,6 +347,9 @@ function updateScaleRation() {
   const minimap = document.getElementById(`${props.type}_minimap_root`);
   const children = minimap?.firstElementChild;
   const rect = children?.getBoundingClientRect();
+  if (!sprottyRoot || !rect) {
+    return;
+  }
   if (sprottyRoot.clientHeight > sprottyRoot.clientWidth) {
     scaleRation = (sprottyRoot.clientHeight / originalHeight);
     rectInitHeight = rect.height;

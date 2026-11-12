@@ -802,6 +802,7 @@ export class ThreeColumnServer
     if (!opmagic || !hash) {
       return null;
     }
+    await this.ensureFourcolLoaded();
     const programId = this.fourcolProgramId;
     const loc = await getCceLocation(programId, hash, String(opmagic));
     const tree = await getOpByCceTree(programId, loc?.fileName ?? '', loc?.lines?.[0] ?? 0);
@@ -814,6 +815,7 @@ export class ThreeColumnServer
     if (!leafHash) {
       return { ops: [] };
     }
+    await this.ensureFourcolLoaded();
     const seq = await getOpSequence(this.fourcolProgramId, leafHash);
     return { ops: seq.map((r) => Number(r.opmagic)) };
   };
@@ -840,6 +842,7 @@ export class ThreeColumnServer
     if (!fileName) {
       return { labels: [] };
     }
+    await this.ensureFourcolLoaded();
     return { labels: await getLabelsByCceFile(this.fourcolProgramId, fileName) };
   };
   /** 计算图子图 hash → 强绑定的 CCE 文件名（尾块优先，无尾块回退主块）；无绑定时返回 null */
@@ -858,6 +861,7 @@ export class ThreeColumnServer
     if (!file || !line) {
       return [];
     }
+    await this.ensureFourcolLoaded();
     return getOpsByPyLine(this.fourcolProgramId, file, line);
   };
   /** 计算图列自高亮：py 行 → 精确 op 落点（leafHash + opmagic + subgraphid + label） */
@@ -867,6 +871,7 @@ export class ThreeColumnServer
     if (!file || !line) {
       return { leafHashes: [], ops: [] };
     }
+    await this.ensureFourcolLoaded();
     const ops = await getOpSelectionByImplPyLine(this.fourcolProgramId, file, line);
     return { leafHashes: Array.from(new Set(ops.map((o) => o.leafHash))), ops };
   };
@@ -879,6 +884,7 @@ export class ThreeColumnServer
     line?: number;
     label?: string;
   }) => {
+    await this.ensureFourcolLoaded();
     const programId = this.fourcolProgramId;
     let hash = message.hash ?? message.leafHash;
     // 泳道点击发的是 opmagic: ''（空串），与未提供同等处理；否则会带着空串往下走，
@@ -923,6 +929,7 @@ export class ThreeColumnServer
   };
   @viewApi()
   public stepOp = async (message: { leafHash: string; opMagic: number; direction: -1 | 1 }) => {
+    await this.ensureFourcolLoaded();
     const seq = await getOpSequence(this.fourcolProgramId, message.leafHash);
     const cur = seq.findIndex((r) => Number(r.opmagic) === message.opMagic);
     if (cur < 0) {

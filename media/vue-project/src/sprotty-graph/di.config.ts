@@ -387,13 +387,14 @@ export class CustomMouseListener extends MouseListener {
         (window as any).ascEventBus.emit('rect_node_leave');
       }
     }
-    if (target instanceof RectangularNode) {
-      if ((target.root as any).zoom < 0.5) {
-        (window as any).ascEventBus.emit('showNodeTip', target);
-      }
-      if (target.id !== 'show-node-rect' && !comGraphStore.data.stableRect) {
-        (window as any).ascEventBus.emit('rect_node_hover', { semanticLabel: target.semanticLabel, nodeId: target.id });
-      }
+    if (target instanceof RectangularNode && (target.root as any).zoom < 0.5) {
+      (window as any).ascEventBus.emit('showNodeTip', target);
+    }
+    // 鼠标可能落在 op 的 label/compartment 上，向上找回所属 op 节点再联动
+    const hoverNode = findParentByFeature(target, (element) =>
+      element instanceof RectangularNode && String(element.id).startsWith('operation-magic-'));
+    if (hoverNode && hoverNode.id !== 'show-node-rect' && !comGraphStore.data.stableRect) {
+      (window as any).ascEventBus.emit('rect_node_hover', { semanticLabel: (hoverNode as any).semanticLabel, nodeId: hoverNode.id });
     }
     return [];
   }

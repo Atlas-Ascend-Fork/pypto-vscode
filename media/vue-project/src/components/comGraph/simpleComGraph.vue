@@ -81,7 +81,9 @@
 
 <script setup lang="ts">
 import { useSprottyLoad } from '../../sprotty-graph/main';
+import { cancelRectAnimation } from '../../sprotty-graph/animation';
 import { onMounted, watch, ref, inject, computed, nextTick, onBeforeUnmount, reactive } from 'vue';
+import type { Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComGraphHeader from './comGraphHeader.vue';
 import ComGraphMinimap from './comGraphMinimap.vue';
@@ -93,12 +95,11 @@ import { ThreeColumnProvideKey, type IThreeColumnCtx } from '../threeColumn/type
 import DragIcon from '../threeColumn/drag-icon.vue';
 import fileSelect from '../threeColumn/file-select.vue';
 import { useViewServer } from '../../core/use-view-server';
-import type { IComViewServer } from '../../../../../src/core/view/view-server-interface';
+import type { IComViewServer } from 'ext:/view/servers/view-server-interface';
 import { findNodeIdsBySemanticLabel } from '../../utils/search';
-import { ThreeColumnServer } from '../../../../../src/core/view/three-column-server';
+import type { ThreeColumnServer } from 'ext:/view/servers/three-column-server';
 import type { DrillDownPathItem } from './type';
 import { GraphType } from './type';
-import { useFourColumnGraphLinkage, type OpSelection } from './hooks/use-four-column-graph-linkage';
 const { server: threeColumnServer } = useViewServer<ThreeColumnServer>();
 
 const { t } = useI18n();
@@ -134,7 +135,7 @@ const props = defineProps({
   filePaths: {type: Object, default: {}},
 });
 
-const { isDarkTheme } = inject('root');
+const { isDarkTheme } = inject('root') as { isDarkTheme: Ref<boolean> };
 const { isComGraphFullscreen, currentActiveBlock, BlockToGraphMap, onToggleComGraphFullscreen } = inject(
   ThreeColumnProvideKey,
 ) as IThreeColumnCtx;
@@ -148,7 +149,7 @@ const graphType = ref('');
 const rootHash = ref('');
 const rootHashPath = ref('');
 const rootHashList = ref<(Record<'name' | 'value', string> & { graphtype?: string })[]>([]);
-const svgPath = computed(() => `"${window.staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
+const svgPath = computed(() => `"${(window as any).staticPath}/static-assets/spot${isDarkTheme.value ? '' : '-light'}.svg"`);
 let centerNodeAction;
 let selectAction;
 let hoverFeedbackAction;
@@ -160,9 +161,15 @@ let initComDocText;
 let resetModelSource;
 let resetModel;
 let fitToScreenAction;
+let getModelSourceChildren: (() => any[]) | undefined;
+let graphLayoutReady = false;
+let layoutEnded = false;
+let modelDisplayed = false;
+let graphRenderVersion = 0;
 // 跨 leaf 下钻是异步的（innerGetSubgraph → 重新渲染 → layoutEnding），
 // 待渲染完成后执行的视觉动作统一挂这里（py 精确选中 / CCE hover / CCE 锁定共用）
 let pendingApply: (() => void) | null = null;
+let pendingApplyHash = '';
 let drillDownPath: DrillDownPathItem[] = [];
 let currentPath: DrillDownPathItem;
 const drillDownPathIcon = reactive({
@@ -201,27 +208,6 @@ window.addEventListener('message', (event) => {
   }
 });
 
-// py 悬停 label 通道：与 label 同名的节点保持常规颜色，只套渐变背景框。
-// 走 byIds 而非 createSelectNodesRect(label)：后者会置 selectedNodeSemanticLabel，
-// 把同 label 节点染成高亮色、并把框外节点连带置灰。
-(window as any).ascEventBus.on('returnSemanticLabelFromCode', (args) => {
-  if (comGraphStore.data.isNodeRectLock) {
-    return; // 锁定期间悬停不覆盖，与 rect_node_hover / returnOpFromCce 语义一致
-  }
-  const label = args?.label;
-  const ids = label ? (findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, label) as string[]) : [];
-  if (!ids.length) {
-    removeSelectNodesRect?.();
-    return;
-  }
-  // 退出上一来源（CCE 单 op 悬停）遗留的节点级着色，保证这批节点是常规颜色
-  comGraphStore.setData('fourColFocusNodeIds', []);
-  comGraphStore.setData('fourColDimNodeIds', []);
-  // isLocate=true：与其余跨栏入口（泳道悬停/锁定/py 行悬停）一致，框选后 fit 视口保证整个框可见
-  createSelectNodesRectByIds?.(ids, true, resetModel);
-  updateModelAction?.();
-});
-
 // 规避锁定时泳道图发送消息，重新创建框选时，框选消失的问题
 let prevent = false;
 let currentLockLabel: string = '';
@@ -244,108 +230,138 @@ function resolvableSwimHash(hash?: any): string {
   return meta?.func_magicname ? String(hash) : '';
 }
 
-/**
- * 泳道 task → 计算图节点分类。节点「所属 hash」分层取：ROOT 层的 CALL 节点带 calleehash
- * （gt2 层 109/109 都带，指向被调 leaf），leaf 层的节点没有 calleehash，一律属于当前渲染子图。
- *   A = label 相同且所属 hash == leafHash
- *   B = label 相同但所属 hash != leafHash
- * 框恒覆盖 A∪B；下钻进 leaf 后所有节点都属于该 leaf，B 自然为空。
- */
-function classifySwimNodes(label: string, leafHash: string): { a: string[]; b: string[] } {
-  const graph = (comGraphStore.data.jsonData ?? {}) as any;
-  const cur = currentGraphHash();
-  const a: string[] = [];
-  const b: string[] = [];
-  const put = (owner: string, id: string) => {
-    (owner === String(leafHash) ? a : b).push(id);
-  };
-  for (const op of graph.operations ?? []) {
-    if ((op?.semantic_label?.label ?? '') !== label) {
-      continue;
-    }
-    const sub = op.subgraphid !== undefined ? op.subgraphid : -1;
-    put(op.calleehash != null ? String(op.calleehash) : cur, `operation-magic-${op.opmagic}-${sub}`);
-  }
-  for (const tensor of graph.tensors ?? []) {
-    if ((tensor?.semantic_label?.label ?? '') !== label) {
-      continue;
-    }
-    const sub = tensor.subgraphid !== undefined ? tensor.subgraphid : -1;
-    put(tensor.calleehash != null ? String(tensor.calleehash) : cur, `tensor-${tensor.magic}-${sub}`);
-  }
-  return { a, b };
+/** 四栏模式下计算图节点点击直接上锁 */
+function isFourColumnMode(): boolean {
+  return (threeColumnServer as any).ColumnMode?.value?.columnMode === 4;
 }
 
-/** task 只有 leafHash、没有 label 时按「整张子图」处理：当前图全部 op 与 tensor 节点 */
-function allSwimGraphNodeIds(): string[] {
+/** 各来源最近一次收到的语义 label，随 returnOpsFromCom 一并回传 */
+let comHoverLabel = '';
+let cceHoverLabel = '';
+
+function graphNodeIdOf(item: any): string {
+  return item?.opmagic != null
+    ? `operation-magic-${item.opmagic}-${item.subgraphid ?? -1}`
+    : `tensor-${item?.magic}-${item?.subgraphid ?? -1}`;
+}
+
+function currentGraphOps(): any[] {
   const graph = (comGraphStore.data.jsonData ?? {}) as any;
-  const ids: string[] = [];
-  for (const op of graph.operations ?? []) {
-    ids.push(`operation-magic-${op.opmagic}-${op.subgraphid !== undefined ? op.subgraphid : -1}`);
+  return (graph.operations ?? []) as any[];
+}
+
+/** 当前子图全部 op 与 tensor 的节点 id（置灰候选集） */
+function currentGraphElementIds(): string[] {
+  const graph = (comGraphStore.data.jsonData ?? {}) as any;
+  return [...(graph.operations ?? []), ...(graph.tensors ?? [])].map(graphNodeIdOf);
+}
+
+function nodeIdsOfLabel(label: string): string[] {
+  return label ? currentGraphOps().filter((op) => (op?.semantic_label?.label ?? '') === label).map(graphNodeIdOf) : [];
+}
+
+/** 布局后按 x、再按 y 取最左上角节点 */
+function sortNodeIdsByPosition(ids: string[]): string[] {
+  const positions = new Map((getModelSourceChildren?.() ?? []).map((node: any) => [node.id, node.position ?? { x: 0, y: 0 }]));
+  return [...ids].sort((a, b) => {
+    const pa = positions.get(a) ?? { x: 0, y: 0 };
+    const pb = positions.get(b) ?? { x: 0, y: 0 };
+    return pa.x - pb.x || pa.y - pb.y;
+  });
+}
+
+function hasImplLocation(op: any): boolean {
+  return !!op?.file && Number(op?.line) > 0;
+}
+
+interface FourColVisual {
+  highlight?: string[];
+  normal?: string[];
+  dim?: string[];
+  box?: string[];
+  lock?: boolean;
+}
+
+/**
+ * 四联动统一视觉：highlight=高亮色，normal=常规色，dim=置灰，box=框选节点，lock=上锁框。
+ * 同一节点只保留一种状态，避免置灰与常规色叠加。
+ */
+function applyFourColVisual(spec: FourColVisual) {
+  clearOpNodeHighlight();
+  comGraphStore.data.selectedNodeSemanticLabel = '';
+  const highlight = new Set(spec.highlight ?? []);
+  const normal = new Set(spec.normal ?? []);
+  const dim = new Set(spec.dim ?? []);
+  const focusIds = Array.from(highlight).filter((id) => !dim.has(id));
+  const normalIds = Array.from(normal).filter((id) => !dim.has(id) && !highlight.has(id));
+  const dimIds = Array.from(dim).filter((id) => !highlight.has(id) && !normal.has(id));
+  comGraphStore.setData('fourColFocusNodeIds', focusIds);
+  comGraphStore.setData('fourColActiveNodeIds', normalIds);
+  comGraphStore.setData('fourColDimNodeIds', dimIds);
+  comGraphStore.data.isNodeRectLock = !!spec.lock;
+  drillDownPathIcon.disableBack = !!spec.lock;
+  if (spec.box?.length) {
+    void createSelectNodesRectByIds?.(spec.box, true, resetModel);
+  } else {
+    removeSelectNodesRect?.();
   }
-  for (const tensor of graph.tensors ?? []) {
-    ids.push(`tensor-${tensor.magic}-${tensor.subgraphid !== undefined ? tensor.subgraphid : -1}`);
-  }
-  return ids;
+  updateModelAction?.();
+}
+
+/** returnOpsFromCom 统一出口：始终携带来源最近的 label */
+function emitOpsFeedback(source: string, hash: string, ops: number[], label: string) {
+  (window as any).ascEventBus.emit('returnOpsFromCom', { source, hash, ops, label: label ?? '' });
 }
 
 /**
  * 泳道 task → 计算图视觉。
- *   有 label：悬浮 A 高亮色 / B 常规色 / A∪B 渐变框；锁定 A 常规色 / B 置灰 / A∪B 蓝色框+锁图标
- *   无 label：整张子图常规色，悬浮渐变框、锁定蓝色框
- * 悬浮不切子图（与三栏悬停一致）；锁定在当前图层不是该 leafHash 子图时切过去，
- * 渲染完成后由 pendingApply 套用（与 applyCceVisual / applyOpsSelection 同一套 layoutEnding 机制）。
+ *   有 label：悬浮 A 高亮、其余置灰、A 框选；锁定 A 常规、左上角高亮、A 上锁框
+ *   无 label：整张子图常规，悬浮框选；锁定左上角高亮并上锁
+ * hash 与当前子图不一致时先切图，layoutEnding 后由 pendingApply 套用。
  */
-function applySwimVisual(label: string, leafHash: string, mode: 'hover' | 'lock') {
-  const isLock = mode === 'lock';
+function applySwimVisual(label: string, targetHash: string, mode: 'hover' | 'lock') {
+  // 7.3 / 6.3：没有 hash 不互动
+  if (!targetHash) {
+    return;
+  }
   const run = () => {
-    const sets = label ? classifySwimNodes(label, leafHash) : { a: allSwimGraphNodeIds(), b: [] as string[] };
-    const ids = [...sets.a, ...sets.b];
-    if (!ids.length) {
+    const group = label ? nodeIdsOfLabel(label) : currentGraphElementIds();
+    if (!group.length) {
       removeSelectNodesRect?.();
       return;
     }
-    if (isLock) {
-      comGraphStore.data.isNodeRectLock = true;
-      drillDownPathIcon.disableBack = true;
-      comGraphStore.setData('fourColFocusNodeIds', []);
-      comGraphStore.setData('fourColDimNodeIds', [...sets.b]);
-    } else {
-      comGraphStore.setData('fourColFocusNodeIds', label ? [...sets.a] : []);
-      comGraphStore.setData('fourColDimNodeIds', []);
+    const allIds = currentGraphElementIds();
+    const ops = currentGraphOps()
+      .filter((op) => !label || (op.semantic_label?.label ?? '') === label)
+      .map((op) => Number(op.opmagic));
+    if (mode === 'hover') {
+      applyFourColVisual(label
+        ? { highlight: group, dim: allIds.filter((id) => !group.includes(id)), box: group }
+        : { normal: allIds, box: allIds });
+      emitOpsFeedback('swim', targetHash || currentGraphHash(), ops, label);
+      return;
     }
-    createSelectNodesRectByIds?.(ids, true, resetModel);
-    selectAction?.([]);
-    updateModelAction?.();
+    // 锁定回执必须是 op 节点；无 label 时整图框选可含 tensor，但高亮取首个 op
+    const candidates = label ? group : currentGraphOps().map(graphNodeIdOf);
+    const active = sortNodeIdsByPosition(candidates)[0];
+    applyFourColVisual({
+      highlight: active ? [active] : [],
+      normal: group.filter((id) => id !== active),
+      box: group,
+      lock: true,
+    });
+    const opMagic = extractOpMagic(active);
+    if (opMagic != null) {
+      void emitLock('swim', { hash: targetHash || currentGraphHash(), opmagic: opMagic, label });
+    }
   };
-  if (!isLock) {
-    run();
-    return;
-  }
-  // 「当前图有结果」= 当前图层就是该 task 的 leafHash 子图；否则切过去（切完由 pendingApply 套用）。
-  // 不能用「当前图能否分出 A」判定：ROOT 层的 CALL 节点本身就带 (semantic_label, calleehash)，
-  // A 在 root 层恒非空，那样点任何 task 都只会高亮 CALL 节点、永远下钻不进 leaf 子图。
-  const stay = !leafHash || currentGraphHash() === String(leafHash);
-  if (stay || !resolvableSwimHash(leafHash)) {
+  if (currentGraphHash() === String(targetHash) || !resolvableSwimHash(targetHash)) {
     run();
     return;
   }
   pendingApply = run;
-  drillToLeaf(String(leafHash));
-}
-
-/**
- * 泳道 task → returnOpsFromCom。ops 必须是 leaf 层编号：root 层 CALL 的 opmagic 在
- * fourcol_py_impl 里没有实现行（gt2 层实现行数为 0），py/CCE 栏按 (hash, opmagic) 反查会落空。
- * label 为空代表整张子图，取该 leaf 的全部 op。
- */
-async function emitSwimOps(label: string, leafHash: string): Promise<void> {
-  if (!leafHash) {
-    (window as any).ascEventBus.emit('returnOpsFromCom', { source: 'swim', hash: '', ops: [] });
-    return;
-  }
-  const res = await threeColumnServer.resolveSwimOps?.({ leafHash, label }).catch(() => null);
-  (window as any).ascEventBus.emit('returnOpsFromCom', { source: 'swim', hash: leafHash, ops: res?.ops ?? [] });
+  pendingApplyHash = String(targetHash);
+  drillToLeaf(String(targetHash));
 }
 
 function onMessageFromSwim(args) {
@@ -354,65 +370,125 @@ function onMessageFromSwim(args) {
     return;
   }
   const label = args?.label ?? '';
-  const leafHash = args?.leafHash ?? '';
-  // 锁定期间泳道悬停不覆盖框选，与 rect_node_hover / rect_node_leave / returnOpFromCce / py label 通道
-  // 是同一约定；ops 广播不受锁定影响照发，py/CCE 栏自带 isLocked 守卫，不会因此丢失各自的锁定态
-  if (!comGraphStore.data.isNodeRectLock) {
-    if (label || leafHash) {
-      currentHoverLabel = label;
-      applySwimVisual(label, leafHash, 'hover');
-    } else {
-      removeSelectNodesRect?.();
-    }
+  const targetHash = args?.leafHash ?? args?.hash ?? '';
+  // 6.3：没有 hash 不互动
+  if (!targetHash) {
+    return;
   }
-  void emitSwimOps(label, leafHash);
+  if (!comGraphStore.data.isNodeRectLock) {
+    currentHoverLabel = label;
+    cancelPySelection(true);
+    applySwimVisual(label, String(targetHash), 'hover');
+  }
   sendlist = args.rootHashList;
   if (args.rootHashList?.length) {
     // curPath 是后端下发的 JSON 字符串，按下标取会得到最后一个字符，必须走 currentGraphHash()。
-    // rootHash 供 rect_node_hover 的 emitOpsFromLeaf、returnSemanticLabelFromCom 与
-    // currentGraphHash 的兜底读取，这里与当前渲染层保持同步。
     const cur = currentGraphHash();
     if (cur) {
       rootHash.value = cur;
     }
   }
 }
-(window as any).ascEventBus.on('returnSemanticLabelFromSwimToCom', debounce(onMessageFromSwim, 100));
-(window as any).ascEventBus.on('returnSemanticLabelFromSwim', debounce(onMessageFromSwim, 100));
+const onSwimEcho = debounce((args) => {
+  if (!pyOwnsVisual && !hoverTimer) {
+    onMessageFromSwim(args);
+  }
+}, 100);
+(window as any).ascEventBus.on('returnSemanticLabelFromSwimToCom', onSwimEcho);
+(window as any).ascEventBus.on('returnSemanticLabelFromSwim', debounce((args) => {
+  if (!comGraphStore.data.isNodeRectLock) {
+    cancelPySelection(true);
+  }
+  onMessageFromSwim(args);
+}, 100));
+/** 在当前图里按节点 id / opmagic 定位 op */
+function findGraphOpByNode(nodeId?: string, opmagic?: number | string | null): any {
+  const ops = currentGraphOps();
+  if (nodeId) {
+    const exact = ops.find((op) => graphNodeIdOf(op) === nodeId);
+    if (exact) {
+      return exact;
+    }
+  }
+  const magic = opmagic ?? extractOpMagic(nodeId);
+  if (magic == null || magic === '') {
+    return null;
+  }
+  return ops.find((op) => String(op.opmagic) === String(magic)) ?? null;
+}
+
+/** 点击可能落在 op 的 label/compartment 上，沿 parent 链找回所属 op 节点 */
+function resolveClickedGraphOp(node: any): { op: any; opmagic: number } | null {
+  let current = node;
+  while (current) {
+    if (typeof current.id === 'string' && current.id.startsWith('operation-magic-')) {
+      const opmagic = extractOpMagic(current.id);
+      const op = findGraphOpByNode(current.id, opmagic);
+      if (op && opmagic != null) {
+        return { op, opmagic };
+      }
+    }
+    current = current.parent;
+  }
+  return null;
+}
+
+/**
+ * 计算图节点 → 其余栏联动。
+ * hover：aa 高亮；有 label 时同 label B 常规色，其余置灰；无 label 时其余置灰；aa+B 框选
+ * lock ：aa 常规色；同 label B 与其余节点置灰；aa+B 上锁框
+ * returnOpsFromCom：有 file/line 或完全没有 label 时发 aa，仅 label 无实现行时发空列表
+ */
+function applyComNodeVisual(op: any, mode: 'hover' | 'lock') {
+  if (!op) {
+    return;
+  }
+  const nodeId = graphNodeIdOf(op);
+  const label = op.semantic_label?.label ?? '';
+  const hasLine = hasImplLocation(op);
+  const labelIds = nodeIdsOfLabel(label);
+  const allIds = currentGraphElementIds();
+  const box = label ? [nodeId, ...labelIds.filter((id) => id !== nodeId)] : [nodeId];
+  if (mode === 'lock') {
+    applyFourColVisual({
+      normal: [nodeId],
+      dim: allIds.filter((id) => id !== nodeId),
+      box,
+      lock: true,
+    });
+    return;
+  }
+  comHoverLabel = label;
+  (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label, rootHash: rootHash.value });
+  applyFourColVisual({
+    highlight: [nodeId],
+    normal: labelIds.filter((id) => id !== nodeId),
+    dim: allIds.filter((id) => id !== nodeId && !labelIds.includes(id)),
+    box,
+  });
+  emitOpsFeedback('com', currentGraphHash(), label && !hasLine ? [] : [Number(op.opmagic)], label);
+}
 
 (window as any).ascEventBus.on('rect_node_hover', (args) => {
   if (comGraphStore.data.isNodeRectLock) {
     return;
   }
-  if (args.semanticLabel) {
-    createSelectNodesRect?.(args.semanticLabel, false);
-    (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: args.semanticLabel, rootHash: rootHash.value });
+  cancelPySelection(true);
+  const op = findGraphOpByNode(args?.nodeId);
+  if (!op) {
+    return;
   }
-  // 四联动：op 节点悬停 → py/CCE 栏按 (leafHash, opmagic) 描边
-  const opMagic = extractOpMagic(args.nodeId);
-  if (opMagic != null && rootHash.value) {
-    void emitOpsFromLeaf('com', rootHash.value, [opMagic]);
-  }
+  applyComNodeVisual(op, 'hover');
 });
 (window as any).ascEventBus.on('rect_node_leave', () => {
   if (comGraphStore.data.isNodeRectLock) {
     return;
   }
   removeSelectNodesRect?.();
+  comHoverLabel = '';
   (window as any).ascEventBus.emit('returnSemanticLabelFromCom', { label: '' });
-  (window as any).ascEventBus.emit('returnOpsFromCom', { source: 'com', hash: '', ops: [] });
+  emitOpsFeedback('com', '', [], '');
 });
-
-/** 在当前图 jsonData 里按 opmagic 定位节点 id 与它的 semantic label */
-function findOpNodeInGraph(opmagic: number | string): { nodeId: string; label: string } | null {
-  const graph = (comGraphStore.data.jsonData ?? {}) as any;
-  const op = (graph.operations ?? []).find((o: any) => String(o.opmagic) === String(opmagic));
-  if (!op) {
-    return null;
-  }
-  const subgraphid = op.subgraphid !== undefined ? op.subgraphid : -1;
-  return { nodeId: `operation-magic-${op.opmagic}-${subgraphid}`, label: op.semantic_label?.label ?? '' };
-}
 
 // 联动驱动的切图标记：drillToLeaf（py/CCE/泳道的锁定或悬停下钻）置位，
 // 「联动切图」（新锁定回声 activeLockFromCom 在途，不广播解锁）与
@@ -427,84 +503,82 @@ function drillToLeaf(leafHash: string) {
   onHashChange({ value: leafHash, name });
 }
 
+/** CCE 行 → 当前图 op：有 label 时须同 opmagic + 同 label */
+function findCceTargetOp(opmagic: number | string, label: string): any {
+  const ops = currentGraphOps().filter((op) => String(op.opmagic) === String(opmagic));
+  return (label ? ops.find((op) => (op.semantic_label?.label ?? '') === label) : ops[0]) ?? null;
+}
+
 /**
- * CCE 行 → 计算图视觉。B = 与该行同 opmagic 的节点，b = 与 B 同 label 的其余节点：
- *   hover：B 高亮色、b 常规色，B+b 渐变背景框
- *   lock ：B 常规色、b 置灰，  B+b 蓝色背景框（isNodeRectLock 驱动 getRectStrokeColor）
- * leafHash 与当前图不一致时先下钻，等 layoutEnding 后再套用（原实现在此直接 return，即「拦截」）。
+ * CCE 行 → 计算图视觉。
+ * hover：a 高亮，同 label A 常规色，其余置灰，a+A 框选
+ * lock ：a 常规色，其余置灰，a+A 上锁框
+ * opmagic 不在当前子图时先切到消息携带的 hash，layoutEnding 后套用。
  */
 function applyCceVisual(opmagic: number | string, leafHash: string, mode: 'hover' | 'lock') {
+  const label = cceHoverLabel;
   const run = () => {
-    const hit = findOpNodeInGraph(opmagic);
-    if (!hit) {
+    const op = findCceTargetOp(opmagic, label);
+    if (!op) {
       return;
     }
-    // B+b = 当前图里同 label 的全部节点（含 B）；无 label 时退化为只有 B
-    const group = hit.label
-      ? (findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, hit.label) as string[])
-      : [hit.nodeId];
-    const isLock = mode === 'lock';
-    comGraphStore.setData('fourColFocusNodeIds', isLock ? [] : [hit.nodeId]);
-    comGraphStore.setData('fourColDimNodeIds', isLock ? group.filter((id) => id !== hit.nodeId) : []);
-    if (isLock) {
-      prevent = true;
-      currentLockLabel = hit.label;
-      comGraphStore.data.isNodeRectLock = true;
-      drillDownPathIcon.disableBack = true;
+    const nodeId = graphNodeIdOf(op);
+    const labelIds = nodeIdsOfLabel(label);
+    const allIds = currentGraphElementIds();
+    const box = label ? [nodeId, ...labelIds.filter((id) => id !== nodeId)] : [nodeId];
+    if (mode === 'hover') {
+      applyFourColVisual({
+        highlight: [nodeId],
+        normal: labelIds.filter((id) => id !== nodeId),
+        dim: allIds.filter((id) => id !== nodeId && !labelIds.includes(id)),
+        box,
+      });
+      emitOpsFeedback('cce', currentGraphHash(), [Number(op.opmagic)], label);
+      return;
     }
-    createSelectNodesRectByIds?.(group, isLock, resetModel);
-    selectAction?.(isLock ? [] : [hit.nodeId]);
-    updateModelAction?.();
+    applyFourColVisual({
+      normal: [nodeId],
+      dim: allIds.filter((id) => id !== nodeId),
+      box,
+      lock: true,
+    });
+    void emitLock('cce', { hash: currentGraphHash(), opmagic: Number(op.opmagic), label });
   };
-  if (currentGraphHash() === String(leafHash)) {
+  if (!leafHash || currentGraphHash() === String(leafHash)) {
     run();
     return;
   }
   pendingApply = run;
+  pendingApplyHash = String(leafHash);
   drillToLeaf(String(leafHash));
 }
 
-// CCE 行悬停 → B 高亮 + B+b 渐变框；leafHash 不同不再拦截，改为切图后套用
+(window as any).ascEventBus.on('returnSemanticLabelFromCce', (args) => {
+  cceHoverLabel = args?.label ?? '';
+});
+
+// CCE 行悬停：opmagic 为 0 时不互动
 (window as any).ascEventBus.on('returnOpFromCce', (args) => {
   if (comGraphStore.data.isNodeRectLock) {
-    return; // 锁定期间悬停不覆盖，与 rect_node_hover 语义一致
-  }
-  const opMagic = args?.opmagic;
-  const leafHash = args?.hash;
-  if (!opMagic || !leafHash) {
-    // cceColumn 悬停离开发 {opmagic:0, hash:''} → 清除四联动视觉
-    comGraphStore.setData('fourColFocusNodeIds', []);
-    comGraphStore.setData('fourColDimNodeIds', []);
-    removeSelectNodesRect?.();
     return;
   }
-  applyCceVisual(opMagic, String(leafHash), 'hover');
+  const opMagic = args?.opmagic;
+  if (!opMagic) {
+    return;
+  }
+  cancelPySelection(true);
+  applyCceVisual(opMagic, String(args?.hash ?? ''), 'hover');
 });
 
-// CCE 行点击 → B+b 蓝色框 + b 置灰；leafHash 不同则先切图
+// CCE 行点击：a 常规色，其余置灰，a+A 上锁框；opmagic 不在当前图时先切图
 (window as any).ascEventBus.on('activeLockFromCce', (args) => {
   const opMagic = args?.opmagic;
-  const leafHash = args?.hash;
-  if (!opMagic || !leafHash) {
+  if (!opMagic) {
     return;
   }
-  applyCceVisual(opMagic, String(leafHash), 'lock');
+  cancelPySelection(true);
+  applyCceVisual(opMagic, String(args?.hash ?? ''), 'lock');
 });
-
-// leafHash → 该 leaf 的 opmagic 列表（悬停时返回全部；带指定 ops 时原样透传）
-async function emitOpsFromLeaf(source: string, leafHash: string, ops: number[]) {
-  if (!leafHash) {
-    (window as any).ascEventBus.emit('returnOpsFromCom', { source, hash: '', ops: [] });
-    return;
-  }
-  if (ops.length) {
-    (window as any).ascEventBus.emit('returnOpsFromCom', { source, hash: leafHash, ops });
-    return;
-  }
-  const res = await threeColumnServer.resolveOpsFromLeaf?.({ leafHash }).catch(() => null);
-  const leafOps: number[] = res?.ops ?? [];
-  (window as any).ascEventBus.emit('returnOpsFromCom', { source, hash: leafHash, ops: leafOps });
-}
 
 (window as any).ascEventBus.on('activeLock', (args) => {
   lockGraphByLabel(args.label);
@@ -524,6 +598,7 @@ async function emitOpsFromLeaf(source: string, leafHash: string, ops: number[]) 
     return;
   }
   swimLockJumpPending = true;
+  cancelPySelection(true);
   applySwimVisual(label, leafHash, 'lock');
   hoverFeedbackAction?.();
 });
@@ -601,14 +676,13 @@ function autoDrillCb(args) {
   }
   generateHashList();
 }
-(window as any).ascEventBus.on('returnSemanticLabelFromCodeClick', autoDrillCb);
 (window as any).ascEventBus.on('swimSelectModeChange', (args) => {
   if (args.selectMode) {
     autoDrillCb({ label: currentHoverLabel });
   }
 });
 
-watch(threeColumnServer.GetPassPath, (newValue) => {
+watch(threeColumnServer.GetPassPath, (newValue: any) => {
   if (!newValue.data) return;
   newValue.data.forEach((fullPath: string) => {
     const fileName = fullPath.replace(/^.*[\\/]/, '');
@@ -617,6 +691,7 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
 });
 
 (window as any).ascEventBus.on('deactivateLock', () => {
+  cancelPySelection(true);
   prevent = false;
   lockedOpNodeIds = [];
   lockedOpActiveIndex = 0;
@@ -638,7 +713,7 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
     comGraphStore.data.fourColMatchedNodeIds?.length ||
     comGraphStore.data.fourColActiveNodeIds?.length
   ) {
-    setOpNodeHighlight([], 'none');
+    clearOpNodeHighlight();
     removeSelectNodesRect?.();
     updateModelAction?.();
   }
@@ -648,7 +723,7 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
 (window as any).ascEventBus.on('threeColumnSizeChange', ({ comGraphVisible }) => {
   if (comGraphVisible) {
     window.dispatchEvent(new Event('resize'));
-    minimapEl.value.updateScaleRation();
+    minimapEl.value?.updateScaleRation();
     const fitTimer = setTimeout(() => {
       fitToScreenAction?.();
       fitTimer && clearTimeout(fitTimer);
@@ -657,6 +732,10 @@ watch(threeColumnServer.GetPassPath, (newValue) => {
 });
 
 function onLockClick() {
+  if (pySelection && !comGraphStore.data.isNodeRectLock) {
+    onLockFromPy(pySelection.input);
+    return;
+  }
   comGraphStore.data.isNodeRectLock = !comGraphStore.data.isNodeRectLock;
   if (comGraphStore.data.isNodeRectLock) {
     (window as any).ascEventBus.emit('activeLock', { label: comGraphStore.data.selectedNodeSemanticLabel });
@@ -690,6 +769,10 @@ function generateHashList(hashList?: string[]) {
 }
 
 const handleHashChange = (val) => {
+  if (pySelection?.stable) {
+    (window as any).ascEventBus.emit('deactivateLock');
+  }
+  cancelPySelection(true);
   // 下拉手动切换子图：清除联动切图标记，锁定冲突时 CCE 栏照常广播解锁
   lockDrivenDrill = false;
   const selectedItem = rootHashList.value.find(item =>
@@ -738,6 +821,22 @@ function currentGraphHash(): string {
 
 // 已广播的子图 hash：jsonContent 重复触发（如主题变化）时不重复广播
 let lastNotifiedSubgraphHash = '';
+// 当前已渲染子图的 hash：切图时清空上一张图的节点级配色
+let renderedGraphHash = '';
+
+/**
+ * py 行触发切图时先广播目标 hash（1.1.2），让 CCE 等栏提前准备。
+ * 目标数据渲染后的 watcher 因 lastNotifiedSubgraphHash 已相同而跳过重复广播。
+ */
+function notifyPreparedSubgraph(hash: string) {
+  if (!hash || hash === lastNotifiedSubgraphHash) {
+    return;
+  }
+  lastNotifiedSubgraphHash = hash;
+  // 已在下钻时提前广播，watcher 不再二次广播，避免遗留 lockDriven 标记
+  lockDrivenDrill = false;
+  (window as any).ascEventBus.emit('subgraphHashChanged', { hash, lockDriven: true });
+}
 
 // CCE 文件切换 → 按文件 funcHash 强绑计算图子图：hash 与当前子图一致（含主/尾块副本互换）时不动作；
 // 图中无此 hash 时广播未解析，CCE 栏以"暂无关联对象"遮罩提示
@@ -746,6 +845,7 @@ const onCceFileSwitched = (args: { hash?: string }) => {
   if (!hash || hash === currentGraphHash()) {
     return;
   }
+  cancelPySelection(true);
   const calleeMap = comGraphStore.data.calleeMap;
   // calleeMap 未就绪（图数据未到位）不判定，保持静默
   if (!calleeMap || !Object.keys(calleeMap).length) {
@@ -761,14 +861,13 @@ const onCceFileSwitched = (args: { hash?: string }) => {
   onHashChange({ value: hash, name: funcMeta.func_magicname.replace(/^TENSOR_/i, '') });
 };
 
-let pendingSelection: { nodeId: string; label: string | null; lock: boolean } | null = null;
-
 /**
  * 进入锁定态。isNodeRectLock 是图内所有锁定判断的唯一开关
  * （rect_node_hover / rect_node_leave / onMessageFromSwim 都靠它跳过悬停覆盖），
  * 不置位的话任何一次悬停都会把选中冲掉，表现为「点了没锁住」。
  */
 function lockGraphByLabel(label: string) {
+  cancelPySelection(true);
   prevent = true;
   currentLockLabel = label;
   comGraphStore.data.isNodeRectLock = true;
@@ -784,75 +883,35 @@ function flushPendingSelection() {
   if (!pendingApply) {
     return;
   }
+  // 旧图完成通知不能把目标子图的动作提前套到旧模型上
+  if (pendingApplyHash && currentGraphHash() !== pendingApplyHash) {
+    return;
+  }
   const run = pendingApply;
   pendingApply = null;
+  pendingApplyHash = '';
   run();
-}
-
-/**
- * 严格本图匹配：仅当「当前渲染子图 hash === op.leafHash」且「该 opmagic 确实在当前图 operations 里」才算命中。
- * opmagic 不是全局唯一（ffn_dense 5664 个值里有 590 个跨 function 重复），必须叠加 hash 判定，
- * 否则会把 root 层同编号的 CALL 节点或别的 leaf 的 op 误当成目标高亮。
- * 命中多个时全部返回（悬停要多高亮），并用图里的 subgraphid 拼 node id 以保证该 id 必然存在。
- */
-function matchLocalOpNodes(ops: OpSelection[]): { ids: string[]; chosen: OpSelection | null } {
-  const cur = currentGraphHash();
-  const graphOps: any[] = ((comGraphStore.data.jsonData ?? {}) as any).operations ?? [];
-  const ids: string[] = [];
-  let chosen: OpSelection | null = null;
-  for (const op of ops) {
-    if (op.leafHash !== cur) {
-      continue;
-    }
-    const node = graphOps.find((g) => String(g.opmagic) === String(op.opmagic));
-    if (!node) {
-      continue;
-    }
-    const id = `operation-magic-${node.opmagic}-${node.subgraphid !== undefined ? node.subgraphid : -1}`;
-    if (!ids.includes(id)) {
-      ids.push(id);
-    }
-    if (!chosen) {
-      chosen = op;
-    }
-  }
-  return { ids, chosen };
 }
 
 let lockedOpNodeIds: string[] = [];
 let lockedOpActiveIndex = 0;
 
-/** 按当前下标刷新两级配色：整组压暗/提亮、当前节点保持原色 */
+/** B 保持常规色，当前节点使用高亮色。 */
 function renderLockedOpHighlight() {
   if (!lockedOpNodeIds.length) {
     return;
   }
   const activeId = lockedOpNodeIds[lockedOpActiveIndex];
-  comGraphStore.setData(
-    'fourColMatchedNodeIds',
-    lockedOpNodeIds.filter((id) => id !== activeId),
-  );
-  comGraphStore.setData('fourColActiveNodeIds', [activeId]);
+  comGraphStore.setData('fourColMatchedNodeIds', []);
+  comGraphStore.setData('fourColActiveNodeIds', lockedOpNodeIds.filter((id) => id !== activeId));
+  comGraphStore.setData('fourColFocusNodeIds', [activeId]);
 }
 
-/**
- * py 行匹配的两级配色：
- *   hover → 命中节点保持原色（浅色），与 label 组的深色重叠处显示浅色
- *   lock  → 整组压暗/提亮 + 首节点保持原色，并记住集合供上下键切换
- */
-function setOpNodeHighlight(nodeIds: string[], mode: 'hover' | 'lock' | 'none') {
+function clearOpNodeHighlight() {
   lockedOpNodeIds = [];
   lockedOpActiveIndex = 0;
   comGraphStore.setData('fourColMatchedNodeIds', []);
   comGraphStore.setData('fourColActiveNodeIds', []);
-  if (mode === 'hover' && nodeIds.length) {
-    comGraphStore.setData('fourColActiveNodeIds', [...nodeIds]);
-    return;
-  }
-  if (mode === 'lock' && nodeIds.length) {
-    lockedOpNodeIds = [...nodeIds];
-    renderLockedOpHighlight();
-  }
 }
 
 // 锁定态下在匹配到的节点间循环切换当前节点（上下键 / 小地图上方的上一个、下一个按钮共用）
@@ -866,6 +925,10 @@ function stepLockedOpNode(step: -1 | 1) {
   centerNodeAction?.([activeId]);
   selectAction?.([activeId]);
   updateModelAction?.();
+  // 切换锁定当前节点后同步回执，py 栏据此移动锁定行
+  if (pySelection?.stable) {
+    void emitPySelectionLock(pySelection, activeId);
+  }
 }
 
 function onFourColArrowKey(event: KeyboardEvent) {
@@ -892,78 +955,357 @@ function onStepRelatedOpNode(args: { direction?: number }) {
   }
 }
 
-// 代码行 → 计算图：优先高亮本图已有的落点，本图没有则切到能匹配 (hash, opmagic) 的子图再高亮。
-// 返回最终选中的 op，供 hook 广播 activeLockFromCom / returnOpsFromCom 时与图侧保持一致。
-function applyOpsSelection(ops: OpSelection[], opts: { stable: boolean; label?: string }): OpSelection | null {
-  if (!ops.length) {
-    // 锁定期间保持锁定态的配色，不被空结果清掉
-    if (opts.stable || !comGraphStore.data.isNodeRectLock) {
-      setOpNodeHighlight([], 'none');
-    }
-    // label 兜底：点击 label 块内非 op 行（整块首行/中间行）→ 按 label 框选并锁定
-    if (opts.stable && opts.label) {
-      lockGraphByLabel(opts.label);
-      return null;
-    }
-    if (!opts.stable) {
-      // 空白行/无 op 行：渐变框归 py label 通道（returnSemanticLabelFromCode）所有，
-      // 这里只退出节点级着色与单选，避免把先一步画好的 label 框冲掉；
-      // 清空路径由 label 空串经上面的 returnSemanticLabelFromCode 处理器负责
-      comGraphStore.setData('fourColFocusNodeIds', []);
-      comGraphStore.setData('fourColDimNodeIds', []);
-      selectAction?.([]);
-      updateModelAction?.();
-    }
-    return null;
-  }
-  const first = ops[0];
-  const lockLabel = first.label ?? opts.label ?? '';
-  const run = () => {
-    // 本图匹配 leafHash+opmagic 双命中的节点，返回 ids + chosen（取 label 用）
-    const local = matchLocalOpNodes(ops);
-    const nodeIds = local.ids;
-    const targetId = nodeIds[0] ?? `operation-magic-${first.opmagic}-${first.subgraphid}`;
-    centerNodeAction?.([targetId]);
-    selectAction?.([targetId]);
-    if (opts.stable) {
-      if (nodeIds.length) {
-        // 锁定：label 组的既有高亮整体退场，改由节点级两级配色接管
-        comGraphStore.data.selectedNodeSemanticLabel = '';
-        currentLockLabel = local.chosen?.label ?? lockLabel;
-        prevent = true;
-        comGraphStore.data.isNodeRectLock = true;
-        drillDownPathIcon.disableBack = true;
-        createSelectNodesRectByIds?.(nodeIds, true, resetModel);
-        setOpNodeHighlight(nodeIds, 'lock');
-        hoverFeedbackAction?.();
-      } else {
-        lockGraphByLabel(lockLabel);
-      }
-    } else {
-      if (lockLabel) {
-        // isLocate=true：框选后 fit 视口，保证整个 label 框选可见（与泳道悬停/点击锁定一致）
-        createSelectNodesRect?.(lockLabel, true);
-      }
-      // 锁定期间悬浮其它行不覆盖锁定态的两级配色
-      if (!comGraphStore.data.isNodeRectLock) {
-        setOpNodeHighlight(nodeIds, nodeIds.length ? 'hover' : 'none');
-      }
-    }
-    updateModelAction?.();
-  };
-  // 优先匹配当前图落点（HEAD 的 matchLocalOpNodes 两阶段匹配逻辑）：
-  // 本图已有匹配或当前图就是目标子图 → 直接 run，否则下钻后 pendingApply 再 run
-  const curLocal = matchLocalOpNodes(ops);
-  if (curLocal.ids.length || rootHash.value === first.leafHash) {
-    run();
-    return curLocal.chosen ?? first;
-  }
-  pendingApply = run;
-  drillToLeaf(first.leafHash);
-  return first;
+// 四联动点击/悬停锁定通道：图列作为中枢，消费 py/CCE/泳道的点击，
+// 经 server 反查后广播 activeLockFromCom，并下钻 + 选中 op。
+type LockSource = 'py' | 'cce' | 'swim' | 'com';
+interface LockInput {
+  opmagic?: number | string;
+  hash?: string;
+  leafHash?: string;
+  file?: string;
+  line?: number;
+  /** 来源明确给出的语义标签；resolveActiveLock 优先采用，反查不到时载荷里也不会退化成 null */
+  label?: string;
 }
 
-const { emitComLock, stepOp } = useFourColumnGraphLinkage({ applyOpsSelection });
+/** py 行反查出的 op 落点（供计算图列下钻 + 精确选中） */
+interface OpSelection {
+  leafHash: string;
+  opmagic: string;
+  subgraphid: number;
+  label: string | null;
+  pyFile: string | null;
+  pyLine: number | null;
+}
+
+async function emitLock(source: LockSource, input: LockInput): Promise<void> {
+  const res = await threeColumnServer.resolveActiveLock(input);
+  if (res) {
+    (window as any).ascEventBus.emit('activeLockFromCom', { source, ...res });
+  }
+}
+
+// 计算图自身点击：leaf op → {leafHash, opMagic}；ROOT 层 CALL 节点只给被调 leafHash（服务端取该 leaf 首个 op）
+async function emitComLock(leafHash: string, opMagic?: number): Promise<void> {
+  // 视觉已由 applyComNodeVisual 套用，这里只作废在途 py 查询，避免再次清空节点配色
+  cancelPySelection();
+  await emitLock('com', opMagic == null ? { hash: leafHash } : { hash: leafHash, opmagic: opMagic });
+}
+
+// 上一/下一 op 切换
+async function stepOp(leafHash: string, opMagic: number, direction: -1 | 1): Promise<void> {
+  const next = await threeColumnServer.stepOp({ leafHash, opMagic, direction });
+  if (next != null) {
+    await emitComLock(leafHash, next);
+  }
+}
+
+interface PyInput {
+  label?: string;
+  file?: string;
+  line?: number;
+}
+
+interface PySelection {
+  input: PyInput;
+  stable: boolean;
+  version: number;
+  targetHash: string;
+  ops: OpSelection[];
+  applying: boolean;
+}
+
+let pyHoverLabel = '';
+let pyOwnsVisual = false;
+let pySelectionVersion = 0;
+let pySelection: PySelection | null = null;
+let hoverTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelPySelection(release = false) {
+  pySelectionVersion++;
+  pySelection = null;
+  if (release) {
+    pyOwnsVisual = false;
+    clearOpNodeHighlight();
+  }
+  if (hoverTimer) {
+    clearTimeout(hoverTimer);
+    hoverTimer = null;
+  }
+}
+
+function hasPyLine(input: PyInput): input is PyInput & { file: string; line: number } {
+  return !!input.file && Number.isInteger(input.line) && input.line! > 0;
+}
+
+function normalizePyPath(file: string): string {
+  const normalized = file.replace(/\\/g, '/');
+  return /^(?:[a-z]:|\/\/)/i.test(normalized) ? normalized.toLowerCase() : normalized;
+}
+
+/** 编译机路径与本地路径按唯一同名文件映射，完整路径优先。 */
+function matchingPyFiles(file: string, candidates: string[]): Set<string> {
+  const normalized = normalizePyPath(file);
+  const paths = Array.from(new Set(candidates.filter(Boolean).map(normalizePyPath)));
+  if (paths.includes(normalized)) {
+    return new Set([normalized]);
+  }
+  const basename = normalized.split('/').pop();
+  const sameName = paths.filter((candidate) => candidate.split('/').pop() === basename);
+  return new Set(sameName.length === 1 ? sameName : []);
+}
+
+const pyOpNodeId = (op: { opmagic: number | string; subgraphid?: number }) =>
+  `operation-magic-${op.opmagic}-${op.subgraphid ?? -1}`;
+
+/** A、B 都限定为当前 hash 中实际存在的 op，不包含同标签的 tensor。 */
+function localPyNodes(selection: PySelection): { group: string[]; matched: string[] } {
+  const { input, ops } = selection;
+  const graphOps: any[] = ((comGraphStore.data.jsonData ?? {}) as any).operations ?? [];
+  const labelled = input.label ? graphOps.filter((op) => op.semantic_label?.label === input.label) : [];
+  const sourceFiles = ops.map((op) => op.pyFile ?? '');
+  const files = hasPyLine(input)
+    ? matchingPyFiles(input.file, sourceFiles.length ? sourceFiles : graphOps.map((op) => op.file ?? ''))
+    : new Set<string>();
+  const exact = hasPyLine(input)
+    ? (input.label ? labelled : graphOps).filter((op) =>
+        files.has(normalizePyPath(op.file ?? '')) && Number(op.line) === input.line,
+      )
+    : labelled;
+  return { group: (input.label ? labelled : exact).map(pyOpNodeId), matched: exact.map(pyOpNodeId) };
+}
+
+function invalidateGraphLayout() {
+  cancelRectAnimation();
+  graphRenderVersion++;
+  graphLayoutReady = false;
+  layoutEnded = false;
+  modelDisplayed = false;
+}
+
+/** 同时确认当前模型已显示、布局已结束且几何有效，再插入渐变框。 */
+function finishGraphLayout() {
+  if (!layoutEnded || !modelDisplayed) {
+    return;
+  }
+  const children = getModelSourceChildren?.() ?? [];
+  const expected = new Set((((comGraphStore.data.jsonData ?? {}) as any).operations ?? []).map(pyOpNodeId));
+  const nodes = children.filter((child) => child.id?.startsWith('operation-magic-'));
+  if ((expected.size && !nodes.length) || nodes.some((node) =>
+    !expected.has(node.id) || !Number.isFinite(node.position?.x) || !Number.isFinite(node.position?.y) ||
+    !(node.size?.width > 0) || !(node.size?.height > 0),
+  )) {
+    return;
+  }
+  graphLayoutReady = true;
+  flushPendingSelection();
+  void applyPySelection();
+}
+
+function onGraphViewerUpdate(args: any) {
+  const children = getModelSourceChildren?.();
+  if (children && args?.model?.children === children) {
+    modelDisplayed = true;
+    finishGraphLayout();
+  }
+}
+
+function onGraphLayoutEnding() {
+  isLoading.value = false;
+  loadingText.value = '';
+  showGuideAnchor.value = true;
+  layoutEnded = true;
+  finishGraphLayout();
+}
+
+async function emitPySelectionLock(selection: PySelection, activeId: string) {
+  const hash = currentGraphHash();
+  const res = await threeColumnServer.resolveActiveLock({
+    hash, opmagic: extractOpMagic(activeId), label: selection.input.label,
+  });
+  if (res && selection === pySelection && selection.version === pySelectionVersion &&
+    hash === currentGraphHash() && comGraphStore.data.fourColFocusNodeIds?.[0] === activeId) {
+    (window as any).ascEventBus.emit('activeLockFromCom', { source: 'py', ...res });
+  }
+}
+
+async function applyPySelection() {
+  const selection = pySelection;
+  if (!selection?.targetHash || selection.version !== pySelectionVersion || !graphLayoutReady || selection.applying) {
+    return;
+  }
+  if (selection.targetHash !== currentGraphHash()) {
+    invalidateGraphLayout();
+    drillToLeaf(selection.targetHash);
+    // 1.1.2 / 1.2.2 / 1.3.2 / 2.1.2 / 2.2.2 / 2.3.2：发起切图时先广播准备切换的目标 hash
+    notifyPreparedSubgraph(selection.targetHash);
+    return;
+  }
+  const local = localPyNodes(selection);
+  const positions = new Map((getModelSourceChildren?.() ?? []).map((node) => [node.id, node.position]));
+  const group = local.group.filter((id) => positions.has(id));
+  const matched = local.matched.filter((id) => positions.has(id));
+  if (!group.length) {
+    return;
+  }
+  selection.applying = true;
+  const renderVersion = graphRenderVersion;
+  const ordered = [...matched].sort((a, b) => {
+    const pa = positions.get(a);
+    const pb = positions.get(b);
+    return pa.x - pb.x || pa.y - pb.y;
+  });
+  const activeId = selection.stable ? ordered[0] : undefined;
+  await selectAction?.([]);
+  if (selection !== pySelection || renderVersion !== graphRenderVersion) {
+    selection.applying = false;
+    return;
+  }
+  clearOpNodeHighlight();
+  comGraphStore.data.selectedNodeSemanticLabel = '';
+  currentLockLabel = '';
+  clickLabel = '';
+  comGraphStore.data.isNodeRectLock = selection.stable;
+  drillDownPathIcon.disableBack = selection.stable;
+  const focusIds = selection.stable
+    ? (activeId ? [activeId] : [])
+    : (selection.input.label && hasPyLine(selection.input) ? matched : []);
+  // 当前子图剩余节点集合 C 全部置灰：
+  //   hover -> A 以外的节点；click -> B（无 label 时为 A）以外的节点
+  const normalGroup = selection.stable && selection.input.label && hasPyLine(selection.input) ? matched : group;
+  const dimIds = currentGraphElementIds().filter((id) => !normalGroup.includes(id));
+  comGraphStore.setData('fourColFocusNodeIds', focusIds);
+  comGraphStore.setData('fourColDimNodeIds', dimIds);
+  // 显式保持常规色，避免节点单选产生的路径灰化覆盖 B。
+  comGraphStore.setData('fourColActiveNodeIds', group.filter((id) =>
+    !focusIds.includes(id) && !dimIds.includes(id),
+  ));
+  if (selection.stable) {
+    lockedOpNodeIds = ordered;
+    lockedOpActiveIndex = 0;
+  }
+  await createSelectNodesRectByIds?.(group, true, resetModel);
+  if (selection !== pySelection || renderVersion !== graphRenderVersion) {
+    selection.applying = false;
+    return;
+  }
+  updateModelAction?.();
+  if (activeId) {
+    hoverFeedbackAction?.();
+    await emitPySelectionLock(selection, activeId);
+  } else if (!selection.stable) {
+    const label = selection.input.label ?? '';
+    // 1.3 仅 label：只回传 label，ops 为空；其余分支回传命中的 B/A
+    const ops = label && !hasPyLine(selection.input)
+      ? []
+      : Array.from(new Set(matched.map((id) => extractOpMagic(id))));
+    emitOpsFeedback('py', currentGraphHash(), ops, label);
+  }
+}
+
+async function handlePyInput(input: PyInput, stable: boolean, version: number) {
+  const selection: PySelection = { input, stable, version, targetHash: '', ops: [], applying: false };
+  pySelection = selection;
+  try {
+    if (hasPyLine(input)) {
+      const res = await threeColumnServer.resolveOpsFromPyLine({ file: input.file, line: input.line });
+      if (version !== pySelectionVersion) {
+        return;
+      }
+      const rows: OpSelection[] = res?.ops ?? [];
+      const files = matchingPyFiles(input.file, rows.map((op) => op.pyFile ?? ''));
+      selection.ops = rows.filter((op) => files.has(normalizePyPath(op.pyFile ?? '')) && op.pyLine === input.line &&
+        (!input.label || op.label === input.label));
+    }
+    if (version !== pySelectionVersion) {
+      return;
+    }
+    const local = localPyNodes(selection);
+    // 文档 1.1 / 2.1：带 file+line+label 时先要求「file+line+label」在当前图命中 B；
+    // B 为空（例如入口层同 label 的 CAST 没有实现行）就切到首个含该三元组的 hash。
+    // 仅 file+line 或仅 label 时，仍按各自的当前图命中集合决定是否切图。
+    if (hasPyLine(input) && input.label) {
+      if (local.matched.length) {
+        selection.targetHash = currentGraphHash();
+      } else if (selection.ops.length) {
+        selection.targetHash = selection.ops[0].leafHash;
+      } else if (local.group.length) {
+        // 没有任何可切的目标 hash（例如同名文件歧义）时保留当前图的 A，反馈空 B
+        selection.targetHash = currentGraphHash();
+      }
+    } else if (local.group.length) {
+      selection.targetHash = currentGraphHash();
+    } else if (hasPyLine(input)) {
+      selection.targetHash = selection.ops[0]?.leafHash ?? '';
+    } else if (input.label) {
+      for (const hash of Object.keys(comGraphStore.data.calleeMap ?? {})) {
+        const res = await threeColumnServer.resolveSwimOps({ leafHash: hash, label: input.label });
+        if (version !== pySelectionVersion) {
+          return;
+        }
+        if (res?.ops?.length) {
+          selection.targetHash = hash;
+          break;
+        }
+      }
+    }
+    if (selection.targetHash) {
+      await applyPySelection();
+    } else if (stable) {
+      (window as any).ascEventBus.emit('deactivateLock');
+    }
+  } catch (error) {
+    if (version === pySelectionVersion) {
+      console.error('Python linkage lookup failed:', error);
+      if (stable) {
+        (window as any).ascEventBus.emit('deactivateLock');
+      }
+    }
+  }
+}
+
+const onLockFromPy = (args: PyInput) => {
+  cancelPySelection();
+  const input = { ...args, label: args?.label ?? '' };
+  if (!input.label && !hasPyLine(input)) {
+    return;
+  }
+  comGraphStore.data.isNodeRectLock = true;
+  pendingApply = null;
+  pendingApplyHash = '';
+  pyOwnsVisual = true;
+  void handlePyInput(input, true, pySelectionVersion);
+};
+
+function schedulePyHover(input: PyInput) {
+  if (comGraphStore.data.isNodeRectLock) {
+    return;
+  }
+  cancelPySelection();
+  if (!input.label && !hasPyLine(input)) {
+    return;
+  }
+  pendingApply = null;
+  pendingApplyHash = '';
+  pyOwnsVisual = true;
+  const version = pySelectionVersion;
+  hoverTimer = setTimeout(() => {
+    hoverTimer = null;
+    void handlePyInput(input, false, version);
+  }, 200);
+}
+
+const onPyHoverLabel = (args: PyInput) => {
+  pyHoverLabel = args?.label ?? '';
+  schedulePyHover({ ...args, label: pyHoverLabel });
+};
+const onHoverFromPy = (args: PyInput) => {
+  if (typeof args?.label === 'string') {
+    pyHoverLabel = args.label;
+  }
+  schedulePyHover({ ...args, label: args?.label ?? pyHoverLabel });
+};
+// CCE/泳道的点击由上方内联监听统一完成视觉与 activeLockFromCom 回执，此处不再重复广播。
 
 const onLocate = (id) => {
   centerNodeAction?.([id]);
@@ -1016,6 +1358,20 @@ watch(
         lockDrivenDrill = false;
       }
       const jsonValue = JSON.parse(JSON.stringify(props.jsonContent));
+      invalidateGraphLayout();
+      if (pySelection) {
+        pySelection.applying = false;
+      }
+      comGraphStore.setData('jsonData', jsonValue);
+      comGraphStore.setData('fourColRectNodeIds', []);
+      comGraphStore.setData('selectedNodeSemanticLabel', '');
+      // 新子图沿用旧图的节点级配色/置灰会误伤同 id 节点，切图时统一清空，由联动动作重新套用
+      if (newHash !== renderedGraphHash) {
+        renderedGraphHash = newHash;
+        clearOpNodeHighlight();
+        comGraphStore.setData('fourColFocusNodeIds', []);
+        comGraphStore.setData('fourColDimNodeIds', []);
+      }
       const funcMagicName = comGraphStore.data.calleeMap?.[val.hash] ?? '';
       if (val.hash && funcMagicName) {
         currentPath = { calleehash: val.hash, subFuncmagicname: funcMagicName };
@@ -1023,10 +1379,9 @@ watch(
       if (initComDocText) {
         resetModelSource(true);
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, -1, props.isThreeMode);
-        comGraphStore.setData('jsonData', jsonValue);
         server.returnFuncTree();
         let shouldListenViewZoom = true;
-        if ((comGraphStore.data.isNodeRectLock && currentLockLabel) || clickLabel) {
+        if (!pySelection && ((comGraphStore.data.isNodeRectLock && currentLockLabel) || clickLabel)) {
           (window as any).ascEventBus.on(`_view_zoom`, () => {
             if (shouldListenViewZoom) {
               comGraphStore.data.selectedNodeSemanticLabel = '';
@@ -1047,6 +1402,7 @@ watch(
       }
       const sprottyLoadResult = useSprottyLoad();
       initComDocText = sprottyLoadResult.initComDocText;
+      getModelSourceChildren = sprottyLoadResult.getModelSourceChildren;
       initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, -1, props.isThreeMode);
       centerNodeAction = sprottyLoadResult.centerNodeAction;
       selectAction = sprottyLoadResult.selectAction;
@@ -1115,28 +1471,32 @@ onMounted(() => {
   (window as any).ascEventBus.on('view_mouseup', ({node}) => {
     if (node.type === 'graph' || node.id.startsWith('parent') || node.isEmptyLabel || node.isTokenLabel) {
       showNodeDetail.value = false;
-    } else if (node.id.endsWith('label-main')) {
+      return;
+    }
+    // op 节点点击（可能落在 label/compartment 上）→ 找回所属 op
+    const hit = resolveClickedGraphOp(node);
+    // 四栏模式：op 的 label 区域点击也用于上锁；三栏保持原有 label-main 打开详情
+    if (hit && (isFourColumnMode() || !node.id.endsWith('label-main'))) {
+      // 上锁后只允许单击锁图标或 deactivateLock 解锁，点击其它节点不改变锁定
+      if (comGraphStore.data.isNodeRectLock) {
+        return;
+      }
+      cancelPySelection(true);
+      applyComNodeVisual(hit.op, 'lock');
+      hoverFeedbackAction?.();
+      // 与悬浮保持同一口径：始终回传当前子图 hash + 被点击节点 opmagic，
+      // 不再对 CALL 节点改传 calleehash（那会让悬浮与点击给出不同的 hash/op 组合）
+      const graphHash = currentGraphHash();
+      if (graphHash) {
+        void emitComLock(graphHash, hit.opmagic);
+      }
+      return;
+    }
+    if (node.id.endsWith('label-main')) {
       nodeId.value = node.id;
       const container = document.querySelector('.simple-com-graph-container');
       containerHeight.value = container.getBoundingClientRect().height;
       showNodeDetail.value = true;
-    } else {
-      // op 节点点击 → activeLockFromCom（四联动点击锁定）
-      const opMagic = extractOpMagic(node.id);
-      if (opMagic == null) {
-        return;
-      }
-      // 注意：curPath 可能是 JSON 字符串（GraphData.curPath 为 string），不能再按下标取
-      const graph = (comGraphStore.data.jsonData ?? {}) as any;
-      const graphHash = graph.hash != null ? String(graph.hash) : '';
-      const op = (graph.operations ?? []).find((o: any) => String(o.opmagic) === String(opMagic));
-      // ROOT 层 CALL 节点：联动目标是它调用的 leaf（服务端取该 leaf 首个 op）
-      const calleeHash = op?.calleehash != null ? String(op.calleehash) : '';
-      if (calleeHash) {
-        void emitComLock(calleeHash);
-      } else if (graphHash) {
-        void emitComLock(graphHash, opMagic);
-      }
     }
   });
   // 上一/下一 op 切换（由菜单/快捷键触发 stepComOp {leafHash?, opMagic, direction}）
@@ -1146,12 +1506,8 @@ onMounted(() => {
       void stepOp(leafHash, args.opMagic, args.direction);
     }
   });
-  (window as any).ascEventBus.on('layoutEnding', (args) => {
-    isLoading.value = false;
-    loadingText.value = '';
-    showGuideAnchor.value = true;
-    flushPendingSelection();
-  });
+  (window as any).ascEventBus.on('layoutEnding', onGraphLayoutEnding);
+  (window as any).ascEventBus.on('viewer_update', onGraphViewerUpdate);
   if (props.loadingStep === 'readJson' || props.loadingStep === 'convertData') {
     isLoading.value = true;
     loadingText.value = t(LoadingStatusMap[props.loadingStep]);
@@ -1162,8 +1518,18 @@ onMounted(() => {
   (window as any).ascEventBus.on('lockToggleChange', onLockClick);
   (window as any).ascEventBus.on('resetComGraphToFirst', resetToFirstStep);
   (window as any).ascEventBus.on('cceFileSwitched', onCceFileSwitched);
+  (window as any).ascEventBus.on('activeLockFromPy', onLockFromPy);
+  (window as any).ascEventBus.on('returnFileLineFromCode', onHoverFromPy);
+  (window as any).ascEventBus.on('returnSemanticLabelFromCode', onPyHoverLabel);
+
 });
 onBeforeUnmount(() => {
+  cancelPySelection();
+  invalidateGraphLayout();
+  onSwimEcho.cancel();
+  (window as any).ascEventBus.remove('returnSemanticLabelFromSwimToCom', onSwimEcho);
+  (window as any).ascEventBus.remove('layoutEnding', onGraphLayoutEnding);
+  (window as any).ascEventBus.remove('viewer_update', onGraphViewerUpdate);
   if (resetModelSource) {
     resetModelSource(true);
   }
@@ -1173,8 +1539,17 @@ onBeforeUnmount(() => {
   (window as any).ascEventBus.remove('lockToggleChange', onLockClick);
   (window as any).ascEventBus.remove('resetComGraphToFirst', resetToFirstStep);
   (window as any).ascEventBus.remove('cceFileSwitched', onCceFileSwitched);
+  if (hoverTimer) {
+    clearTimeout(hoverTimer);
+    hoverTimer = null;
+  }
+  (window as any).ascEventBus.remove('activeLockFromPy', onLockFromPy);
+  (window as any).ascEventBus.remove('returnFileLineFromCode', onHoverFromPy);
+  (window as any).ascEventBus.remove('returnSemanticLabelFromCode', onPyHoverLabel);
+
 });
 </script>
+
 
 <style lang="scss">
 @import '../../sprotty-graph/style/diagram.css';

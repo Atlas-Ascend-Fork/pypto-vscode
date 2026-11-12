@@ -1029,8 +1029,10 @@ const handleLockToggle = () => {
 }
 
 function calculateSelectedNodeBounds(node: any): boolean {
-  node.needCalPostion = false;
-  const nodeMap = node.parent.index.id2element;
+  const nodeMap = node.parent?.index?.id2element;
+  if (!nodeMap) {
+    return false;
+  }
   let startX = Infinity;
   let startY = Infinity;
   let endX = -Infinity;
@@ -1038,11 +1040,14 @@ function calculateSelectedNodeBounds(node: any): boolean {
 
   for (let i = 0; i < node.selectedNodes.length; i++) {
     const tmpNodes = nodeMap.get(node.selectedNodes[i]);
-    if (!tmpNodes.size.width) {
-      return false;
-    }
     if (!tmpNodes) {
       continue;
+    }
+    // 布局未完成/节点尺寸为 0 时延后绘制，避免生成空渐变路径
+    if (!Number.isFinite(tmpNodes.position?.x) || !Number.isFinite(tmpNodes.position?.y) ||
+      !Number.isFinite(tmpNodes.size?.width) || !Number.isFinite(tmpNodes.size?.height) ||
+      tmpNodes.size.width <= 0 || tmpNodes.size.height <= 0) {
+      return false;
     }
     if (tmpNodes.position.x < startX) {
       startX = tmpNodes.position.x;
@@ -1057,10 +1062,16 @@ function calculateSelectedNodeBounds(node: any): boolean {
       endY = tmpNodes.position.y + tmpNodes.size.height;
     }
   }
+  const width = endX - startX + 80;
+  const height = endY - startY + 80;
+  if (![startX, startY, width, height].every(Number.isFinite) || width <= 0 || height <= 0) {
+    return false;
+  }
   node.position.x = startX - 40;
   node.position.y = startY - 40;
-  node.customSize.width = endX - startX + 80;
-  node.customSize.height = endY - startY + 80;
+  node.customSize = { width, height };
+  // 几何就绪后才结束计算，未布局的目标在后续绘制帧继续重试
+  node.needCalPostion = false;
   return true;
 }
 
@@ -1090,10 +1101,12 @@ export class AstgrRectView extends RectangularNodeView {
     context: RenderingContext,
     args?: IViewArgs
   ): VNode | undefined {
-    if (!node.selectedNodes.length) {
+    if (!node.selectedNodes?.length) {
       return undefined;
     }
-    if (node.needCalPostion) {
+    if (node.needCalPostion || !Number.isFinite(node.customSize?.width) || !Number.isFinite(node.customSize?.height) ||
+      node.customSize.width <= 0 || node.customSize.height <= 0) {
+      node.needCalPostion = true;
       if (!calculateSelectedNodeBounds(node)) {
         return undefined;
       }
@@ -1110,8 +1123,13 @@ export class AstgrRectView extends RectangularNodeView {
     const strokeColor = getRectStrokeColor();
     const lockOpenSvgName = getLockSvgName();
 
-    const location = ((node.location || 0) % 200) / 2;
-    const {path, v} = getRectPath(node.customSize.width, node.customSize.height, location, location + 10);
+    const location = (Number.isFinite(node.location) ? ((node.location % 200) + 200) % 200 : 0) / 2;
+    // 端点限制在周长百分比内，避免动画绕回时 getRectPath 取不到点
+    const endLocation = Math.min(location + 10, 100);
+    const {path, v} = getRectPath(node.customSize.width, node.customSize.height, location, endLocation);
+    if (v.length !== 2 || !v.every((point) => point.every(Number.isFinite))) {
+      return undefined;
+    }
     return (
       <g>
         <defs>
@@ -1121,6 +1139,7 @@ export class AstgrRectView extends RectangularNodeView {
             <stop offset="100%" stop-color="rgba(164, 179, 251, 0.2)"/>
           </linearGradient>
         </defs>
+        {/* 框选背景不拦截节点点击，只有左上角锁图标可交互 */}
         <rect
           class-sprotty-node={true}
           width={node.customSize.width}
@@ -1128,12 +1147,14 @@ export class AstgrRectView extends RectangularNodeView {
           fill="rgba(144,184,249,0.1)"
           stroke={strokeColor}
           stroke-width={strokeWidth}
+          pointer-events="none"
         ></rect>
         <path
           d={path}
           stroke-width={strokeWidth}
           stroke="url(#rainbow)"
           fill="transparent"
+          pointer-events="none"
         ></path>
         <g id='show_node_rect_lock' on-click={handleLockToggle}>
           <rect width={imgSize * 2} height={imgSize * 2} x="3" y="3" rx={imgSize / 3} ry={imgSize / 3} fill={nodeRectLockColor}></rect>
