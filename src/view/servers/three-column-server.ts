@@ -682,9 +682,6 @@ export class ThreeColumnServer
   }
   @viewApi()
   public getPyOpmagicMap = async () => {
-    if (this.columnMode !== 4) {
-      return;
-    }
     const pyOpmagicMap = await buildPyOpmagicMap(this.fourcolProgramId);
     this.setRef('PyOpmagicMap', { pyOpmagicMap });
   };
