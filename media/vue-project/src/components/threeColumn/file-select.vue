@@ -41,7 +41,7 @@
  *   />
  *
  *   const onPyFileSwitch = (path: string) => {
- *     (window as any).ascEventBus.emit('deactivateLock');  // 退出锁定
+ *     (window as any).ascEventBus.emit('beforePyFileSwitch', { path });  // 锁定延续/解除由 py 栏判定
  *     threeColumnServer.switchPyFile({ paramObj: { path } });  // 切换文件
  *   };
  -->

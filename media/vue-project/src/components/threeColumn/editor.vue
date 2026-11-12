@@ -287,6 +287,7 @@ const deactivateLock = () => {
   isLocked.value = false;
   lockedLabel = null;
   lastMoveLabel = null;
+  lockedOpCtx = null;
   clearBlockHighlights(editor);
   clearLineBands(editor);
   lockPosition.value = null;
@@ -808,6 +809,8 @@ let lastComOps: { hash: string | null; ops: number[] } | null = null;
   noAssociatedObject.value = false;
   isLocked.value = true;
   lockedLabel = targetLabel;
+  // label 层锁定无 op 上下文，作废旧的 op 上下文（下拉切换文件时按不可延续处理）
+  lockedOpCtx = null;
   updateBkDecoration(lockedLabel, true);
 });
 // 泳道图发出的锁定广播（携带 opmagic/leafHash，editor 侧暂不使用）
@@ -860,6 +863,7 @@ const applyActiveLock = (args) => {
   // 按 hash+op 锁定代码行
   isLocked.value = true;
   lockedLabel = { name: '', startLine: line, endLine: line };
+  lockedOpCtx = { hash: String(hash), opMagic: Number(args.opMagic), label: args.label ?? null };
   lastMoveLabel = lockedLabel;
   updateLockPosition(lockedLabel);
   if (editor) {
@@ -870,8 +874,37 @@ const applyActiveLock = (args) => {
 // 跨文件锁定挂起：candidate 最多一个 py 文件，非当前文件先切换，编辑器重建后继续执行
 let pendingActiveLock: any = null;
 
+// 锁定目标的 op 上下文（hash + opMagic + label）：下拉切换 py 文件时据此判定锁定能否延续到目标文件
+//（opLocationIndex 反查落点文件，basename 匹配目标文件即延续；本地点击锁定的上下文由 activeLockFromCom 自回声补记）
+let lockedOpCtx: { hash: string; opMagic: number; label: string | null } | null = null;
+
+// 下拉切换 py 文件前的锁定延续判定：锁定 op 落在目标文件 → 静默清本地视觉并挂起上下文
+//（编辑器重建后由 PyCode watch 延续锁定，其余三栏锁定不动）；否则广播解除全栏锁定
+(window as any).ascEventBus.on('beforePyFileSwitch', ({ path }) => {
+  if (!isLocked.value) {
+    return;
+  }
+  const loc = lockedOpCtx ? opLocationIndex.get(`${lockedOpCtx.hash}_${lockedOpCtx.opMagic}`) : undefined;
+  const matched = !!loc && !!path && loc.pyFile.split(/[\/\\]/).pop() === String(path).split(/[\/\\]/).pop();
+  if (matched) {
+    isLocked.value = false;
+    lockedLabel = null;
+    lastMoveLabel = null;
+    lockPosition.value = null;
+    clearLineBands(editor);
+    clearBlockHighlights(editor);
+    pendingActiveLock = { source: 'com', ...lockedOpCtx };
+    return;
+  }
+  deactivateLock();
+});
+
 (window as any).ascEventBus.on('activeLockFromCom', (args) => {
   if (!args || args.source === 'py') {
+    // py 自回声：不重复应用锁定视觉（本地锁定已建立），仅补记锁定目标的 op 上下文
+    if (args?.source === 'py' && args?.opMagic != null) {
+      lockedOpCtx = { hash: String(args.hash ?? ''), opMagic: Number(args.opMagic), label: args.label ?? null };
+    }
     return;
   }
   const candidatePy: string | undefined = args.candidate?.py?.[0];

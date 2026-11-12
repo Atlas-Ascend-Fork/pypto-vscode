@@ -165,7 +165,8 @@ watch(threeColumnServer.PyCode, (newValue: any) => {
 const onPyFileSwitch = (path: string) => {
   editorFilePath.value = path;
   editorFileName.value = path.split(/[\/\\]/).pop() ?? path;
-  (window as any).ascEventBus.emit('deactivateLock');
+  // 锁定延续判定交由 py 栏处理（beforePyFileSwitch）：锁定 op 落在目标文件 → 挂起延续；否则解除
+  (window as any).ascEventBus.emit('beforePyFileSwitch', { path });
   threeColumnServer.switchPyFile({ paramObj: { path } });
 };
 const editorRef = ref();

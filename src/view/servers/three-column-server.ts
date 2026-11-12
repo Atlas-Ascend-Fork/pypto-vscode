@@ -229,7 +229,19 @@ export class ThreeColumnServer
     if (!path || !existsSync(path)) {
       return;
     }
-    await this.reopenWithCodePath(path);
+    // py 下拉文件均来自当前计算图的四联动索引（pyOpmagicMap），同一份联动数据内切换：
+    // 仅更新 codePath 并推送代码内容，comPath/swimDataPath/cceDir 保持不变，其余三栏不重置
+    //（webview 侧 watch(PyCode) 自行重建编辑器、重算索引与应用跨文件锁定）；
+    // 换算子文件（可能对应别的数据集）走 singleSelectFile('editor') 的重走发现流程
+    this.codePath = path;
+    this.initPath = path;
+    try {
+      const code = readFileSync(path, 'utf8');
+      this.setRef('PyCode', { data: { code, codePath: path } });
+    } catch (err) {
+      console.error(`${path}读取 py 文件时发生错误`, err);
+    }
+    await ComGraphHandler.pushSemanticObj(this);
   };
   @viewApi()
   public getCceCode = async (message: any) => {
