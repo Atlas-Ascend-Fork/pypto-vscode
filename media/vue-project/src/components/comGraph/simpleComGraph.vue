@@ -280,6 +280,7 @@ interface FourColVisual {
   dim?: string[];
   box?: string[];
   lock?: boolean;
+  source?: string;
 }
 
 /**
@@ -301,7 +302,12 @@ function applyFourColVisual(spec: FourColVisual) {
   comGraphStore.data.isNodeRectLock = !!spec.lock;
   drillDownPathIcon.disableBack = !!spec.lock;
   if (spec.box?.length) {
-    void createSelectNodesRectByIds?.(spec.box, true, resetModel);
+    // void createSelectNodesRectByIds?.(spec.box, true, (spec.source !== 'com') ? resetModel : ()=>{});
+    if (spec.source !== 'com') {
+      void createSelectNodesRectByIds?.(spec.box, true, resetModel);
+    } else {
+      void createSelectNodesRectByIds?.(spec.box, true);
+    }
   } else {
     removeSelectNodesRect?.();
   }
@@ -455,6 +461,7 @@ function applyComNodeVisual(op: any, mode: 'hover' | 'lock') {
       dim: allIds.filter((id) => id !== nodeId),
       box,
       lock: true,
+      source: 'com'
     });
     return;
   }
@@ -465,6 +472,7 @@ function applyComNodeVisual(op: any, mode: 'hover' | 'lock') {
     normal: labelIds.filter((id) => id !== nodeId),
     dim: allIds.filter((id) => id !== nodeId && !labelIds.includes(id)),
     box,
+    source: 'com'
   });
   emitOpsFeedback('com', currentGraphHash(), label && !hasLine ? [] : [Number(op.opmagic)], label);
 }

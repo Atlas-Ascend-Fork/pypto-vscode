@@ -194,7 +194,7 @@ export function useNodeActions(ctx: SprottyContext) {
    * 因此不会把框外节点连带置灰——置灰由 fourColDimNodeIds 精确控制（见 views.tsx getFourColNodeStyle）。
    * 渐变/蓝色由 isNodeRectLock 经 getRectStrokeColor 决定，与 createSelectNodesRect 同一套视觉。
    */
-  const createSelectNodesRectByIds = async (nodeIds: string[], isLocate: boolean, resetModel?: () => void) => {
+  const createSelectNodesRectByIds = async (nodeIds: string[], isLocate: boolean, resetModel?: () => void, isFromCom?: boolean) => {
     if (isUpdatingRect) {
       return;
     }
@@ -218,15 +218,18 @@ export function useNodeActions(ctx: SprottyContext) {
         selectedNodes: nodeIds,
         needCalPostion: true,
       };
-      await upsertRect(newRect, resetModel);
+    const curResetModel = !isFromCom ? resetModel : () => {};
+      await upsertRect(newRect, curResetModel);
     } finally {
       isUpdatingRect = false;
     }
     }
-    const fitAction = createFitAction({ maxZoom: 2.0, padding: 50, elementIds: nodeIds, animate: false });
-    isLocate && ctx.modelSource.actionDispatcher.dispatch(fitAction).then(() => {
-      syncFitScreenViewport();
-    });
+    if(!isFromCom) {
+      const fitAction = createFitAction({ maxZoom: 2.0, padding: 50, elementIds: nodeIds, animate: false });
+      isLocate && ctx.modelSource.actionDispatcher.dispatch(fitAction).then(() => {
+        syncFitScreenViewport();
+      });
+    }
 
     startRectAnimation(ctx.modelSource);
   };

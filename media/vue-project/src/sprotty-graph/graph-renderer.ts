@@ -134,7 +134,7 @@ export function useGraphRenderer(ctx: SprottyContext) {
     if (ctx.originSprottyGraph) {
       ctx.originSprottyGraph.isFinial = false;
       ctx.modelSource.setModel(ctx.originSprottyGraph as any).then(() => {
-        fitGraphToScreen();
+        // fitGraphToScreen();
       });
     }
   }
