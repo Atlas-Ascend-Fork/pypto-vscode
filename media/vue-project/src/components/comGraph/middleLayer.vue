@@ -463,6 +463,30 @@ const reloadSwimGraph = async (swimGrahRef, swimErrorMessage, server, threadCach
   swimGrahRef.value.loadTraceData(data.swimData);
 };
 
+let swimReloadRunning = false;
+let swimReloadQueued = false;
+const drainSwimReload = async () => {
+  if (swimReloadRunning) {
+    swimReloadQueued = true;
+    return;
+  }
+  swimReloadRunning = true;
+  do {
+    swimReloadQueued = false;
+    await reloadSwimGraph(swimGrahRef, swimErrorMessage, server, threadCache);
+  } while (swimReloadQueued);
+  swimReloadRunning = false;
+};
+
+// 重开（换 py）时泳道组件已挂载且不会自取新数据，靠该 ref 显式重载；
+// 突发多次推送合并为"跑完再补一次"，避免并发 reload 交错
+watch(server.SwimReload, () => {
+  if (noSwimFile.value) {
+    return;
+  }
+  drainSwimReload();
+});
+
 const modelCancel = async () => {
   modalVisible.value = false;
   if (replaceMsg.value.graphType === 'cce') {

@@ -14,6 +14,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEFAULT_CCE_DIR_NAME } from '../cce-index';
 import {
   FourcolCceFileItem,
   FourcolCceLabelItem,
@@ -165,15 +166,18 @@ function parseFingerprintValue(value: string): { base: string; recordedCounts: n
 }
 
 /**
- * 定位四联动数据三件套。入参为 dataDir（= programId）：program.json 与 kernel_aicore/ 位于其下，
+ * 定位四联动数据三件套。入参为 dataDir（= programId）：program.json 与 CCE 目录位于其下，
  * kernel_src/ 也在其下（pyPath 场景先经 pyPathToProgramId 转换）。
+ * cceDir 缺省为 dataDir 下的默认目录名 DEFAULT_CCE_DIR_NAME；文件夹被改名时由调用方
+ * 传入解析后的真实目录（server 侧 this.cceDir）。
  */
-export function locateFourColFiles(dataDir: string) {
+export function locateFourColFiles(dataDir: string, cceDir?: string) {
   const programId = normalizeProgramPath(dataDir);
+  const cceRoot = cceDir ?? path.join(programId, DEFAULT_CCE_DIR_NAME);
   const files = [
     { name: 'program.json', path: path.join(programId, 'program.json') },
-    { name: 'cce_opmagic_map.json', path: path.join(programId, 'kernel_aicore', 'cce_opmagic_map.json') },
-    { name: 'cce_semantic_label.json', path: path.join(programId, 'kernel_aicore', 'cce_semantic_label.json') },
+    { name: 'cce_opmagic_map.json', path: path.join(cceRoot, 'cce_opmagic_map.json') },
+    { name: 'cce_semantic_label.json', path: path.join(cceRoot, 'cce_semantic_label.json') },
   ];
   return {
     dataDir: programId,
@@ -193,14 +197,15 @@ export function locateFourColFiles(dataDir: string) {
  * 接口（getOpsByPyInfo / getPyLocationByOps / getPyFileList）只依赖它；CCE 两件 JSON **可选**
  * （缺失时对应表为空，CCE 相关接口返回空，四栏模式天然齐备、三栏联动不受影响）。
  */
-export async function loadFourColData(programId: string, graphPath?: string): Promise<FourcolLoadStats> {
+export async function loadFourColData(programId: string, graphPath?: string, cceDir?: string): Promise<FourcolLoadStats> {
   programId = normalizeProgramPath(programId);
   const graphFile = graphPath ?? path.join(programId, 'program.json');
   if (!fs.existsSync(graphFile)) {
     throw new Error(`缺少计算图文件: ${graphFile}`);
   }
-  const opmagicMapPath = path.join(programId, 'kernel_aicore', 'cce_opmagic_map.json');
-  const semanticLabelPath = path.join(programId, 'kernel_aicore', 'cce_semantic_label.json');
+  const cceRoot = cceDir ?? path.join(programId, DEFAULT_CCE_DIR_NAME);
+  const opmagicMapPath = path.join(cceRoot, 'cce_opmagic_map.json');
+  const semanticLabelPath = path.join(cceRoot, 'cce_semantic_label.json');
   const hasOpmagicMap = fs.existsSync(opmagicMapPath);
   const hasSemanticLabel = fs.existsSync(semanticLabelPath);
   const fingerprint = await computeLoadFingerprint(programId, [

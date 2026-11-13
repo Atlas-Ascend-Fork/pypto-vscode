@@ -20,26 +20,38 @@ export interface ColumnModeResult {
   cceDir?: string;
 }
 
-const CCE_DIR_NAME = 'kernel_aicore';
+/** CCE 产物目录的默认名字； rundata 记录提供真实路径时以记录为准（见 resolveCceDir） */
+export const DEFAULT_CCE_DIR_NAME = 'kernel_aicore';
 const CCE_MAP_FILE = 'cce_opmagic_map.json';
 
 /**
- * 三/四栏判定，两级顺序：
- * ① 同目录约定：<anchor 目录>/kernel_aicore（与当前加载的 program.json 同源，优先）
- * ② 保底：运行记录（~/.pypto/run/rundata_<ts>/）自己的 rundata.json 里的 kernel_aicore_path
- * 两级都要求 cce_opmagic_map.json 存在才判四栏。
+ * 解析 CCE 目录，唯一入口。顺序：
+ * ① 同目录约定：<outputDir>/kernel_aicore（与 program.json 同源，默认名字）
+ * ② 保底：运行记录 rundata.json 的 kernel_aicore_path（文件夹被改名时的真实名字/路径）
+ * 两级都要求 cce_opmagic_map.json 存在，否则返回 undefined。
  */
-export function detectColumnMode(anchorPath: string | undefined, fallbackCceDir?: string): ColumnModeResult {
-  if (anchorPath) {
-    const cceDir = join(dirname(anchorPath), CCE_DIR_NAME);
-    if (existsSync(join(cceDir, CCE_MAP_FILE))) {
-      return { columnMode: 4, cceDir };
+export function resolveCceDir(outputDir: string | undefined, recordCceDir?: string): string | undefined {
+  if (outputDir) {
+    const convention = join(outputDir, DEFAULT_CCE_DIR_NAME);
+    if (existsSync(join(convention, CCE_MAP_FILE))) {
+      return convention;
     }
   }
-  if (fallbackCceDir && existsSync(join(fallbackCceDir, CCE_MAP_FILE))) {
-    return { columnMode: 4, cceDir: fallbackCceDir };
+  if (recordCceDir && existsSync(join(recordCceDir, CCE_MAP_FILE))) {
+    return recordCceDir;
   }
-  return { columnMode: 3 };
+  return undefined;
+}
+
+/**
+ * 三/四栏判定：锚点为 comPath/swimPath 所在目录，CCE 目录经 resolveCceDir 解析。
+ */
+export function detectColumnMode(anchorPath: string | undefined, fallbackCceDir?: string): ColumnModeResult {
+  const cceDir = resolveCceDir(anchorPath ? dirname(anchorPath) : undefined, fallbackCceDir);
+  if (!cceDir) {
+    return { columnMode: 3 };
+  }
+  return { columnMode: 4, cceDir };
 }
 
 /** 从运行记录目录（~/.pypto/run/rundata_<ts>/）自己的 rundata.json 读 kernel_aicore_path，本地存在才返回 */

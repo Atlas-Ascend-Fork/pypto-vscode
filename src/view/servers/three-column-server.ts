@@ -127,6 +127,7 @@ type Refs = IComRefs & ICommonRefs & IThreeRefs & ISwimRefs;
   'returnSearchPath',
   'returnReplace',
   'SetVscodeState',
+  'SwimReload',
   'returnSwimPath',
   'returnComPath',
   'FourcolLoaded',
@@ -739,6 +740,12 @@ export class ThreeColumnServer
     }
     this.setRef('InitFlag', { runDataTitle: this.headerTitle });
     this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
+    // 重开（换 py）专用：泳道组件是命令式取数（仅挂载时自取、不 watch 数据 ref），
+    // 已挂载实例必须靠 reloadSwimGraph 显式重载；此 ref 只驱动泳道重载，
+    // 计算图仍由 InitFlag 单路加载，不构成双加载竞态
+    if (forceEmpty) {
+      this.setRef('SwimReload', { data: { swimPath: this.swimDataPath || '' } });
+    }
   }
   /**
    * 四栏默认 CCE 文件：cce_opmagic_map.json 首个 leafHash 绑定的 CCE 文件（尾块优先）；
@@ -772,14 +779,15 @@ export class ThreeColumnServer
       return;
     }
     const comPath = this.comPath;
+    const cceDir = this.cceDir;
     this.loadingProgramId = programId;
-    this.fourcolLoadingPromise = this.loadFourcolDataAndNotify(programId, comPath);
+    this.fourcolLoadingPromise = this.loadFourcolDataAndNotify(programId, comPath, cceDir);
     await this.fourcolLoadingPromise;
   }
 
-  private async loadFourcolDataAndNotify(programId: string, comPath: string): Promise<void> {
+  private async loadFourcolDataAndNotify(programId: string, comPath: string, cceDir?: string): Promise<void> {
     try {
-      const stats = await loadFourColData(programId, comPath);
+      const stats = await loadFourColData(programId, comPath, cceDir);
       this.setRef('FourcolLoaded', { data: { ...stats } });
       await this.getPyOpmagicMap();
     } catch (error) {

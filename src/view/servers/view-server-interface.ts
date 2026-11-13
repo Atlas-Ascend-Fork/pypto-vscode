@@ -222,6 +222,7 @@ export type IThreeRefs = {
   returnComPath: unknown,
   returnSearchPath: unknown;
   SetVscodeState: unknown;
+  SwimReload: unknown;
 };
 
 export interface IThreeViewServer extends ViewServer<IThreeApis, IThreeRefs> {
