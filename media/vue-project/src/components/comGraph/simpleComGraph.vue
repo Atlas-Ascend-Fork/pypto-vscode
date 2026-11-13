@@ -215,6 +215,16 @@ let sendlist;
 let clickLabel: string = '';
 let currentHoverLabel: string = '';
 
+// 四联动手动切换子图后按原锁定目标重新上锁
+type ReLockState = {
+  source: 'py' | 'cce' | 'swim' | 'label';
+  label: string;
+  opmagic?: number;
+  input?: { label?: string; file?: string; line?: number };
+};
+let reLockState: ReLockState | null = null;
+let pendingReLock = false;
+
 // 泳道点击在途：跳图归属 activeLockFromSwim → applySwimVisual，sendHashList 整段让位。
 // 泳道 event-hint 形如
 //   Task:[0-0-87], rootHash:196978988935989036, callOpMagic:10032, leafHash:1214246419424137219, TaskId:87
@@ -268,6 +278,12 @@ function sortNodeIdsByPosition(ids: string[]): string[] {
     const pb = positions.get(b) ?? { x: 0, y: 0 };
     return pa.x - pb.x || pa.y - pb.y;
   });
+}
+
+/** 锁定态相关节点：按位置排序并定位当前节点 */
+function setLockedNodeGroup(ids: string[], activeId?: string) {
+  lockedOpNodeIds = sortNodeIdsByPosition(ids);
+  lockedOpActiveIndex = activeId ? Math.max(0, lockedOpNodeIds.indexOf(activeId)) : 0;
 }
 
 function hasImplLocation(op: any): boolean {
@@ -351,6 +367,8 @@ function applySwimVisual(label: string, targetHash: string, mode: 'hover' | 'loc
       box: group,
       lock: true,
     });
+    setLockedNodeGroup(group, active);
+    reLockState = { source: 'swim', label };
     const opMagic = extractOpMagic(active);
     if (opMagic != null) {
       void emitLock('swim', { hash: targetHash || currentGraphHash(), opmagic: opMagic, label });
@@ -545,6 +563,8 @@ function applyCceVisual(opmagic: number | string, leafHash: string, mode: 'hover
       box,
       lock: true,
     });
+    setLockedNodeGroup(box, nodeId);
+    reLockState = { source: 'cce', label, opmagic: Number(op.opmagic) };
     void emitLock('cce', { hash: currentGraphHash(), opmagic: Number(op.opmagic), label });
   };
   if (!leafHash || currentGraphHash() === String(leafHash)) {
@@ -606,15 +626,15 @@ function applyCceVisual(opmagic: number | string, leafHash: string, mode: 'hover
   hoverFeedbackAction?.();
 });
 (window as any).ascEventBus.on('sendHashList', (args) => {
-  generateHashList(args.rootHashList ?? []);
-  // 泳道点击的跳图已由 activeLockFromSwim → applySwimVisual 负责（只有它知道当前图层是否已是
-  // 目标 leafHash 子图），这里必须整段让位：再跳一次会让同一次点击触发两次子图重载，
-  // 且尾部 selectPassPath 会拿到切换前的 hash、把面包屑填成上一层的 pass 副本。
-  // 跳图完成后 watcher 会用 generateHashList() 全量重建面包屑，无需在此维护。
   if (swimLockJumpPending) {
     swimLockJumpPending = false;
     return;
   }
+  generateHashList(args.rootHashList ?? []);
+  // 泳道点击的跳图已由 activeLockFromSwim → applySwimVisual 负责（只有它知道当前图层是否已是
+  // 目标 leafHash 子图），这里必须整段让位：再跳一次会让同一次点击触发两次子图重载，
+  // 且尾部 selectPassPath 会拿到切换前的 hash、把面包屑填成上一层的 pass 副本。
+  // 切换期间保留现有下拉选项，跳图完成后沿用原列表。
   // curPath 是后端下发的 JSON 字符串，按下标取会得到最后一个字符，必须走 currentGraphHash()
   const currentHash = currentGraphHash();
   const selectedNodes = findNodeIdsBySemanticLabel(comGraphStore.data.jsonData, currentLockLabel);
@@ -698,6 +718,8 @@ watch(threeColumnServer.GetPassPath, (newValue: any) => {
   prevent = false;
   lockedOpNodeIds = [];
   lockedOpActiveIndex = 0;
+  reLockState = null;
+  pendingReLock = false;
   comGraphStore.data.isNodeRectLock = false;
   drillDownPathIcon.disableBack = false;
   // 复位锁定 label：sendHashList 用 findNodeIdsBySemanticLabel(jsonData, currentLockLabel) 判断
@@ -772,12 +794,16 @@ function generateHashList(hashList?: string[]) {
 }
 
 const handleHashChange = (val) => {
-  if (pySelection?.stable) {
+  // 四联动锁定态手动切换子图：保留锁定，等新图布局完成后按原目标重锁
+  const keepLock = isFourColumnMode() && comGraphStore.data.isNodeRectLock && !!reLockState;
+  if (keepLock) {
+    pendingReLock = true;
+  } else if (pySelection?.stable) {
     (window as any).ascEventBus.emit('deactivateLock');
   }
   cancelPySelection(true);
-  // 下拉手动切换子图：清除联动切图标记，锁定冲突时 CCE 栏照常广播解锁
-  lockDrivenDrill = false;
+  // 重锁切图按联动切图广播，CCE 看到 lockDriven 后不主动解锁，由新图重锁结果决定
+  lockDrivenDrill = keepLock;
   const selectedItem = rootHashList.value.find(item =>
     String(item.name) === String(val)
   );
@@ -873,12 +899,69 @@ function lockGraphByLabel(label: string) {
   cancelPySelection(true);
   prevent = true;
   currentLockLabel = label;
+  reLockState = { source: 'label', label };
   comGraphStore.data.isNodeRectLock = true;
   drillDownPathIcon.disableBack = true;
   // 不做 if (label) 短路：createSelectNodesRect('') 内部会走 removeSelectNodesRect()，
   // 这是 activeLock 空 label（如 onLockClick 的 selectedNodeSemanticLabel 为 ''）时的原有清框语义
   createSelectNodesRect?.(label, true);
   hoverFeedbackAction?.();
+}
+
+/** 在当前子图按 py 输入重新锁定；找不到相关 op 时退出锁定 */
+function relockPyInCurrentGraph(input: { label?: string; file?: string; line?: number }) {
+  if (!input || (!input.label && !hasPyLine(input))) {
+    (window as any).ascEventBus.emit('deactivateLock');
+    return;
+  }
+  cancelPySelection();
+  const selection: PySelection = {
+    input: { ...input },
+    stable: true,
+    version: pySelectionVersion,
+    targetHash: currentGraphHash(),
+    ops: [],
+    applying: false,
+  };
+  pySelection = selection;
+  const local = localPyNodes(selection);
+  const required = hasPyLine(input) && input.label ? local.matched : local.group;
+  if (!required.length) {
+    (window as any).ascEventBus.emit('deactivateLock');
+    return;
+  }
+  pyOwnsVisual = true;
+  void applyPySelection();
+}
+
+/** 四联动手动切换子图后，按原锁定来源在新图中重新锁定 */
+function reapplyLockAfterSwitch(state: ReLockState | null) {
+  if (!state || !comGraphStore.data.isNodeRectLock) {
+    return;
+  }
+  if (state.source === 'py' && state.input) {
+    relockPyInCurrentGraph(state.input);
+    return;
+  }
+  if (state.source === 'cce' && state.opmagic != null) {
+    if (findCceTargetOp(state.opmagic, state.label)) {
+      applyCceVisual(state.opmagic, currentGraphHash(), 'lock');
+      return;
+    }
+    if (state.label) {
+      lockGraphByLabel(state.label);
+      return;
+    }
+  }
+  if (state.source === 'swim') {
+    applySwimVisual(state.label, currentGraphHash(), 'lock');
+    return;
+  }
+  if (state.label) {
+    lockGraphByLabel(state.label);
+    return;
+  }
+  (window as any).ascEventBus.emit('deactivateLock');
 }
 
 // 下钻渲染完成后执行挂起的视觉动作（layoutEnding 触发）
@@ -905,9 +988,11 @@ function renderLockedOpHighlight() {
     return;
   }
   const activeId = lockedOpNodeIds[lockedOpActiveIndex];
+  const group = new Set(lockedOpNodeIds);
   comGraphStore.setData('fourColMatchedNodeIds', []);
   comGraphStore.setData('fourColActiveNodeIds', lockedOpNodeIds.filter((id) => id !== activeId));
   comGraphStore.setData('fourColFocusNodeIds', [activeId]);
+  comGraphStore.setData('fourColDimNodeIds', currentGraphElementIds().filter((id) => !group.has(id)));
 }
 
 function clearOpNodeHighlight() {
@@ -931,6 +1016,11 @@ function stepLockedOpNode(step: -1 | 1) {
   // 切换锁定当前节点后同步回执，py 栏据此移动锁定行
   if (pySelection?.stable) {
     void emitPySelectionLock(pySelection, activeId);
+  } else {
+    const opMagic = extractOpMagic(activeId);
+    if (opMagic != null) {
+      void emitLock('com', { hash: currentGraphHash(), opmagic: opMagic });
+    }
   }
 }
 
@@ -1195,8 +1285,9 @@ async function applyPySelection() {
     !focusIds.includes(id) && !dimIds.includes(id),
   ));
   if (selection.stable) {
-    lockedOpNodeIds = ordered;
-    lockedOpActiveIndex = 0;
+    // 切换范围取框选集合（同 label 组），当前节点仍定位到 B 中最左上角 op
+    setLockedNodeGroup(group, activeId);
+    reLockState = { source: 'py', label: selection.input.label ?? '', input: { ...selection.input } };
   }
   await createSelectNodesRectByIds?.(group, true, resetModel);
   if (selection !== pySelection || renderVersion !== graphRenderVersion) {
@@ -1403,11 +1494,18 @@ watch(
         currentPath = { calleehash: val.hash, subFuncmagicname: funcMagicName };
       }
       if (initComDocText) {
+        if (pendingReLock) {
+          pendingReLock = false;
+          const targetHash = String(val.hash ?? currentGraphHash());
+          const state = reLockState;
+          pendingApplyHash = targetHash;
+          pendingApply = () => reapplyLockAfterSwitch(state);
+        }
         resetModelSource(true);
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, -1, props.isThreeMode);
         server.returnFuncTree();
         let shouldListenViewZoom = true;
-        if (!pySelection && ((comGraphStore.data.isNodeRectLock && currentLockLabel) || clickLabel)) {
+        if (!pendingApply && !pySelection && ((comGraphStore.data.isNodeRectLock && currentLockLabel) || clickLabel)) {
           (window as any).ascEventBus.on(`_view_zoom`, () => {
             if (shouldListenViewZoom) {
               comGraphStore.data.selectedNodeSemanticLabel = '';

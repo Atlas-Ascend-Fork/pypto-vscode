@@ -94,9 +94,10 @@ const relatedNodeCount = computed(() => {
   if (!comGraphStore.data.isNodeRectLock) {
     return 0;
   }
+  const boxed = comGraphStore.data.fourColRectNodeIds.length;
   const matched = comGraphStore.data.fourColMatchedNodeIds.length;
   const active = comGraphStore.data.fourColActiveNodeIds.length;
-  return matched + active;
+  return Math.max(boxed, matched + active);
 });
 
 // 交给计算图侧在当前锁定的相关节点集合内切换
