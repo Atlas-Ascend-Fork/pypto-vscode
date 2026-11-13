@@ -326,7 +326,43 @@ const unLockClick = (e) => {
   deactivateLock();
 };
 
-// 更新悬停装饰：label 块同步渲染；蓝条等查询结果后整体替换（render 自带替换语义，等待期保留旧装饰防闪烁）
+// 悬停联动事件发送通道：判定处只记录目标状态，实际发送按 200ms 节流统一执行
+//（与本地装饰渲染的 100ms 节奏分离；trailing 保证停住后的末次 label/行必然送达）。
+// label 为 null 表示清空；清空对（label '' + 行 0）不受 isMouseLeaved 限制，
+// 鼠标快速进入再离开时也必须送达下游清除
+let pendingHoverLinkage: { label: string | null; line: number } | null = null;
+const flushHoverLinkage = throttle(() => {
+  const pending = pendingHoverLinkage;
+  pendingHoverLinkage = null;
+  if (!pending || pending.label === null) {
+    if (pending && lastSentLabel !== null) {
+      // 只在发过内容时下发清空，避免重复清空
+      sendMsg('returnSemanticLabelFromCode', { label: '' });
+      sendMsg('returnFileLineFromCode', { file: '', line: 0 });
+      lastSentLabel = null;
+      lastSentLine = 0;
+    }
+    return;
+  }
+  if (isMouseLeaved) {
+    return;
+  }
+  // label 事件按标签名去重：同一 label 块内换行不重复发送
+  if (lastSentLabel !== pending.label) {
+    lastSentLabel = pending.label;
+    lastSentLine = 0; // 同批补发一次行事件，保持两个事件成对出现
+    sendMsg('returnSemanticLabelFromCode', { label: pending.label });
+  }
+  // file+line 事件按行号去重：计算图列据此逐行反查 op 落点，
+  // 因此同一 label 块内换行同样要发（只按标签去重会吞掉块内的行变化）
+  if (lastSentLine !== pending.line) {
+    lastSentLine = pending.line;
+    sendMsg('returnFileLineFromCode', { file: initCodePath, line: pending.line });
+  }
+}, 200);
+
+// 更新悬停装饰：label 块与蓝条同步渲染（100ms 节流节奏）；联动事件不在本函数直接发送，
+// 判定后写入 pendingHoverLinkage，由 200ms 节流的 flushHoverLinkage 统一发出
 const updateHoverDecoration = async (position, emit = true) => {
   // 如果处于锁定状态，不更新悬停装饰
   if (isLocked.value) {
@@ -337,11 +373,9 @@ const updateHoverDecoration = async (position, emit = true) => {
     clearBlockHighlights(editor);
     clearLineBands(editor);
     lockPosition.value = null;
-    if (lastSentLabel && emit) {
-      sendMsg('returnSemanticLabelFromCode', { label: '' });
-      sendMsg('returnFileLineFromCode', { file: '', line: 0 });
-      lastSentLabel = null;
-      lastSentLine = 0;
+    if (emit) {
+      pendingHoverLinkage = { label: null, line: 0 };
+      flushHoverLinkage();
     }
     return;
   }
@@ -369,25 +403,14 @@ const updateHoverDecoration = async (position, emit = true) => {
   }
 
   if (currentLabel || hasOpmagic) {
-    // label 事件按标签名去重：同一 label 块内换行不重复发送
-    const nextLabel = currentLabel ? currentLabel.name : '';
-    if (emit && lastSentLabel !== nextLabel && !isMouseLeaved) {
-      lastSentLabel = nextLabel;
-      lastSentLine = 0; // 同批补发一次行事件，保持两个事件成对出现
-      sendMsg('returnSemanticLabelFromCode', { label: nextLabel });
+    if (emit && !isMouseLeaved) {
+      pendingHoverLinkage = { label: currentLabel ? currentLabel.name : '', line: position.lineNumber };
+      flushHoverLinkage();
     }
-    // file+line 事件按行号去重：计算图列据此逐行反查 op 落点，
-    // 因此同一 label 块内换行同样要发（只按标签去重会吞掉块内的行变化）
-    if (emit && lastSentLine !== position.lineNumber && !isMouseLeaved) {
-      lastSentLine = position.lineNumber;
-      sendMsg('returnFileLineFromCode', { file: initCodePath, line: position.lineNumber });
-    }
-  } else if (emit && !isMouseLeaved && lastSentLabel !== null) {
+  } else if (emit) {
     // 无标签也无 opmagic：清空之前发送的状态
-    sendMsg('returnSemanticLabelFromCode', { label: '' });
-    sendMsg('returnFileLineFromCode', { file: '', line: 0 });
-    lastSentLabel = null;
-    lastSentLine = 0;
+    pendingHoverLinkage = { label: null, line: 0 };
+    flushHoverLinkage();
   }
 };
 
@@ -535,6 +558,8 @@ const handleScroll = () => {
   }
 };
 
+// 悬停入口 100ms 节流：本地装饰渲染与悬停锁锚定按此节奏刷新；
+// 跨栏事件（returnSemanticLabelFromCode / returnFileLineFromCode）另走 200ms 节流的发送通道（flushHoverLinkage）
 const handleMouseMove = throttle((e) => {
   if (isMouseLeaved) {
     return;
