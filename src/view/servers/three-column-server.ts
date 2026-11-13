@@ -739,11 +739,6 @@ export class ThreeColumnServer
     }
     this.setRef('InitFlag', { runDataTitle: this.headerTitle });
     this.setRef('SetVscodeState', { comPath: this.comPath, swimDataPath: this.swimDataPath });
-    // 重开（换 py）场景：returnInitPath 的 watcher 只加载当前缺省的栏，已加载的栏要靠
-    // returnSearchPath 才会重载；首开无旧数据，不补推以免双重加载
-    if (forceEmpty) {
-      this.setRef('returnSearchPath', { data: { swimPath: this.swimDataPath || '', comPath: this.comPath || '' } });
-    }
   }
   /**
    * 四栏默认 CCE 文件：cce_opmagic_map.json 首个 leafHash 绑定的 CCE 文件（尾块优先）；
