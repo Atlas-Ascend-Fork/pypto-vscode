@@ -439,16 +439,19 @@ export class AstgrLabelView extends SLabelView {
 
 /**
  * 选中视觉（边框/文字/角标）的统一判定。
- * 节点 fill 直读 store，任意一次重绘即生效；而 node.selected 要等命令队列末尾的
- * SelectCommand 才翻转（被居中视口动画阻塞约 250ms+）。只要 py 联动集合非空，
- * 选中视觉就完全由 store 决定——否则被换下的旧节点仍带着 node.selected，
- * 其边框/文字会比 fill 晚约一秒才恢复常规样式。
- * 集合为空（无联动）时仍按 node.selected，保持手动选中的原有行为。
+ * 只有高亮色节点（fourColFocusNodeIds，fill 取 lightColor）套用选中视觉；
+ * 常规色节点（fourColActiveNodeIds / fourColMatchedNodeIds，fill 取 baseColor）与置灰节点
+ * 只改底色，边框/文字/角标保持常规样式。
+ * 联动集合生效时选中视觉完全由 store 决定：node.selected 要等命令队列末尾的 SelectCommand
+ * 才翻转（被居中视口动画阻塞约 250ms+），否则被换下的旧节点会残留选中视觉。
+ * 集合为空（无联动）时按 node.selected，保持手动选中的原有行为。
  */
 function isNodeSelectedVisual(node: any): boolean {
-  const ids = comGraphStore.data.fourColActiveNodeIds;
-  if (ids?.length) {
-    return ids.includes(node.id);
+  const { fourColActiveNodeIds, fourColMatchedNodeIds, fourColFocusNodeIds, fourColDimNodeIds } = comGraphStore.data;
+  const inFourColVisual = !!fourColActiveNodeIds?.length || !!fourColMatchedNodeIds?.length ||
+    !!fourColFocusNodeIds?.length || !!fourColDimNodeIds?.length;
+  if (inFourColVisual) {
+    return !!fourColFocusNodeIds?.includes(node.id);
   }
   return !!node.selected;
 }
@@ -689,29 +692,20 @@ function getFourColNodeStyle(node: any): { fill?: string; filter?: string } | nu
 }
 
 /**
- * 四联动 py 行匹配的两级节点配色（节点 id 由 leafHash+opmagic 定位到当前子图）。
- *   active  = 当前定位节点，取高亮色 lightColor（离背景更远、最醒目）
- *   matched = 同组其余节点，取常规色 baseColor
- * baseColor / lightColor 的明暗关系在两个主题下相反（深色主题 light 更亮、浅色主题 light 更暗），
- * 所以「强调 = lightColor、常规 = baseColor」才是主题无关的统一语义，不能按明度高低判断。
- * 置灰节点不参与，避免与 CCE 链路的 dim 视觉冲突。
+ * 四联动常规色节点集合：active / matched 中的节点统一取常规色 baseColor。
+ * 高亮由 fourColFocusNodeIds 负责（lightColor），置灰节点不参与，避免与 CCE 链路的 dim 视觉冲突。
  */
 function getFourColOpHighlightFill(node: any): { fill: string; filter: string } | null {
   const { fourColActiveNodeIds, fourColMatchedNodeIds, fourColDimNodeIds } = comGraphStore.data;
   if (fourColDimNodeIds?.includes(node.id)) {
     return null;
   }
-  const isActive = !!fourColActiveNodeIds?.includes(node.id);
-  const isMatched = !!fourColMatchedNodeIds?.includes(node.id);
-  if (!isActive && !isMatched) {
+  const isNormal = !!fourColActiveNodeIds?.includes(node.id) || !!fourColMatchedNodeIds?.includes(node.id);
+  if (!isNormal) {
     return null;
   }
-  if (isActive) {
-    const activeFill = node.lightColor ?? node.baseColor;
-    return activeFill ? { fill: activeFill, filter: '' } : null;
-  }
-  const matchedFill = node.baseColor ?? node.lightColor;
-  return matchedFill ? { fill: matchedFill, filter: '' } : null;
+  const normalFill = node.baseColor ?? node.lightColor;
+  return normalFill ? { fill: normalFill, filter: '' } : null;
 }
 
 function getOpBackgroundStyle(node: any, incoming: boolean, outgoing: boolean, errClass: string) {
@@ -1170,10 +1164,13 @@ export class AstgrRectView extends RectangularNodeView {
           fill="transparent"
           pointer-events="none"
         ></path>
-        <g id='show_node_rect_lock' on-click={handleLockToggle}>
-          <rect width={imgSize * 2} height={imgSize * 2} x="3" y="3" rx={imgSize / 3} ry={imgSize / 3} fill={nodeRectLockColor}></rect>
-          <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={3 + imgSize / 2}  y={3 + imgSize / 2} width={imgSize} height={imgSize} />
-        </g>
+        {/* 未上锁时联动框不显示左上角图标，仅上锁态保留蓝色锁图标（可点击解锁） */}
+        {comGraphStore.data.isNodeRectLock && (
+          <g id='show_node_rect_lock' on-click={handleLockToggle}>
+            <rect width={imgSize * 2} height={imgSize * 2} x="3" y="3" rx={imgSize / 3} ry={imgSize / 3} fill={nodeRectLockColor}></rect>
+            <image href={`${(window as any).staticPath}/static-assets/${lockOpenSvgName}.svg`} x={3 + imgSize / 2}  y={3 + imgSize / 2} width={imgSize} height={imgSize} />
+          </g>
+        )}
       </g>
     );
   }

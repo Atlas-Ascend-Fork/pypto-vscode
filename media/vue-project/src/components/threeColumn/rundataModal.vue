@@ -42,7 +42,9 @@
                 </div>
             </template>
             <template #default="scope">
-                <d-radio v-model="baseChoose" :value="scope.row.runData" :disabled="scope.row.disabled" class="mb-2" @change="filterValChange">{{ scope.row.runData }}</d-radio>
+                <d-radio v-model="baseChoose" :value="scope.row.runData" :disabled="scope.row.disabled" class="mb-2" @change="filterValChange">
+                    <span class="run-data-name" :title="scope.row.runData">{{ scope.row.runData }}</span>
+                </d-radio>
             </template>
             </d-column>
             <d-column filed="execTime" :header="$t('sideBar.sortName')">
@@ -237,6 +239,14 @@ onMounted(() => {
   .devui-table__tbody tr:not(:last-child) td {
     border: none;
     border-bottom: 1px solid var(--devui-split-line);
+  }
+  .run-data-name {
+    display: inline-block;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
   }
   .devui-table--sm tbody>tr>td {
     font-size: var(--devui-font-size, 12px);

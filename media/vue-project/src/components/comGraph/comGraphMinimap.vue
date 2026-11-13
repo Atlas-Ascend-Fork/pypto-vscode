@@ -89,7 +89,7 @@ const isActive = ref(false);
 const minimapContainerEl = ref<HTMLElement>();
 const moveRectEl = ref<HTMLElement>();
 
-// 当前锁定态命中的相关节点总数：active 为当前节点，matched 为同组其余待切换节点
+// 当前锁定态命中的相关节点总数：active / matched 均为常规色节点集合
 const relatedNodeCount = computed(() => {
   if (!comGraphStore.data.isNodeRectLock) {
     return 0;
