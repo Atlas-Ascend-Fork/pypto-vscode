@@ -1158,7 +1158,15 @@ async function applyPySelection() {
     const pb = positions.get(b);
     return pa.x - pb.x || pa.y - pb.y;
   });
-  const activeId = selection.stable ? ordered[0] : undefined;
+  // 上锁且 ops 为空：以当前子图首个 label 相关节点（按图内坐标）充当 B
+  const labelFirstId = selection.input.label && !selection.ops.length
+    ? [...group].sort((a, b) => {
+        const pa = positions.get(a);
+        const pb = positions.get(b);
+        return pa.x - pb.x || pa.y - pb.y;
+      })[0]
+    : undefined;
+  const activeId = selection.stable ? (ordered[0] ?? labelFirstId) : undefined;
   await selectAction?.([]);
   if (selection !== pySelection || renderVersion !== graphRenderVersion) {
     selection.applying = false;
@@ -1174,8 +1182,11 @@ async function applyPySelection() {
     ? (activeId ? [activeId] : [])
     : (selection.input.label && hasPyLine(selection.input) ? matched : []);
   // 当前子图剩余节点集合 C 全部置灰：
-  //   hover -> A 以外的节点；click -> B（无 label 时为 A）以外的节点
-  const normalGroup = selection.stable && selection.input.label && hasPyLine(selection.input) ? matched : group;
+  //   hover -> A 以外的节点；click -> B（无 label 时为 A）以外的节点；
+  //   click 且 B 为空时以首个 label 相关节点充当 B
+  const normalGroup = selection.stable && selection.input.label && hasPyLine(selection.input)
+    ? (matched.length ? matched : (activeId ? [activeId] : []))
+    : group;
   const dimIds = currentGraphElementIds().filter((id) => !normalGroup.includes(id));
   comGraphStore.setData('fourColFocusNodeIds', focusIds);
   comGraphStore.setData('fourColDimNodeIds', dimIds);
@@ -1206,6 +1217,20 @@ async function applyPySelection() {
   }
 }
 
+/** 按 label 遍历子图，返回首个含该标签 op 的 hash（ops 未命中时的兜底落点） */
+async function findHashByLabel(label: string, version: number): Promise<string> {
+  for (const hash of Object.keys(comGraphStore.data.calleeMap ?? {})) {
+    const res = await threeColumnServer.resolveSwimOps({ leafHash: hash, label });
+    if (version !== pySelectionVersion) {
+      return '';
+    }
+    if (res?.ops?.length) {
+      return hash;
+    }
+  }
+  return '';
+}
+
 async function handlePyInput(input: PyInput, stable: boolean, version: number) {
   const selection: PySelection = { input, stable, version, targetHash: '', ops: [], applying: false };
   pySelection = selection;
@@ -1225,32 +1250,30 @@ async function handlePyInput(input: PyInput, stable: boolean, version: number) {
     }
     const local = localPyNodes(selection);
     // 文档 1.1 / 2.1：带 file+line+label 时先要求「file+line+label」在当前图命中 B；
-    // B 为空（例如入口层同 label 的 CAST 没有实现行）就切到首个含该三元组的 hash。
-    // 仅 file+line 或仅 label 时，仍按各自的当前图命中集合决定是否切图。
+    // B 为空则按 ops 落点切到首个命中 hash；ops 也为空时回退按 label 搜索含该标签的子图
+    // （例如入口层同 label 的实现行没有 op 落点）。仅 file+line 时按 ops 落点切图，
+    // 仅 label 时按 label 命中集合决定是否切图。
     if (hasPyLine(input) && input.label) {
       if (local.matched.length) {
         selection.targetHash = currentGraphHash();
       } else if (selection.ops.length) {
         selection.targetHash = selection.ops[0].leafHash;
       } else if (local.group.length) {
-        // 没有任何可切的目标 hash（例如同名文件歧义）时保留当前图的 A，反馈空 B
+        // 当前图已有同 label 节点：留在当前图按 label 高亮
         selection.targetHash = currentGraphHash();
+      } else {
+        // ops 为 0：按 label 切到含该标签的子图
+        selection.targetHash = await findHashByLabel(input.label, version);
       }
     } else if (local.group.length) {
       selection.targetHash = currentGraphHash();
     } else if (hasPyLine(input)) {
       selection.targetHash = selection.ops[0]?.leafHash ?? '';
     } else if (input.label) {
-      for (const hash of Object.keys(comGraphStore.data.calleeMap ?? {})) {
-        const res = await threeColumnServer.resolveSwimOps({ leafHash: hash, label: input.label });
-        if (version !== pySelectionVersion) {
-          return;
-        }
-        if (res?.ops?.length) {
-          selection.targetHash = hash;
-          break;
-        }
-      }
+      selection.targetHash = await findHashByLabel(input.label, version);
+    }
+    if (version !== pySelectionVersion) {
+      return;
     }
     if (selection.targetHash) {
       await applyPySelection();
