@@ -926,9 +926,19 @@ let lockedOpCtx: { hash: string; opMagic: number; label: string | null } | null 
 
 (window as any).ascEventBus.on('activeLockFromCom', (args) => {
   if (!args || args.source === 'py') {
-    // py 自回声：不重复应用锁定视觉（本地锁定已建立），仅补记锁定目标的 op 上下文
-    if (args?.source === 'py' && args?.opMagic != null) {
+    // py 自回声：不重复应用锁定视觉（本地锁定已建立），仅补记锁定目标的 op 上下文；
+    // label 块内点击非 op 行（锁定目标为该 label 左上角 op）时按落点行补画
+    if (args?.source === 'py' && args?.opMagic != null && isLocked.value) {
       lockedOpCtx = { hash: String(args.hash ?? ''), opMagic: Number(args.opMagic), label: args.label ?? null };
+      const loc = opLocationIndex.get(`${lockedOpCtx.hash}_${lockedOpCtx.opMagic}`);
+      const editorBase = initCodePath.split(/[\/\\]/).pop();
+      if (loc && loc.pyFile.split(/[\/\\]/).pop() === editorBase) {
+        renderLineBands(editor, [loc.pyLine], isDarkTheme.value);
+        const visible = editor?.getVisibleRanges()?.some((r) => loc.pyLine >= r.startLineNumber && loc.pyLine <= r.endLineNumber);
+        if (!visible) {
+          editor.revealPositionInCenter({ lineNumber: loc.pyLine, column: 1 });
+        }
+      }
     }
     return;
   }
