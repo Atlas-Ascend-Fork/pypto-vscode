@@ -111,6 +111,32 @@ let points = [];
 let boundaries = [];
 let preLabel = '';
 let preLeafHash = '';
+// hover 联动消息发送节流：判定处只记录 pending 状态，实际发送按 200ms 节流统一执行
+// trailing 保证停住后的末次 label/hash 必然送达（与 editor.vue 的 flushHoverLinkage 一致）
+// null=清空，undefined=无 pending
+let pendingSwimHover = undefined;
+let lastSentSwimLabel = '';
+let lastSentSwimLeafHash = '';
+const flushSwimHoverMsg = throttle(() => {
+  const pending = pendingSwimHover;
+  pendingSwimHover = undefined;
+  if (pending === null) {
+    if (lastSentSwimLabel !== '' || lastSentSwimLeafHash !== '') {
+      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [], leafHash: '' });
+      lastSentSwimLabel = '';
+      lastSentSwimLeafHash = '';
+    }
+    return;
+  }
+  if (!pending) {
+    return;
+  }
+  if (pending.label !== lastSentSwimLabel || pending.leafHash !== lastSentSwimLeafHash) {
+    lastSentSwimLabel = pending.label;
+    lastSentSwimLeafHash = pending.leafHash;
+    sendMsg('returnSemanticLabelFromSwim', { label: pending.label, rootHashList: pending.rootHashList, leafHash: pending.leafHash });
+  }
+}, 200);
 let lockedLabel = '';
 // CCE 最近一次 hover 的语义 label 与 op hash：两者可能同时回传，由 renderCceHover 统一渲染
 // label+hash 都有效 → label 圈选框 + 框内同 hash 高亮（三态）
@@ -1463,7 +1489,8 @@ const handle3PureMove = (hoverInfo, localPosition, eventCtx) => {
     // hash-only 事件 color 为空 → preLabel 为空字符串，仅判 preLabel 会漏清框；
     // 须同时检查 preLeafHash，确保 hash-only hover 移出范围也能清框
     if (!isPointInPolygon && (preLabel || preLeafHash)) {
-      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [], leafHash: '' });
+      pendingSwimHover = null;
+      flushSwimHoverMsg();
       preLabel = '';
       preLeafHash = '';
       clearSelectionCanvas('data-three-column-process-key');
@@ -1611,7 +1638,8 @@ const handleHoverEvent = (hoveredEvent) => {
       handleOutline(color, false);
     }
     startLocalActionGuard();
-    sendMsg('returnSemanticLabelFromSwim', { label: color, rootHashList: rootHashList?.length ? rootHashList : [], leafHash });
+    pendingSwimHover = { label: color, rootHashList: rootHashList?.length ? rootHashList : [], leafHash };
+    flushSwimHoverMsg();
   }
   // 锁定态 hover 不得覆盖锁定目标：否则 resize/全屏重绘会拿 hover 节点的 leafHash 做三态高亮，
   // 与锁定目标不一致时框内节点全部置灰（高亮消失）

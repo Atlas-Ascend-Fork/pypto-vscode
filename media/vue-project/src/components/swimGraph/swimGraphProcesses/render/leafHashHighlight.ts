@@ -35,7 +35,7 @@ export interface LeafHashHighlightDeps {
 export function createLeafHashHighlight(deps: LeafHashHighlightDeps) {
     const { swimDataManager, processExpanded, ctxs, changeNodeColor, drawThreadSeparators, highlightEvent } = deps;
 
-    // 三态渲染：全图置灰，框内（drawColorDatas）同 leafHash 高亮，框内其余由 dimInBoxOthers 决定
+    // 三态渲染：全图置灰 → 框内按 dimInBoxOthers 处理 → 全图同 leafHash 高亮（含框外）
     const drawThreeStateHighlight = (
         drawColorDatas: Record<string, any[]>,
         leafHash: string,
@@ -47,12 +47,11 @@ export function createLeafHashHighlight(deps: LeafHashHighlightDeps) {
                 return;
             }
             const { eventCtx } = ctxs[processKey];
+            // 1. 全图置灰
             changeNodeColor(processKey, true);
             drawThreadSeparators(eventCtx, process, processKey);
+            // 2. 框内处理：dimInBoxOthers=false 画原色，true 保持置灰
             const inBoxEvents = drawColorDatas[processKey] || [];
-            if (!inBoxEvents.length) {
-                return;
-            }
             inBoxEvents.forEach((event: any) => {
                 const eventLeafHash = getLeafHashList(event.args?.['event-hint'] ?? '');
                 if (leafHash && eventLeafHash === leafHash) {
@@ -63,6 +62,27 @@ export function createLeafHashHighlight(deps: LeafHashHighlightDeps) {
                     onInBoxNonMatch(event, eventCtx, processKey);
                 }
             });
+            // 3. 全图扫描同 leafHash 高亮（含框外）：覆盖步骤 1/2 的灰色/原色，
+            // 保证同 hash 无论在框内框外都高亮（label 与 hash 范围可能不一致）
+            if (leafHash) {
+                process.threads.forEach((thread: any) => {
+                    if (thread.isCounter) {
+                        return;
+                    }
+                    const { eventIds } = thread;
+                    eventIds.forEach((eventId: string) => {
+                        const event = swimDataManager.getEventById(eventId);
+                        if (!event || !event.renderInfo || event.renderInfo.processKey !== processKey) {
+                            return;
+                        }
+                        const eventHintStr = event.args?.['event-hint'] ?? '';
+                        const eventLeafHash = getLeafHashList(eventHintStr);
+                        if (eventLeafHash && eventLeafHash === leafHash) {
+                            highlightEvent(eventCtx, event, processKey, false, true);
+                        }
+                    });
+                });
+            }
         });
     };
 
