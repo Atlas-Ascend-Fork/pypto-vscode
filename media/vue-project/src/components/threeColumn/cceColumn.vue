@@ -27,7 +27,7 @@
         />
         <i :class="[isCceFullscreen ? 'icon-zoom-screen' : 'icon-full-screen']" @click="onToggleCceFullscreen"></i>
       </div>
-      <div ref="containerRef" class="cce-container" @mouseleave="handleMouseLeave">
+      <div ref="containerRef" class="cce-container" @mouseleave="handleMouseLeave" @mouseenter="handleMouseEnter">
         <!-- 锁图标：点击行锁定后显示蓝色闭锁（点击解锁）；悬浮不显示 -->
         <div
           v-if="isLocked && lockPosition"
@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 import * as monaco from 'monaco-editor';
+import { throttle } from 'lodash-es';
 import fileSelect from './file-select.vue';
 import type { FileSelectItem } from './file-select.vue';
 import { ThreeColumnProvideKey } from './types';
@@ -93,6 +94,8 @@ let cceLabelBlocks: Array<{ label: string; lines: number[] }> = [];
 // label 块所属文件路径：切文件后旧 label 行号无效，锁定渐变框需按此过滤
 let cceLabelBlocksPath = '';
 let lastHoverLine = 0;
+// 鼠标已离开编辑区标记：拒绝节流 trailing 在离开后的迟到调用（与 py 栏同口径）
+let isMouseLeaved = false;
 // 行锁定：点击可锁定行（opMagic + funcHash）发送 activeLockFromCce，
 // 监听到 activeLockFromCom 后锁定（闭锁 + 蓝条 + 同 label 渐变框），锁定期间 hover 不响应
 const isLocked = ref(false);
@@ -356,7 +359,45 @@ const applyOpsHighlight = (hash: string, ops: number[], label?: string) => {
     noAssociatedObject.value = BlockToGraphMap[currentActiveBlock.value] !== 'cce';
   }
 };
-
+// 泳道来源悬停反馈：按 ops 命中行画渐变框、不画蓝条（与 py 栏泳道悬停同口径）；
+// ops 未命中时回退 label 块渐变框；锁定态不响应
+const applySwimOps = (hash: string, ops: number[], label?: string) => {
+  if (!editor || isLocked.value) {
+    return;
+  }
+  // ops 命中行：hash 一致 + 行命中才渲染
+  const bandLines =
+    hash && hash === currentFuncHash && ops?.length
+      ? Array.from(new Set(ops.flatMap((opMagic) => opMagicLineIndex.get(opMagic) ?? [])))
+      : [];
+  // 渐变框（label）：payload label 优先，为空时从命中行反查（与高亮行同 label 的行渐变背景框）
+  let hitLabels: string[] = [];
+  if (cceLabelBlocksPath === currentPath.value) {
+    if (label && cceLabelBlocks.some((block) => block.label === label)) {
+      hitLabels = [label];
+    } else {
+      hitLabels = Array.from(new Set(bandLines.map((line) => findLabelByLine(line)).filter((item) => item)));
+    }
+  }
+  const labelRanges = hitLabels.flatMap((item) =>
+    cceLabelBlocks.filter((block) => block.label === item).flatMap((block) => linesToRanges(block.lines)),
+  );
+  // ops 命中时按命中行画渐变框（渐变画布整体替换，只画命中行渐变），未命中时回退 label 块渐变框
+  clearLineBands(editor);
+  const ranges = bandLines.length ? linesToRanges(bandLines) : labelRanges;
+  if (ranges.length) {
+    renderBlockHighlights(editor, ranges);
+    noAssociatedObject.value = false;
+    // 滚动到当前悬浮 op 的首个命中行；无 ops 落点时定位渐变块首行
+    editor.revealPositionInCenter({ lineNumber: bandLines.length ? bandLines[0] : ranges[0][0], column: 1 });
+    return;
+  }
+  clearBlockHighlights(editor);
+  // 全未命中：hash 不匹配时按激活块定遮罩（CCE 激活撤下不打断，其它激活块置起提示无关联），清空残留装饰
+  if (hash && hash !== currentFuncHash) {
+    noAssociatedObject.value = BlockToGraphMap[currentActiveBlock.value] !== 'cce';
+  }
+};
 const sendMsg = (command: string, param: unknown) => {
   (window as any).ascEventBus.emit(command, param);
 };
@@ -483,6 +524,8 @@ const applyPendingLock = (): boolean => {
 // 清空联动消息与本地悬浮装饰；锁定态保持闭锁/蓝条/渐变框且不发清除消息
 const handleMouseLeave = () => {
   lastHoverLine = 0;
+  // 置离开标记：节流挂起的 trailing 调用据此拒绝，避免离开后陈旧行事件再发出
+  isMouseLeaved = true;
   if (isLocked.value) {
     return;
   }
@@ -490,6 +533,11 @@ const handleMouseLeave = () => {
   sendMsg('returnSemanticLabelFromCce', { label: '' });
   clearLineBands(editor);
   clearBlockHighlights(editor);
+};
+
+// 指针重新进入编辑区：解除离开标记，恢复悬浮联动（与 py 栏同口径）
+const handleMouseEnter = () => {
+  isMouseLeaved = false;
 };
 
 const createEditor = (code: string) => {
@@ -525,45 +573,54 @@ const createEditor = (code: string) => {
   }
 };
 
+// 悬停处理节流 200ms：快速划行时合并联动事件发送与本地反馈渲染，trailing 保证最终行状态；
+// 离开编辑区后的迟到 trailing 由 isMouseLeaved 拒绝（与 py 栏同口径）
+const handleMouseMove = throttle((e) => {
+  if (isMouseLeaved) {
+    return;
+  }
+  const line = e.target?.position?.lineNumber;
+  if (!line || line === lastHoverLine) {
+    return;
+  }
+  lastHoverLine = line;
+  // 锁定态下 hover 不响应：不联动、不渲染悬浮反馈
+  if (isLocked.value) {
+    return;
+  }
+  const text = editor!.getModel()?.getLineContent(line) ?? '';
+  const opMagic = extractOpMagic(text);
+  // label 事件先发（渐变框 + label 首行定位），op 事件后发（蓝条 + op 行定位覆盖）：
+  // 跨栏悬停 op 行滚动优先；且 op 行无 label 块时，label 空串的清除先于蓝条渲染，避免误清
+  const label = findLabelByLine(line);
+  sendMsg('returnSemanticLabelFromCce', { label });
+  if (opMagic != null && currentFuncHash) {
+    sendMsg('returnOpFromCce', { opmagic: opMagic, hash: currentFuncHash });
+  } else {
+    sendMsg('returnOpFromCce', { opmagic: 0, hash: '' });
+  }
+  // 本地悬浮反馈：被悬浮行整行蓝条（纯空白/注释行不显示）；与当前行同 label 的行渐变背景框
+  if (ignoreLines.has(line)) {
+    clearLineBands(editor);
+  } else {
+    renderLineBands(editor, [line], isDarkTheme.value);
+  }
+  const sameLabelRanges = label
+    ? cceLabelBlocks.filter((block) => block.label === label).flatMap((block) => linesToRanges(block.lines))
+    : [];
+  if (sameLabelRanges.length) {
+    renderBlockHighlights(editor, sameLabelRanges);
+  } else {
+    clearBlockHighlights(editor);
+  }
+}, 200);
+
 const setupCceInteraction = () => {
   if (!editor) {
     return;
   }
   editor.onMouseMove((e) => {
-    const line = e.target?.position?.lineNumber;
-    if (!line || line === lastHoverLine) {
-      return;
-    }
-    lastHoverLine = line;
-    // 锁定态下 hover 不响应：不联动、不渲染悬浮反馈
-    if (isLocked.value) {
-      return;
-    }
-    const text = editor!.getModel()?.getLineContent(line) ?? '';
-    const opMagic = extractOpMagic(text);
-    // label 事件先发（渐变框 + label 首行定位），op 事件后发（蓝条 + op 行定位覆盖）：
-    // 跨栏悬停 op 行滚动优先；且 op 行无 label 块时，label 空串的清除先于蓝条渲染，避免误清
-    const label = findLabelByLine(line);
-    sendMsg('returnSemanticLabelFromCce', { label });
-    if (opMagic != null && currentFuncHash) {
-      sendMsg('returnOpFromCce', { opmagic: opMagic, hash: currentFuncHash });
-    } else {
-      sendMsg('returnOpFromCce', { opmagic: 0, hash: '' });
-    }
-    // 本地悬浮反馈：被悬浮行整行蓝条（纯空白/注释行不显示）；与当前行同 label 的行渐变背景框
-    if (ignoreLines.has(line)) {
-      clearLineBands(editor);
-    } else {
-      renderLineBands(editor, [line], isDarkTheme.value);
-    }
-    const sameLabelRanges = label
-      ? cceLabelBlocks.filter((block) => block.label === label).flatMap((block) => linesToRanges(block.lines))
-      : [];
-    if (sameLabelRanges.length) {
-      renderBlockHighlights(editor, sameLabelRanges);
-    } else {
-      clearBlockHighlights(editor);
-    }
+    handleMouseMove(e);
   });
   editor.onMouseDown((e) => {
     if (e.event?.buttons !== undefined && e.event.buttons !== 1) {
@@ -802,8 +859,10 @@ const onReturnOpsFromCom = (args: { source?: string; hash?: string; ops?: number
   if (args?.source === 'cce') {
     return;
   }
-  if (args?.source === 'com' || args?.source === 'py' || args?.source === 'swim') {
+  if (args?.source === 'com' || args?.source === 'py') {
     applyOpsHighlight(args.hash ?? '', args.ops ?? [], args?.label);
+  } else if (args?.source === 'swim') {
+    applySwimOps(args.hash ?? '', args.ops ?? [], args?.label);
   } else if (!isLocked.value) {
     clearLineBands(editor);
     clearBlockHighlights(editor);
