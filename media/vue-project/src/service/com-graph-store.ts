@@ -68,7 +68,7 @@ interface ComGraphData {
   fourColRectNodeIds: string[];
   /**
    * 四联动 py 行匹配（leafHash+opmagic 定位到当前子图）的两级配色：
-   * matched = 整组（明度向远端调一档），active = 当前节点（保持原色，组内最浅/最亮）。
+   * active = 当前定位节点（取高亮色 lightColor），matched = 同组其余节点（取常规色 baseColor）。
    * 空数组时不影响任何现有视觉。
    */
   fourColMatchedNodeIds: string[];

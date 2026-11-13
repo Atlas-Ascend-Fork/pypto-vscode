@@ -53,10 +53,11 @@ const classes = computed(() => ({
   'three-column-item': true,
   [`three-column-item-${props.blockName}`]: Boolean(props.blockName),
   active: currentActiveBlock.value === props.blockName,
-  'has-border-right': props.hasBorderRight,
-  'has-border-left': props.hasBorderLeft,
-  'has-border-top': props.hasBorderTop,
-  'has-border-bottom': props.hasBorderBottom,
+  // 全屏块已铺满容器，沿用分隔边框会沿容器边缘画出一条多余的线
+  'has-border-right': props.hasBorderRight && !props.isFullscreen,
+  'has-border-left': props.hasBorderLeft && !props.isFullscreen,
+  'has-border-top': props.hasBorderTop && !props.isFullscreen,
+  'has-border-bottom': props.hasBorderBottom && !props.isFullscreen,
   'is-fullscreen': props.isFullscreen,
 }));
 const rootEl = ref<HTMLElement>();

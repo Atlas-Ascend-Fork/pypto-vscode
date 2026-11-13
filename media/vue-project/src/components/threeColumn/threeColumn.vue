@@ -90,7 +90,7 @@
       </ItemBlock>
     </div>
     <div
-      v-show="showColumnResizeBar"
+      v-show="showColumnResizeBar && !isBlockFullscreen"
       class="column-resize-bar"
       :style="{ left: columnBarLeft, height: isFourColumn ? '100%' : currentHeight, '--offset': columnBarOffset }"
       @mousedown="onColumnResizeMousedown"
@@ -98,7 +98,7 @@
       @mouseleave="() => (columnBarOffset = '1px')"
     ></div>
     <div
-      v-show="showLeftRowResizeBar && isFourColumn"
+      v-show="showLeftRowResizeBar && isFourColumn && !isBlockFullscreen"
       class="row-resize-bar"
       :style="{ top: leftRowBarTop, width: currentWidth, '--offset': leftRowBarOffset }"
       @mousedown="onLeftRowResizeMousedown"
@@ -106,7 +106,7 @@
       @mouseleave="() => (leftRowBarOffset = '1px')"
     ></div>
     <div
-      v-show="showRightRowResizeBar && isFourColumn"
+      v-show="showRightRowResizeBar && isFourColumn && !isBlockFullscreen"
       class="row-resize-bar"
       :style="{ top: rightRowBarTop, left: currentWidth, width: `calc(100% - ${currentWidth})`, '--offset': rightRowBarOffset }"
       @mousedown="onRightRowResizeMousedown"
@@ -114,7 +114,7 @@
       @mouseleave="() => (rightRowBarOffset = '1px')"
     ></div>
     <div
-      v-show="!isFourColumn"
+      v-show="!isFourColumn && !isBlockFullscreen"
       class="row-resize-bar"
       :style="{ top: leftRowBarTop, '--offset': leftRowBarOffset }"
       @mousedown="onFullRowResizeMousedown"
@@ -189,6 +189,8 @@ const isCceFullscreen = ref(false);
 const currentActiveBlock = ref<BlockType>('');
 const currentFullscreenBlock = ref<BlockType>('');
 const dragStartBlock = ref<BlockType>('');
+// 全屏块以 z-index 2 覆盖整个容器，而分隔条 z-index 为 20，若不禁用会压在全屏内容上显示为一条横线/竖线
+const isBlockFullscreen = computed(() => currentFullscreenBlock.value !== '');
 const showColumnResizeBar = computed(() => (isFourColumn.value
   ? (showLeft.value || showBottomLeft.value) && (showRight.value || showBottomRight.value)
   : showLeft.value && showRight.value));
