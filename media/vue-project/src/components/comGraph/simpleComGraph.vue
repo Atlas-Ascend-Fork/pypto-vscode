@@ -159,7 +159,6 @@ let removeSelectNodesRect;
 let updateModelAction;
 let initComDocText;
 let resetModelSource;
-let resetModel;
 let fitToScreenAction;
 let getModelSourceChildren: (() => any[]) | undefined;
 let graphLayoutReady = false;
@@ -318,8 +317,7 @@ function applyFourColVisual(spec: FourColVisual) {
   comGraphStore.data.isNodeRectLock = !!spec.lock;
   drillDownPathIcon.disableBack = !!spec.lock;
   if (spec.box?.length) {
-    // const curResetModel = (spec.source === 'com') ? ()=>{} : resetModel;
-    void createSelectNodesRectByIds?.(spec.box, true, resetModel, spec.source === 'com');
+    void createSelectNodesRectByIds?.(spec.box, true, spec.source === 'com');
   } else {
     removeSelectNodesRect?.();
   }
@@ -1304,7 +1302,7 @@ async function applyPySelection() {
     setLockedNodeGroup(group, activeId);
     reLockState = { source: 'py', label: selection.input.label ?? '', input: { ...selection.input } };
   }
-  await createSelectNodesRectByIds?.(group, true, resetModel);
+  await createSelectNodesRectByIds?.(group, true);
   if (selection !== pySelection || renderVersion !== graphRenderVersion) {
     selection.applying = false;
     return;
@@ -1551,7 +1549,6 @@ watch(
       updateModelAction = sprottyLoadResult.updateModelAction;
       hoverFeedbackAction = sprottyLoadResult.hoverFeedbackAction;
       resetModelSource = sprottyLoadResult.resetModelSource;
-      resetModel = sprottyLoadResult.resetModel;
       fitToScreenAction = sprottyLoadResult.fitToScreenAction;
       comGraphStore.setData('jsonData', jsonValue);
       comGraphStore.setData('comGraphConfig', {

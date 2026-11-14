@@ -147,7 +147,7 @@ export function useNodeActions(ctx: SprottyContext) {
 
     startRectAnimation(ctx.modelSource);
   };
-  const upsertRect = async (newRect: Record<string, any>, resetModel?: () => void) => {
+  const upsertRect = async (newRect: Record<string, any>) => {
     const modelRoot = (ctx.modelSource as any).currentRoot;
     const rootId = modelRoot.id;
     const rootIndex = (modelRoot as any).index;
@@ -160,7 +160,6 @@ export function useNodeActions(ctx: SprottyContext) {
         return true;
       });
     }
-    resetModel?.();
     await (ctx.modelSource as any).applyMatches([
       { left: { id: newRect.id }, leftParentId: rootId, right: newRect, rightParentId: rootId },
     ]);
@@ -194,7 +193,7 @@ export function useNodeActions(ctx: SprottyContext) {
    * 因此不会把框外节点连带置灰——置灰由 fourColDimNodeIds 精确控制（见 views.tsx getFourColNodeStyle）。
    * 渐变/蓝色由 isNodeRectLock 经 getRectStrokeColor 决定，与 createSelectNodesRect 同一套视觉。
    */
-  const createSelectNodesRectByIds = async (nodeIds: string[], isLocate: boolean, resetModel?: () => void, isFromCom?: boolean) => {
+  const createSelectNodesRectByIds = async (nodeIds: string[], isLocate: boolean, isFromCom?: boolean) => {
     if (isUpdatingRect) {
       return;
     }
@@ -218,8 +217,7 @@ export function useNodeActions(ctx: SprottyContext) {
         selectedNodes: nodeIds,
         needCalPostion: true,
       };
-    const curResetModel = !isFromCom ? resetModel : () => {};
-      await upsertRect(newRect, curResetModel);
+      await upsertRect(newRect);
     } finally {
       isUpdatingRect = false;
     }

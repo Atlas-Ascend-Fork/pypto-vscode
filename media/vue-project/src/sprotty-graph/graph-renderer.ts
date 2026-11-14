@@ -129,16 +129,6 @@ export function useGraphRenderer(ctx: SprottyContext) {
     }
   };
 
-  const resetModel = () => {
-    resetModelSource();
-    if (ctx.originSprottyGraph) {
-      ctx.originSprottyGraph.isFinial = false;
-      ctx.modelSource.setModel(ctx.originSprottyGraph as any).then(() => {
-        // fitGraphToScreen();
-      });
-    }
-  }
-
   /**
    * 统计图中节点和边的数量
    */
@@ -268,6 +258,5 @@ export function useGraphRenderer(ctx: SprottyContext) {
     resetMiniMap,
     setModelDirection,
     initComDocText,
-    resetModel
   };
 }

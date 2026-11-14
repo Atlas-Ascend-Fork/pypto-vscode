@@ -503,7 +503,12 @@ const applyPendingLock = (): boolean => {
   const { hash, opMagic, label: pendingLabel } = pendingLock;
   pendingLock = null;
   if (!currentFuncHash || (hash != null && hash !== currentFuncHash)) {
-    return fallbackToLabelLock(pendingLabel);
+    // 定位失败但已有锁定态（锁图标/蓝条在显）时先本地解锁，再显示无关联遮罩
+    if (isLocked.value || lockLine) {
+      clearLockState();
+    }
+    noAssociatedObject.value = BlockToGraphMap[currentActiveBlock.value] !== 'cce';
+    return;
   }
   const lines = opMagicLineIndex.get(opMagic);
   if (!lines?.length) {
