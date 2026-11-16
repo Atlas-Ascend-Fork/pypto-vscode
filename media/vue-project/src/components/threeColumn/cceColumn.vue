@@ -102,6 +102,10 @@ const isLocked = ref(false);
 const lockPosition = ref<{ top: number; left: number } | null>(null);
 // 锁定行（蓝色闭锁图标跟随的目标行）
 let lockLine = 0;
+// 泳道悬停最近一次给出的 ops（returnOpsFromCom source='swim'）：无 label 的泳道锁定在
+// renderLockDecorations 里回退用作渐变框来源；未锁定时每次悬停反馈到达即重置（仅泳道来源
+// 且带 hash+ops 时重新写入），泳道点击 hash 不匹配/带 label 或解锁时清空
+let lastSwimHoverOps: { hash: string; ops: number[] } | null = null;
 // 跨栏锁定（activeLockFromCom）待显示目标：所需文件就绪后按 opMagic 定位行；
 // label 供 op 无精确落点时的兜底定位（文档 2.3：ops 有 cce 行，或当前文件 hash+label 定位到区间）
 let pendingLock: { hash?: string; opMagic: number; label?: string } | null = null;
@@ -444,10 +448,13 @@ const requestLockAtLine = (line: number) => {
   if (opMagic == null || !currentFuncHash) {
     return;
   }
+  // 本栏发起锁定/切换：作废保留的泳道悬停 ops，无 label 锁定不沿用泳道渐变框（回到只画蓝条）
+  lastSwimHoverOps = null;
   sendMsg('activeLockFromCce', { label: findLabelByLine(line), opmagic: opMagic, hash: currentFuncHash });
 };
 
-// 锁定态视觉：锁定行整行蓝条 + 同 label 渐变框（描边加粗；label 未就绪/非当前文件时只画蓝条）
+// 锁定态视觉：锁定行整行蓝条 + 同 label 渐变框（描边加粗；无 label 的泳道锁定回退用保留的
+// 悬停 ops 命中行画渐变框；label 未就绪/非当前文件且无保留 ops 时只画蓝条）
 const renderLockDecorations = () => {
   if (!isLocked.value || !lockLine || !editor) {
     return;
@@ -457,8 +464,15 @@ const renderLockDecorations = () => {
   const sameLabelRanges = label
     ? cceLabelBlocks.filter((block) => block.label === label).flatMap((block) => linesToRanges(block.lines))
     : [];
-  if (sameLabelRanges.length) {
-    renderBlockHighlights(editor, sameLabelRanges, { strokeWidth: 1.5 });
+  // 无 label（泳道无 label 锁定）：保留的泳道悬停 ops（hash 与当前文件一致才有效）命中行画渐变框
+  const swimHover = !label ? lastSwimHoverOps : null;
+  const swimOpsLines =
+    swimHover && swimHover.hash === currentFuncHash
+      ? Array.from(new Set(swimHover.ops.flatMap((opMagic) => opMagicLineIndex.get(opMagic) ?? [])))
+      : [];
+  const ranges = sameLabelRanges.length ? sameLabelRanges : linesToRanges(swimOpsLines);
+  if (ranges.length) {
+    renderBlockHighlights(editor, ranges, { strokeWidth: 1.5 });
   } else {
     clearBlockHighlights(editor);
   }
@@ -471,6 +485,8 @@ const clearLockState = () => {
   isLocked.value = false;
   lockLine = 0;
   lockPosition.value = null;
+  // 锁定上下文结束：保留的泳道悬停 ops 一并作废，防解锁后其它来源的锁定误用
+  lastSwimHoverOps = null;
   clearLineBands(editor);
   clearBlockHighlights(editor);
 };
@@ -744,8 +760,13 @@ watch(
 );
 
 // 泳道锁定切换：记录目标 leafHash，供下钻引起的 subgraphHashChanged 判定「锁定切换在途」
-const onLockSwitchFromSwim = (args: { leafHash?: string }) => {
+const onLockSwitchFromSwim = (args: { label?: string; leafHash?: string }) => {
   pendingLockSwitchHash = String(args?.leafHash ?? '');
+  // 保留的泳道悬停 ops 只服务无 label 锁定的渐变框：本次点击带 label、或目标子图与保留
+  // hash 不一致（锁定期间 hover 反馈被图侧抑制，保留值属上一个 task）时作废，防陈旧 ops 画错渐变框
+  if (args?.label || String(args?.leafHash ?? '') !== lastSwimHoverOps?.hash) {
+    lastSwimHoverOps = null;
+  }
 };
 (window as any).ascEventBus.on('activeLockFromSwim', onLockSwitchFromSwim);
 
@@ -803,12 +824,19 @@ const onCceFileSwitchUnresolved = () => {
 
 // 计算图/其它栏锁定 op → CCE 栏切到 op 落点文件（无落点回退 candidate.cce[0]），并在目标行显示锁定锁
 const onActiveLockFromCom = (args: {
+  source?: string;
   hash?: string;
   opMagic?: number;
   label?: string | null;
   cce?: string | null;
   candidate?: { cce?: string[] };
 }) => {
+  // 计算/py 来源回执（锁定期间点击计算图、py 行切换目标，或步进上一个/下一个 op——此时
+  // hover 反馈被抑制、onReturnOpsFromCom 的重置不执行）：作废保留的泳道悬停 ops，
+  // 无 label 锁定不沿用泳道渐变框；swim 回声保留（ops 正服务它，切图重锁同走 swim 回声）
+  if (args?.source === 'com' || args?.source === 'py') {
+    lastSwimHoverOps = null;
+  }
   // 程序化加载：作废文件选择器场景的无路径标记，避免误触发计算图子图切换
   if (pendingUserSwitchPath === '*') {
     pendingUserSwitchPath = '';
@@ -861,6 +889,12 @@ const onActiveLock = (args: { label?: string }) => {
 // CCE 自身悬停的回声不覆盖本地蓝条/渐变框；其它来源/空 ops 清除。
 // 锁定态在渲染函数内部统一不响应，保持闭锁/蓝条/渐变框
 const onReturnOpsFromCom = (args: { source?: string; hash?: string; ops?: number[]; label?: string }) => {
+  // 未锁定时每次悬停反馈到达即重置保留的泳道悬停 ops（下次悬浮清空，防上一个 task 的陈旧
+  // 数据残留到后续锁定的渐变框），仅泳道来源且带 hash+ops 时重新写入；锁定期间不动它
+  //（锁定中 hover 反馈被图侧抑制，保留值由泳道点击的 hash 匹配与解锁统一管理）
+  if (!isLocked.value) {
+    lastSwimHoverOps = args?.source === 'swim' && args?.hash && args?.ops?.length ? { hash: args.hash, ops: args.ops } : null;
+  }
   if (args?.source === 'cce') {
     return;
   }
