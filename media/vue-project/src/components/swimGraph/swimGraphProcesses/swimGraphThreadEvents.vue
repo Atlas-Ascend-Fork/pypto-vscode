@@ -145,11 +145,25 @@ let lockedLabel = '';
 // 两者都空 → 恢复正常形态
 let cceHoverLabel = '';
 let cceHoverHash = '';
+// py 代码 hover 批处理：returnSemanticLabelFromCode（label）与 returnOpsFromCom（hash, source='py'）
+// 可能先后到达，合并后按优先级一次渲染
+let pyHoverLabel = '';
+let pyHoverHash = '';
+// 标记当前批处理窗口内是否收到过 label：label 先于 hash 到达，
+// 若 hash 到达时 label 未到则本批无 label（只有 hash 的场景），避免用旧 label 误画框
+let pyHoverLabelReceived = false;
+// py hover 渲染进行中标志：drawLabelBoxWithLeafHashHighlight 内部 transformCanvas→transform 会同步触发
+// swimGraphComplete transform 回调的 retriggerHoverAtMousePosition，用本地鼠标位置 hover 覆盖 py 三态。
+// 渲染期间置 true 让 retrigger 跳过，渲染结束复位
+let pyHoverRendering = false;
 let drawColorDatas = {};
 // 最近一次圈选目标：画布尺寸变化后据此重算 boundaries（旧坐标会随画布缩放偏移）
 let lastSelectionLabel = '';
 let lastSelectionLeafHash = '';
 let isHoverLockStatus = ref(false);
+// 抑制自身 watch 发出的 swimSelectModeChange 回声：本地监听器收到回声时跳过，
+// 只对其他实例发出的 selectMode=true 做退出处理（全局单一选定态）
+let suppressHoverLockEcho = false;
 // 计算图驱动的 leafHash 高亮：命中 hash 集合的事件高亮，其余置灰；为空表示未激活
 let leafHashHighlightSet = ref(new Set());
 // hover/click 操作保护
@@ -379,6 +393,40 @@ const onVisibilityChange = () => {
     }
   }
 };
+// webview 重新聚焦后首次点击 Y 坐标可能因 header 栏弹出偏移未命中事件，
+// 在 Y 阈值内按 X 命中范围找最近事件节点做吸附补偿（仅三栏模式首次点击使用）
+const findNearestEventByY = (x, y, processKey, yThreshold) => {
+  const process = swimDataManager.getProcess(processKey);
+  if (!process) {
+    return null;
+  }
+  let nearest = null;
+  let minDist = yThreshold;
+  for (const [, thread] of process.threads.entries()) {
+    if (thread.isCounter) {
+      continue;
+    }
+    for (const eventId of thread.eventIds) {
+      const event = swimDataManager.getEventById(eventId);
+      if (!event || !event.renderInfo || !event.drawData || !event.threadName || event.threadName.includes(FAKE_CORE_KEYWORD)) {
+        continue;
+      }
+      const { x: eventX, y: eventY, height: eventHeight } = event.renderInfo;
+      const { eventWidth } = event.drawData;
+      // X 须命中事件范围（与 findEventAtPosition 的非窄事件判定一致），不做 X 吸附
+      const hitWidth = Math.max(eventWidth, viewState.minWidth);
+      if (x < eventX || x > eventX + hitWidth) {
+        continue;
+      }
+      const dist = Math.abs(y - (eventY + eventHeight / 2));
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = event;
+      }
+    }
+  }
+  return nearest;
+};
 const handleCanvasClick = (e) => {
   isFromPerformanceClick.value = false;
   if (webviewJustFocused) {
@@ -410,7 +458,15 @@ const handleCanvasClick = (e) => {
   const y = e.clientY - rect.top;
 
   // 检查是否点击了事件
-  const clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
+  let clickedEvent = findEventAtPosition(x, y, props.processKey)?.event;
+  // 三栏模式下点击未命中时，可能因 header 栏弹出导致 Y 坐标偏移：
+  // 按 Y 阈值内、X 命中范围找最近事件做吸附补偿
+  if (!clickedEvent && isThreeColumn) {
+    const snapped = findNearestEventByY(x, y, props.processKey, 50);
+    if (snapped) {
+      clickedEvent = snapped;
+    }
+  }
   canvasclickedEvent.value = clickedEvent;
   // 锁定时的点击处理
   if (isPathLockStatus.value) {
@@ -421,19 +477,28 @@ const handleCanvasClick = (e) => {
     const isPointInPolygon = isPointInPolygonFun([x, y], boundaries);
     if (isPointInPolygon) {
       if (!clickedEvent) {
-        // 点击落在残留选择框内但没命中事件节点：清框继续，避免首次点击被吞进选择模式
-        // 导致从其他视图切回后需要点两次才能锁定
-        isHoverLockStatus.value = false;
-        clearSelectionCanvas('data-three-column-process-key');
-        sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [], leafHash: '' });
-        toggleLock();
+        // 点击落在选择框内空白处：进入 hover 选定态，保持当前 hover 三态样式不变。
+        // 已在选定态时再次点击框内空白保持不变（不 toggle）。
+        if (!isHoverLockStatus.value) {
+          isHoverLockStatus.value = true;
+          toggleLock();
+        }
         return;
       }
+    } else if (!clickedEvent) {
+      // 点击落在选择框外空白处：退出 hover 选定态（若在选定态）并清框恢复全图
+      if (isHoverLockStatus.value || boundaries.length) {
+        exitHoverLockStatus();
+      }
     } else {
-      isHoverLockStatus.value = false;
-      clearSelectionCanvas('data-three-column-process-key');
-      sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [], leafHash: '' });
-      toggleLock();
+      // 点击落在选择框外的事件节点：清掉 hover 选定态，后续锁定分支接管渲染与消息发送
+      if (isHoverLockStatus.value) {
+        isHoverLockStatus.value = false;
+        boundaries = [];
+        preLabel = '';
+        preLeafHash = '';
+        clearSelectionCanvas('data-three-column-process-key');
+      }
     }
   }
   if (clickedEvent) {
@@ -452,6 +517,10 @@ const handleCanvasClick = (e) => {
       const rootHashList = [getRootHashList(eventHintStr)].filter(Boolean);
       const leafHash = getLeafHashList(eventHintStr);
       if (isThreeColumn && (clickedLabel || leafHash)) {
+        // 进入锁定前清除 hover 选定态，避免选定态残留干扰锁定渲染
+        if (isHoverLockStatus.value) {
+          isHoverLockStatus.value = false;
+        }
         // 锁定标识：label 优先，hash-only 时用 leafHash
         const lockKey = clickedLabel || leafHash;
         // 防抖：同锁定目标重复点击跳过，避免重复渲染和消息发送
@@ -1585,6 +1654,11 @@ const retriggerHoverAtMousePosition = () => {
   if (isLockStatus.value || isHoverLockStatus.value) {
     return;
   }
+  // py hover 渲染进行中：transform 由 drawLabelBoxWithLeafHashHighlight 内部触发，
+  // 此时不重检 hover，避免用本地鼠标位置覆盖 py 三态
+  if (pyHoverRendering) {
+    return;
+  }
   if (!mousePosition) {
     return;
   }
@@ -1641,9 +1715,9 @@ const handleHoverEvent = (hoveredEvent) => {
     pendingSwimHover = { label: color, rootHashList: rootHashList?.length ? rootHashList : [], leafHash };
     flushSwimHoverMsg();
   }
-  // 锁定态 hover 不得覆盖锁定目标：否则 resize/全屏重绘会拿 hover 节点的 leafHash 做三态高亮，
-  // 与锁定目标不一致时框内节点全部置灰（高亮消失）
-  if (!isLockStatus.value) {
+  // 锁定态/hover 选定态 hover 不得覆盖已记录的目标：否则 resize/全屏重绘会拿新 hover 节点的
+  // leafHash 做三态高亮，与选定目标不一致时框内节点全部置灰（高亮消失）
+  if (!isLockStatus.value && !isHoverLockStatus.value) {
     preLabel = color;
     preLeafHash = leafHash;
   }
@@ -1911,6 +1985,21 @@ const toggleLock = () => {
     left: x,
   };
 };
+// 退出 hover 选定态：清状态 + 清框 + 清 hover 标记 + 发空联动消息 + 重算 lockPosition
+const exitHoverLockStatus = () => {
+  isHoverLockStatus.value = false;
+  boundaries = [];
+  preLabel = '';
+  preLeafHash = '';
+  clearSelectionCanvas('data-three-column-process-key');
+  const eventCtx = ctxs[props.processKey]?.eventCtx;
+  if (eventCtx) {
+    changeNodeColor(props.processKey, false);
+    drawThreadSeparators(eventCtx, props.process, props.processKey);
+  }
+  sendMsg('returnSemanticLabelFromSwim', { label: '', rootHashList: [], leafHash: '' });
+  toggleLock();
+};
 const resizeDrawBoundary = () => {
   if (!boundaries.length) {
     return;
@@ -1935,6 +2024,11 @@ const resizeDrawBoundary = () => {
       // label 层锁定无 leafHash：框内保持原色、框外置灰，与 drawSelection 的锁定渲染一致
       drawThreeStateHighlight(drawColorDatas, '', false);
     }
+  } else if (isHoverLockStatus.value && (preLabel || preLeafHash)) {
+    // hover 选定态：滚动/缩放后按进入选定态时的 preLabel/preLeafHash 重走三态渲染，
+    // 保持框 + 高亮 + 置灰不变。needTransform=false 避免再次触发 transformCanvas 循环；
+    // dimInBoxOthers=false 与 hover 场景一致（框内非同 hash 保持原色）
+    drawLabelBoxWithLeafHashHighlight(preLabel, preLeafHash, false, false);
   } else if (cceHoverLabel !== '' && cceHoverHash !== '') {
     // hover 三态（label+hash）：transform/zoom 触发的重绘须重走三态渲染，
     // 不能全图置灰覆盖掉 hover 高亮。needTransform=false 避免再次触发 transformCanvas 循环
@@ -2289,6 +2383,10 @@ const handleMouseLeave = (e) => {
     return;
   }
   mousePosition = null;
+  // 鼠标移出泳道图范围：退出 hover 选定态
+  if (isHoverLockStatus.value) {
+    exitHoverLockStatus();
+  }
   handleMouseLeaveThrottle(e);
 };
 
@@ -4568,16 +4666,109 @@ const drawLabelBoxWithLeafHashHighlight = (label, leafHash, needTransform = true
   threeRender.animate();
   toggleLock();
 };
-// 监听回调参数防 null 解构
-window.ascEventBus.on('returnSemanticLabelFromCode', (payload) => {
-  // 锁定态样式由锁定/解锁消息维护，hover 清除消息不得覆盖
+// py 代码 hover 统一渲染：returnSemanticLabelFromCode（label）与 returnOpsFromCom（hash, source='py'）
+// 先后到达，合并状态后按优先级一次渲染：
+// - hash 有效（非空且匹配到事件）+ label 有效 → label 圈选框 + 框内同 hash 高亮，框内非同 hash 保持原色
+// - hash 有效 + label 无效/空 → 按 hash 圈选框 + hash 三态高亮
+// - hash 无效（非空但匹配不到事件）→ 显示遮罩
+// - hash 空 + label 有效 → 按 label 圈选框（框外置灰）
+// - hash 空 + label 无效/空 → 显示遮罩
+// 计算图 schedulePyHover 有 200ms throttle 延迟才回传 hash：label 到达时 hash 尚未就绪。
+// label 先到且无 hash 时启动 250ms 等待窗口，期间 hash 到达则取消等待立即渲染；
+// 超时未收到 hash 则按仅 label 渲染。hash 先到或同时到则直接渲染
+let pyHoverRenderTimer = null;
+let pyHoverWaitHashTimer = null;
+const renderPyHover = () => {
   if (isLockStatus.value) {
     return;
   }
-  // py 代码 hover 只传 label 不传 hash：清空 leafHashHighlightSet，避免 handleOutline 因残留 hash 集合
-  // 误走 drawLeafHashHighlight（仅高亮 hash 节点，不置灰框外），应走 drawSelection 全图置灰 + 框内原色
-  leafHashHighlightSet.value = new Set();
-  handleOutline(payload?.label);
+  if (localActionGuard) {
+    return;
+  }
+  // 仅当本批收到过 label 消息时才认为 label 有效，避免用上一批残留的旧 label 误画框
+  const hasLabel = pyHoverLabelReceived && pyHoverLabel !== '';
+  const hasHash = pyHoverHash !== '';
+  const hashValid = hasHash && hasLeafHashMatch(new Set([pyHoverHash]));
+  // 渲染后复位 label 标志，下一批需重新收到 label 才视为有效
+  pyHoverLabelReceived = false;
+  // 渲染期间置标志：drawLabelBoxWithLeafHashHighlight/handleOutline 内部 transformCanvas→transform
+  // 会同步触发 swimGraphComplete transform 回调的 retriggerHoverAtMousePosition，
+  // 用本地鼠标位置 hover 覆盖 py 三态。渲染结束 finally 复位
+  pyHoverRendering = true;
+  try {
+    if (hashValid) {
+      if (hasLabel) {
+        // label 圈选框 + 框内同 hash 高亮，框内非同 hash 保持原色
+        leafHashHighlightSet.value = new Set([pyHoverHash]);
+        drawLabelBoxWithLeafHashHighlight(pyHoverLabel, pyHoverHash, true, false);
+      } else {
+        // 仅 hash 有效：按 hash 圈选框 + hash 三态高亮
+        leafHashHighlightSet.value = new Set([pyHoverHash]);
+        handleOutlineByLeafHash(pyHoverHash, true);
+        drawLeafHashHighlight();
+      }
+      return;
+    }
+    if (hasHash && !hashValid) {
+      // hash 无效（匹配不到任何事件）→ 显示遮罩
+      leafHashHighlightSet.value = new Set();
+      noAssociatedObject.value = true;
+      clearSelectionCanvas('data-three-column-process-key');
+      lockPosition.value = null;
+      return;
+    }
+    // hash 空
+    if (hasLabel) {
+      // 仅 label 有效：按 label 圈选框（框外置灰）
+      leafHashHighlightSet.value = new Set();
+      handleOutline(pyHoverLabel);
+      return;
+    }
+    // 两者都空：显示遮罩
+    leafHashHighlightSet.value = new Set();
+    noAssociatedObject.value = true;
+    clearSelectionCanvas('data-three-column-process-key');
+    lockPosition.value = null;
+  } finally {
+    pyHoverRendering = false;
+  }
+};
+const schedulePyHoverRender = () => {
+  if (pyHoverRenderTimer) {
+    clearTimeout(pyHoverRenderTimer);
+    pyHoverRenderTimer = null;
+  }
+  if (pyHoverWaitHashTimer) {
+    clearTimeout(pyHoverWaitHashTimer);
+    pyHoverWaitHashTimer = null;
+  }
+  const hasLabel = pyHoverLabelReceived && pyHoverLabel !== '';
+  const hasHash = pyHoverHash !== '';
+  if (hasLabel && !hasHash) {
+    // label 先到、hash 未到：启动等待窗口（250ms，略大于计算图 200ms throttle），
+    // 期间 hash 到达会再次调用 schedulePyHoverRender 取消此 timer 并立即渲染；
+    // 超时仍未收到 hash 则按仅 label 渲染
+    pyHoverWaitHashTimer = setTimeout(() => {
+      pyHoverWaitHashTimer = null;
+      renderPyHover();
+    }, 250);
+    return;
+  }
+  // hash 已到（有 label 或无 label）或只有 hash：直接渲染
+  pyHoverRenderTimer = setTimeout(() => {
+    pyHoverRenderTimer = null;
+    renderPyHover();
+  }, 0);
+};
+window.ascEventBus.on('returnSemanticLabelFromCode', (payload) => {
+  if (isLockStatus.value) {
+    return;
+  }
+  pyHoverLabel = payload?.label ?? '';
+  pyHoverLabelReceived = true;
+  // label 先到时清掉上一批残留的 hash，等 hash 消息到达后再设置
+  pyHoverHash = '';
+  schedulePyHoverRender();
 });
 window.ascEventBus.on('returnSemanticLabelFromCom', (payload) => {
   if (isLockStatus.value) {
@@ -4647,11 +4838,13 @@ window.ascEventBus.on('activeLockFromCom', (data) => {
   drawLabelBoxWithLeafHashHighlight(label, hash, true, true);
 });
 // 计算图悬停离开（returnOpsFromCom 空 ops）→ 清除 leaf 圈选
-// 计算图 / 代码区 hover 回传 ops：合并原 #1（清框）与 #2（hash 高亮）为统一回调
+// 计算图 / 代码区 hover 回传 ops：
 // - 锁定态：跳过（锁定态由锁定消息维护）
 // - localActionGuard：跳过（泳道自身发起的操作）
 // - source==='com' 且 ops 为空：计算图 hover 离开 → 清框
-// - source==='com'/'py' 且有 hash：按 hash 画框 + hash 高亮
+// - source==='py'：更新 pyHoverHash 后交 schedulePyHoverRender 统一渲染（与 returnSemanticLabelFromCode 合并）
+// - source==='swim'：跳过（泳道自身回声，只供 py/CCE 栏消费）
+// - source==='com' 且有 hash：按 hash 画框 + hash 高亮
 // - 有 hashSet 但无 hash 画框条件：检查匹配度设遮罩
 // - 其余：清遮罩 + hash 高亮
 window.ascEventBus.on('returnOpsFromCom', (data) => {
@@ -4677,6 +4870,12 @@ window.ascEventBus.on('returnOpsFromCom', (data) => {
   if (source === 'swim') {
     return;
   }
+  // py 代码 hover 的 hash 回传：交 schedulePyHoverRender 与 label 合并渲染
+  if (source === 'py') {
+    pyHoverHash = hash;
+    schedulePyHoverRender();
+    return;
+  }
   const hashSet = new Set();
   if (hash) {
     hashSet.add(hash);
@@ -4687,8 +4886,8 @@ window.ascEventBus.on('returnOpsFromCom', (data) => {
     }
   });
   leafHashHighlightSet.value = hashSet;
-  // 计算图 / 代码区 hover 且有 hash → 按 hash 画框 + hash 高亮
-  if ((source === 'com' || source === 'py') && hash) {
+  // 计算图 hover 且有 hash → 按 hash 画框 + hash 高亮
+  if (source === 'com' && hash) {
     handleOutlineByLeafHash(hash, true);
   } else if (hashSet.size) {
     noAssociatedObject.value = !hasLeafHashMatch(hashSet);
@@ -4728,6 +4927,8 @@ window.ascEventBus.on('activeLockFromSwim', ({ label, leafHash }) => {
 window.ascEventBus.on('deactivateLock', () => {
   lockedLabel = '';
   isLockStatus.value = false;
+  // 解锁/切模式时同步清除 hover 选定态，避免残留
+  isHoverLockStatus.value = false;
   noAssociatedObject.value = false;
   // 解锁即清除锁定框画布与边界（hover 消息在锁定态被守卫，不能再依赖其顺带清框）
   boundaries = [];
@@ -5225,6 +5426,8 @@ const distanceMeasurementResize = () => {
 };
 addChildContext('threadEvent', {
   drawLockedOutline,
+  isHoverLockStatus: () => isHoverLockStatus.value,
+  isPyHoverRendering: () => pyHoverRendering,
   getCanvasHeight,
   renderProcessEvents,
   computeProcessDrawData,
@@ -5270,7 +5473,35 @@ addChildContext('threadEvent', {
   showPathLockedHighlight,
   hidePathLockedHighlight
 });
-watch(isHoverLockStatus, () => { sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value }) });
+watch(isHoverLockStatus, () => {
+  suppressHoverLockEcho = true;
+  sendMsg('swimSelectModeChange', { selectMode: isHoverLockStatus.value });
+  // emit 用 setTimeout 派发，监听器在下一个宏任务 tick 执行；
+  // 回声抑制须在监听器之后复位：先等微任务（sendMsg 内的 Promise.resolve().then 触发 emit
+  // 把监听器 setTimeout 入队），再用 setTimeout 把复位排在监听器之后
+  Promise.resolve().then(() => {
+    setTimeout(() => { suppressHoverLockEcho = false; });
+  });
+});
+// 全局单一选定态：其他泳道实例进入选定态时，本地退出（不影响正在锁定的实例）
+window.ascEventBus.on('swimSelectModeChange', (args) => {
+  if (suppressHoverLockEcho) {
+    return;
+  }
+  if (args?.selectMode && isHoverLockStatus.value && !isLockStatus.value) {
+    isHoverLockStatus.value = false;
+    boundaries = [];
+    preLabel = '';
+    preLeafHash = '';
+    clearSelectionCanvas('data-three-column-process-key');
+    const eventCtx = ctxs[props.processKey]?.eventCtx;
+    if (eventCtx) {
+      changeNodeColor(props.processKey, false);
+      drawThreadSeparators(eventCtx, props.process, props.processKey);
+    }
+    toggleLock();
+  }
+});
 // 每个事件画布都会走一遍
 watch(isDarkTheme, () => {
   colorCfg = isDarkTheme.value ? COLOR_CFG.dark : COLOR_CFG.light;

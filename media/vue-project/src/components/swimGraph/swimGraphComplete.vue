@@ -1127,7 +1127,8 @@ const transform = (needClean=false) => {
   }
   perfLogger.timeEnd('time of transform');
   // 缩放/水平滚动后鼠标物理位置未变，浏览器不补发 mousemove：主动重检 hover 命中
-  if (props.isThreeColumn && !isLockStatus.value) {
+  // hover 选定态下不重检：选定态保持当前渲染，hover 重检会覆盖选定样式
+  if (props.isThreeColumn && !isLockStatus.value && !childContextMap.threadEvent.isHoverLockStatus() && !childContextMap.threadEvent.isPyHoverRendering()) {
     childContextMap.threadEvent.retriggerHoverAtMousePosition();
   }
 };
@@ -2701,9 +2702,10 @@ const doResizeFastPhase = () => {
   }
 
   transform();
-  // 三栏锁定态下 transform() 内的 resizeDrawBoundary() 已按 leafHash 完成三态重绘，
-  // 再 changeNodeColor 会统一置灰/恢复原始色，覆盖锁定高亮
-  if (!(props.isThreeColumn && isLockStatus.value)) {
+  // 三栏锁定态/hover 选定态下 transform() 内的 resizeDrawBoundary() 已按目标完成三态重绘，
+  // 再 changeNodeColor 会统一置灰/恢复原始色，覆盖高亮
+  const skipNodeColor = props.isThreeColumn && (isLockStatus.value || childContextMap.threadEvent.isHoverLockStatus() || childContextMap.threadEvent.isPyHoverRendering());
+  if (!skipNodeColor) {
     for (const [key] of swimDataManager.getAllProcesses().entries()) {
       if (processExpanded.get(key)) {
         childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
@@ -2726,9 +2728,10 @@ const doResizeFullPhase = () => {
   selectedEvent.value = savedSelected;
   searchedEvent.value = savedSearched;
   transform();
-  // 三栏锁定态下 transform() 内的 resizeDrawBoundary() 已按 leafHash 完成三态重绘，
-  // 再 changeNodeColor 会统一置灰/恢复原始色，覆盖锁定高亮
-  if (!(props.isThreeColumn && isLockStatus.value)) {
+  // 三栏锁定态/hover 选定态下 transform() 内的 resizeDrawBoundary() 已按目标完成三态重绘，
+  // 再 changeNodeColor 会统一置灰/恢复原始色，覆盖高亮
+  const skipNodeColor = props.isThreeColumn && (isLockStatus.value || childContextMap.threadEvent.isHoverLockStatus() || childContextMap.threadEvent.isPyHoverRendering());
+  if (!skipNodeColor) {
     for (const [key] of swimDataManager.getAllProcesses().entries()) {
       if (processExpanded.get(key)) {
         childContextMap.threadEvent.changeNodeColor(key, Boolean(selectedEvent.value));
@@ -2856,7 +2859,8 @@ const transformVerticalScroll = () => {
   perfLogger.timeEnd('time of transformVerticalScroll');
   drawMeasureTime();
   // 垂直滚动后鼠标物理位置未变，浏览器不补发 mousemove：主动重检 hover 命中
-  if (props.isThreeColumn && !isLockStatus.value) {
+  // hover 选定态下不重检：选定态保持当前渲染
+  if (props.isThreeColumn && !isLockStatus.value && !childContextMap.threadEvent.isHoverLockStatus() && !childContextMap.threadEvent.isPyHoverRendering()) {
     childContextMap.threadEvent.retriggerHoverAtMousePosition();
   }
 };
