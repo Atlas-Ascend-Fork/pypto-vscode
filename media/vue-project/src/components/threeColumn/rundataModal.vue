@@ -105,7 +105,15 @@ const getHistoryList = (page, searchKey) => {
   });
 };
 watch(sortOption, () => {
+  pageIndex.value = 1;
   getHistoryList(1, searchQuery.value);
+});
+// 清空搜索框（清除按钮或删空）时回到第 1 页并展示全量数据
+watch(searchQuery, (val, oldVal) => {
+  if (oldVal && !val) {
+    pageIndex.value = 1;
+    getHistoryList(1, '');
+  }
 });
 
 const openOtherFile = () => {
@@ -116,7 +124,12 @@ const openOtherFile = () => {
 };
 const onSearch = (val) => {
   searchQuery.value = val;
-  getHistoryList(1, searchQuery.value);
+  if (!val) {
+    // 清空统一由 searchQuery 的 watch 处理，避免重复请求
+    return;
+  }
+  pageIndex.value = 1;
+  getHistoryList(1, val);
 };
 const runDataCancel = () => {
   runDataVisible.value = false;
