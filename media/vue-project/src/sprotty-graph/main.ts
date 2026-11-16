@@ -30,13 +30,13 @@ declare const vscode: any;
 
 const { server } = useViewServer<IComViewServer>();
 
-export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'after') {
+export function useSprottyLoad(containerId?: string, filePath?: 'before' | 'after', preserveSelectionLayout = false) {
   const ctx = createContext(containerId, filePath);
   ctx.server = server;
 
   const viewport = useViewport(ctx);
   const renderer = useGraphRenderer(ctx);
-  const nodeActions = useNodeActions(ctx);
+  const nodeActions = useNodeActions(ctx, preserveSelectionLayout);
 
   const bindings: EventBinding[] = [
     { event: `${ctx.renderType}_minimap_rect_move`, handler: (args: number[]) => viewport.setViewportAction(ctx.modelSource.model.id, args[0], args[1], args[2], false) },

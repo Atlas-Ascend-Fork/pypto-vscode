@@ -15,6 +15,7 @@
 
 import { SModelRootImpl, SCompartmentImpl } from 'sprotty';
 import { SelectAction, CenterAction, SetViewportAction, UpdateModelAction, HoverFeedbackAction } from 'sprotty-protocol';
+import type { SModelElement } from 'sprotty-protocol';
 import { findDestNode, findNeighborNode } from './menu';
 import { createSvg } from './svgExport';
 import { findNodeIdsBySemanticLabel } from '../utils/search';
@@ -24,7 +25,7 @@ import { createFitAction } from './fit-action';
 import type { SprottyContext } from './context';
 import type { HotKeyEvent, SubGraphEvent } from './types';
 
-export function useNodeActions(ctx: SprottyContext) {
+export function useNodeActions(ctx: SprottyContext, preserveSelectionLayout = false) {
   let isUpdatingRect = false;
   const syncFitScreenViewport = async () => {
     try {
@@ -124,7 +125,9 @@ export function useNodeActions(ctx: SprottyContext) {
     if (comGraphStore.data.selectedNodeSemanticLabel !== semanticLabel) {
       isUpdatingRect = true;
       try {
-         (comGraphStore.data as any).notNeedLayout = true;
+        if (!preserveSelectionLayout) {
+          (comGraphStore.data as any).notNeedLayout = true;
+        }
       comGraphStore.data.selectedNodeSemanticLabel = semanticLabel;
       const newRect = {
         id: 'show-node-rect',
@@ -147,7 +150,7 @@ export function useNodeActions(ctx: SprottyContext) {
 
     startRectAnimation(ctx.modelSource);
   };
-  const upsertRect = async (newRect: Record<string, any>) => {
+  const upsertRect = async (newRect: SModelElement) => {
     const modelRoot = (ctx.modelSource as any).currentRoot;
     const rootId = modelRoot.id;
     const rootIndex = (modelRoot as any).index;
@@ -160,9 +163,16 @@ export function useNodeActions(ctx: SprottyContext) {
         return true;
       });
     }
-    await (ctx.modelSource as any).applyMatches([
-      { left: { id: newRect.id }, leftParentId: rootId, right: newRect, rightParentId: rootId },
-    ]);
+    const matches = [
+      { left: { id: newRect.id, type: 'rect' }, leftParentId: rootId, right: newRect, rightParentId: rootId },
+    ];
+    if (preserveSelectionLayout) {
+      // 框选通过增量更新沿用已显示节点的几何，跳过隐藏视图的尺寸测量。
+      modelRoot.children.push(newRect);
+      await ctx.modelSource.actionDispatcher.dispatch(UpdateModelAction.create(matches, { animate: false }));
+    } else {
+      await (ctx.modelSource as any).applyMatches(matches);
+    }
   };
   const removeSelectNodesRect = async () => {
     if(isUpdatingRect){
@@ -184,7 +194,12 @@ export function useNodeActions(ctx: SprottyContext) {
         }
         return true;
       });
-      await (ctx.modelSource as any).applyMatches([{ left: {id: 'show-node-rect'}, leftParentId: modelRoot.id }]);
+      const matches = [{ left: { id: 'show-node-rect', type: 'rect' }, leftParentId: modelRoot.id }];
+      if (preserveSelectionLayout) {
+        await ctx.modelSource.actionDispatcher.dispatch(UpdateModelAction.create(matches, { animate: false }));
+      } else {
+        await (ctx.modelSource as any).applyMatches(matches);
+      }
     }
   };
 
@@ -205,7 +220,9 @@ export function useNodeActions(ctx: SprottyContext) {
     if (prevKey !== nodeIds.join('|') || comGraphStore.data.selectedNodeSemanticLabel !== '') {
       isUpdatingRect = true;
       try {
-        (comGraphStore.data as any).notNeedLayout = true;
+        if (!preserveSelectionLayout) {
+          (comGraphStore.data as any).notNeedLayout = true;
+        }
       comGraphStore.data.selectedNodeSemanticLabel = '';
       comGraphStore.setData('fourColRectNodeIds', [...nodeIds]);
       const newRect = {
@@ -352,8 +369,12 @@ export function useNodeActions(ctx: SprottyContext) {
   };
 
   const updateModelAction = async (animate?: boolean, cause?: boolean) => {
-    ctx.modelSource.actionDispatcher.dispatch(
-      UpdateModelAction.create((ctx.modelSource as any).currentRoot, { animate, cause: cause as any }),
+    // 空增量沿用显示模型中的节点几何，仅重新计算视觉。
+    return ctx.modelSource.actionDispatcher.dispatch(
+      UpdateModelAction.create(preserveSelectionLayout ? [] : (ctx.modelSource as any).currentRoot, {
+        animate: preserveSelectionLayout ? false : animate,
+        cause: cause as any,
+      }),
     );
   };
 
