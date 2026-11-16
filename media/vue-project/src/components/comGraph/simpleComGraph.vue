@@ -1613,12 +1613,27 @@ onMounted(() => {
     const hit = resolveClickedGraphOp(node);
     // 四栏模式：op 的 label 区域点击也用于上锁；三栏保持原有 label-main 打开详情
     if (hit && (isFourColumnMode() || !node.id.endsWith('label-main'))) {
-      // 上锁后只允许单击锁图标或 deactivateLock 解锁，点击其它节点不改变锁定
-      if (comGraphStore.data.isNodeRectLock) {
+      // 锁定框自身（含锁图标）不参与重锁，避免点锁图标解锁时又被重新上锁
+      if (node.id === 'show-node-rect' || node.id.includes('show_node_rect_lock')) {
+        return;
+      }
+      // 三栏保持原有行为：上锁后点击其它节点不改变锁定
+      if (comGraphStore.data.isNodeRectLock && !isFourColumnMode()) {
+        return;
+      }
+      const activeNodeId = graphNodeIdOf(hit.op);
+      // 四栏已锁定：点击其它节点切换锁定目标，保持锁定态
+      if (comGraphStore.data.isNodeRectLock && comGraphStore.data.fourColFocusNodeIds?.[0] === activeNodeId) {
         return;
       }
       cancelPySelection(true);
       applyComNodeVisual(hit.op, 'lock');
+      if (comGraphStore.data.isNodeRectLock) {
+        const label = hit.op.semantic_label?.label ?? '';
+        const group = label ? nodeIdsOfLabel(label) : [activeNodeId];
+        setLockedNodeGroup(group, activeNodeId);
+        reLockState = label ? { source: 'label', label } : null;
+      }
       hoverFeedbackAction?.();
       // 与悬浮保持同一口径：始终回传当前子图 hash + 被点击节点 opmagic，
       // 不再对 CALL 节点改传 calleehash（那会让悬浮与点击给出不同的 hash/op 组合）
