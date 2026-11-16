@@ -1,0 +1,13 @@
+name: build-vsix-tag
+
+# 打 v* tag 无条件触发打包（不受 tag 指向提交的文件变更限制）
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_vsix:
+    uses: ./.gitcode/workflows/build-vsix-merge.yaml
+    secrets:
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
