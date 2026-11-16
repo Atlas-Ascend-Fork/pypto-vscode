@@ -350,17 +350,9 @@ function applySwimVisual(label: string, targetHash: string, mode: 'hover' | 'loc
       .filter((op) => !label || (op.semantic_label?.label ?? '') === label)
       .map((op) => Number(op.opmagic));
     if (mode === 'hover') {
-      if (label) {
-        const active = sortNodeIdsByPosition(group)[0];
-        applyFourColVisual({
-          highlight: active ? [active] : [],
-          normal: group.filter((id) => id !== active),
-          dim: allIds.filter((id) => !group.includes(id)),
-          box: group,
-        });
-      } else {
-        applyFourColVisual({ normal: allIds, box: allIds });
-      }
+      applyFourColVisual(label
+        ? {highlight: group, dim: allIds.filter((id) => !group.includes(id)), box: group}
+        : {normal: allIds, box: allIds});
       emitOpsFeedback('swim', targetHash || currentGraphHash(), ops, label);
       return;
     }
@@ -370,7 +362,6 @@ function applySwimVisual(label: string, targetHash: string, mode: 'hover' | 'loc
     applyFourColVisual({
       highlight: active ? [active] : [],
       normal: group.filter((id) => id !== active),
-      dim: allIds.filter((id) => !group.includes(id)),
       box: group,
       lock: true,
     });
