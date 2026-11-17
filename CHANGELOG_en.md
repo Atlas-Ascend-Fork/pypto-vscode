@@ -1,5 +1,24 @@
 # PyPTO Toolkit Plugin Version Change Notes
 
+## [2.1.3] - 2026.11.16
+
+### Added
+
+- The plugin supports the four-column linked view
+
+## [2.1.2] - 2026.10.30
+
+### Fixed
+
+- This release fixes the compatibility issue between the control flow and the new version of the program file structure
+
+## [2.1.1] - 2026.09.22
+
+### Added
+
+- The end-to-end fusion view optimizes the display of AICPU nodes
+- The plugin adds support for GTKWave waveform viewing
+
 ## [2.1.0] - 2026.09.14
 
 ### Added
@@ -9,6 +28,13 @@
 ### Fixed
 
 - This release fixes some legacy issues of previous versions
+
+## [2.0.21] - 2026.08.29
+
+### Added
+
+- The end-to-end swimlane graph adapts to the fusion view display scheme
+- The run results support synchronizing build records in the split deployment environment
 
 ## [2.0.20] - 2026.08.21
 
