@@ -27,6 +27,7 @@ import type { HotKeyEvent, SubGraphEvent } from './types';
 
 export function useNodeActions(ctx: SprottyContext, preserveSelectionLayout = false) {
   let isUpdatingRect = false;
+  let pendingRectRequest: { nodeIds: string[]; isLocate: boolean; isFromCom?: boolean } | null = null;
   const syncFitScreenViewport = async () => {
     try {
       const viewInfo = await ctx.modelSource.getViewport();
@@ -176,6 +177,9 @@ export function useNodeActions(ctx: SprottyContext, preserveSelectionLayout = fa
   };
   const removeSelectNodesRect = async () => {
     if(isUpdatingRect){
+      if (preserveSelectionLayout) {
+        pendingRectRequest = { nodeIds: [], isLocate: false };
+      }
       return;
     }
     cancelRectAnimation();
@@ -210,6 +214,10 @@ export function useNodeActions(ctx: SprottyContext, preserveSelectionLayout = fa
    */
   const createSelectNodesRectByIds = async (nodeIds: string[], isLocate: boolean, isFromCom?: boolean) => {
     if (isUpdatingRect) {
+      // 切换子图时旧模型的框选更新可能尚未结束；保留最后一次目标，避免新模型布局完成后漏画锁定框。
+      if (preserveSelectionLayout) {
+        pendingRectRequest = { nodeIds: [...nodeIds], isLocate, isFromCom };
+      }
       return;
     }
     if (!nodeIds?.length) {
@@ -217,7 +225,8 @@ export function useNodeActions(ctx: SprottyContext, preserveSelectionLayout = fa
       return;
     }
     const prevKey = (comGraphStore.data.fourColRectNodeIds ?? []).join('|');
-    if (prevKey !== nodeIds.join('|') || comGraphStore.data.selectedNodeSemanticLabel !== '') {
+    const hasRect = !!(ctx.modelSource as any).currentRoot?.children?.some((child: { id: string }) => child.id === 'show-node-rect');
+    if (prevKey !== nodeIds.join('|') || comGraphStore.data.selectedNodeSemanticLabel !== '' || !hasRect) {
       isUpdatingRect = true;
       try {
         if (!preserveSelectionLayout) {
@@ -235,9 +244,14 @@ export function useNodeActions(ctx: SprottyContext, preserveSelectionLayout = fa
         needCalPostion: true,
       };
       await upsertRect(newRect);
-    } finally {
-      isUpdatingRect = false;
-    }
+      } finally {
+        isUpdatingRect = false;
+        const pending = preserveSelectionLayout ? pendingRectRequest : null;
+        pendingRectRequest = null;
+        if (pending) {
+          void createSelectNodesRectByIds(pending.nodeIds, pending.isLocate, pending.isFromCom);
+        }
+      }
     }
     if(!isFromCom) {
       const fitAction = createFitAction({ maxZoom: 2.0, padding: 50, elementIds: nodeIds, animate: false });

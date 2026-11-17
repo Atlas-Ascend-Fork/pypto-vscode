@@ -169,6 +169,7 @@ let graphRenderVersion = 0;
 // 待渲染完成后执行的视觉动作统一挂这里（py 精确选中 / CCE hover / CCE 锁定共用）
 let pendingApply: (() => void) | null = null;
 let pendingApplyHash = '';
+let swimLockTarget: { label: string; hash: string } | null = null;
 let drillDownPath: DrillDownPathItem[] = [];
 let currentPath: DrillDownPathItem;
 const drillDownPathIcon = reactive({
@@ -629,11 +630,14 @@ function applyCceVisual(opmagic: number | string, leafHash: string, mode: 'hover
 (window as any).ascEventBus.on('activeLockFromSwim', (args) => {
   const label = args?.label ?? '';
   const leafHash = args?.leafHash ?? '';
-  if (!label && !leafHash) {
+  if (!leafHash) {
     return;
   }
   swimLockJumpPending = true;
   cancelPySelection(true);
+  swimLockTarget = { label, hash: String(leafHash) };
+  comGraphStore.data.isNodeRectLock = true;
+  drillDownPathIcon.disableBack = true;
   applySwimVisual(label, leafHash, 'lock');
   hoverFeedbackAction?.();
 });
@@ -1075,6 +1079,7 @@ function cancelPySelection(release = false) {
   pySelection = null;
   if (release) {
     pyOwnsVisual = false;
+    swimLockTarget = null;
     clearOpNodeHighlight();
   }
   if (hoverTimer) {
@@ -1449,6 +1454,12 @@ watch(
         currentPath = { calleehash: val.hash, subFuncmagicname: funcMagicName };
       }
       if (initComDocText) {
+        if (swimLockTarget?.hash === newHash) {
+          // 泳道锁定目标随当前模型的每次重建，在布局结束后恢复框选。
+          const target = swimLockTarget;
+          pendingApplyHash = target.hash;
+          pendingApply = () => applySwimVisual(target.label, target.hash, 'lock');
+        }
         resetModelSource(true);
         initComDocText(jsonValue, isDarkTheme.value, props.openMode, props.nodeMagic, -1, props.isThreeMode);
         server.returnFuncTree();
