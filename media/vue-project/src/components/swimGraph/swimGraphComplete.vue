@@ -803,9 +803,11 @@ const processTraceData = (data, locateTarget) => {
   processExtraData(data);
   initViewStateFromTimeInfo();
   buildThreadMipmapsAndCheckAicpu();
-  swimDataManager.splitAllEvents();
+  if (!props.isThreeColumn) {
+    swimDataManager.splitAllEvents();
+    handleMixModeLayout();
+  }
   finalizeE2EStatus();
-  handleMixModeLayout();
   scheduleRender(locateTarget);
 };
 
