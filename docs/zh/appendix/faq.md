@@ -38,3 +38,7 @@
 ![](../figures/measureDistanse.png)
 - 使用手动测距： 按住ALT并鼠标左键点击起始节点和终止节点。
 ![](../figures/distance.png)
+
+## 问题8：打开大节点规模计算图（如数万节点）时界面灰屏
+
+解决方案：该问题与 VS Code 内置的 Chromium 版本有关，将 VS Code 升级到 **1.101.0 及以上**版本即可正常打开。
