@@ -8,7 +8,7 @@
 
 PyPTO Toolkit将基于PyPTO程序的结果文件进行分析，因此建议用户在使用Visual Studio Code运行PyPTO程序，或者使用Visual Studio Code的Remote - SSH扩展连接到PyPTO程序的运行环境（容器运行请连接到容器内部），这样您可以参考如下步骤查看到到相关结果文件。
 
-当然，您也可以直接将运行结果文件夹导入Visual Studio Code的工作区，但这可能导致部分功能无法使用，例如[控制流图](../control_flow/view_control_flow.md)的展示，不过不会影响[计算图](../computation_graph/view_computation_graph.md)、[泳道图](../swimlane_graph/swim_category/index.md)、[三栏联动视图](../three_column/three_column.md)功能的使用。
+当然，您也可以直接将运行结果文件夹导入Visual Studio Code的工作区，但这可能导致部分功能无法使用，例如[控制流图](../control_flow/view_control_flow.md)的展示，不过不会影响[计算图](../computation_graph/view_computation_graph.md)、[泳道图](../swimlane_graph/swim_category/index.md)、[联动视图](../link_mode/link_mode.md)功能的使用。
 
 ## 操作步骤
 

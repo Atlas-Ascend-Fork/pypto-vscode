@@ -15,6 +15,6 @@ introduction/data_preparation
 control_flow/index
 computation_graph/index
 swimlane_graph/index
-three_column/three_column
+link_mode/link_mode
 others/others
 appendix/index

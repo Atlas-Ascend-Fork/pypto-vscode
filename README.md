@@ -22,7 +22,7 @@ PyPTO Toolkit是一款PyPTO框架全流程辅助工具，提供包括编译、�
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/2.0.2/openSwimGraph.gif)
 
-- **三栏联动视图：** 支持算子代码-计算图-泳道图之间的实时联动，降低使用PyPTO框架调试调优的门槛，提升一站式的调试调优效率。
+- **联动视图：** 支持算子代码-CCE代码-计算图-泳道图之间的实时联动，降低使用PyPTO框架调试调优的门槛，提升一站式的调试调优效率。
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/1.0.1threeView.gif)
 

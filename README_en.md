@@ -22,7 +22,7 @@ For detailed usage instructions, please refer to the [PyPTO Toolkit Documentatio
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/openSwimGraph_en.gif)
 
-- **Three-Panel Linked View:** Supports real-time linkage among operator code, computation graph, and swimlane diagram, lowering the barrier for debugging and tuning with the PyPTO framework and improving one-stop debugging and tuning efficiency.
+- **Linked View:** Supports real-time linkage among operator code, CCE code, computation graph, and swimlane diagram, lowering the barrier for debugging and tuning with the PyPTO framework and improving one-stop debugging and tuning efficiency.
 
   ![image](https://ascend-cann.obs.cn-north-4.myhuaweicloud.com/devkit/images/threeView_en.gif)
 
