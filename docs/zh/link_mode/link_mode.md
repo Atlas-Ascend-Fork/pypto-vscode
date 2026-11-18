@@ -46,7 +46,7 @@
     - **Py 源码**（左上）：只读展示 PyPTO 代码，左侧通过色块标记划分语义标签范围。顶部下拉可以切换计算图中引用的 Py 文件。
     - **CCE 源码**（左下）：只读展示编译产出的 CCE 代码。顶部下拉可以切换`kernel_aicore`目录下的 CCE 源码文件。
     - **计算图**（右上）：顶部下拉可以切换 program.json 下的子图。关于计算图的详细用法请参见[计算图](../computation_graph/view_computation_graph.md)。
-    - **泳道图**（右下）：展示 Task 的执行耗时和依赖关系。关于泳道图的详细用法请参见[泳道图](../swimlane_graph/swim_category/basic_swim.md)。
+    - **泳道图**（右下）：展示 Task 的执行耗时。关于泳道图的详细用法请参见[泳道图](../swimlane_graph/swim_category/basic_swim.md)。
 
 3. 悬浮联动
 
