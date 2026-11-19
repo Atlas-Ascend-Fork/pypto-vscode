@@ -709,35 +709,40 @@ const calculateEventLines = (events) => {
 };
 const sortThreadsMap = (threadsMap) => {
     const parseThreadName = (threadName) => {
-      const aicMatch = threadName.match(/^Group(\d+)-aic$/i);
+      if (!threadName) {
+        return null;
+      }
+      const aicMatch = threadName.match(/^Group(\d+)-aic(\d+)?$/i);
       if (aicMatch) {
-        return { type: 'aic', group: parseInt(aicMatch[1], 10), index: 0 };
+        return { type: 0, group: parseInt(aicMatch[1], 10), index: aicMatch[2] === undefined ? 0 : parseInt(aicMatch[2], 10) };
       }
       const aivMatch = threadName.match(/^Group(\d+)-aiv(\d+)$/i);
       if (aivMatch) {
-        return { type: 'aiv', group: parseInt(aivMatch[1], 10), index: parseInt(aivMatch[2], 10) };
+        return { type: 1, group: parseInt(aivMatch[1], 10), index: parseInt(aivMatch[2], 10) };
       }
       return null;
     };
+    // 排序键：Group 升序 -> aic 先于 aiv -> 序号升序；不匹配 Group 命名的线程统一排在末尾
     const entries = Array.from(threadsMap.entries());
     const sortedEntries = entries.sort((a, b) => {
-      const nameA = a[1].parentThreadName || a[1].threadName;
-      const nameB = b[1].parentThreadName || b[1].threadName;
-      const parsedA = parseThreadName(nameA);
-      const parsedB = parseThreadName(nameB);
-      if (!parsedA || !parsedB) {
+      const parsedA = parseThreadName(a[1].parentThreadName || a[1].threadName);
+      const parsedB = parseThreadName(b[1].parentThreadName || b[1].threadName);
+      if (!parsedA && !parsedB) {
         return 0;
       }
-      if (parsedA.type !== parsedB.type) {
-        const result = parsedA.type === 'aic' ? -1 : 1;
-        return result;
+      if (!parsedA) {
+        return 1;
+      }
+      if (!parsedB) {
+        return -1;
       }
       if (parsedA.group !== parsedB.group) {
-        const result = parsedA.group - parsedB.group;
-        return result;
+        return parsedA.group - parsedB.group;
       }
-      const result = parsedA.index - parsedB.index;
-      return result;
+      if (parsedA.type !== parsedB.type) {
+        return parsedA.type - parsedB.type;
+      }
+      return parsedA.index - parsedB.index;
     });
     return new Map(sortedEntries);
   };
