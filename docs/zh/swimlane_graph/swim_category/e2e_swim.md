@@ -22,10 +22,10 @@
     )
     ```
 
-3. 重新执行 PyPTO 程序，例如：
+3. 在 PyPTO 主仓根目录重新执行已开启采集的算子示例：
 
     ```bash
-    python3 python/tests/st/operator/glm/test_glm_ffn_dense_quant.py
+    python3 examples/02_intermediate/operators/softmax/softmax.py
     ```
 
     在$\{work\_path\}/output/output\_\*/目录（\*代表时间戳）下生成泳道图数据文件，文件名为：merged\_swimlane.json。
