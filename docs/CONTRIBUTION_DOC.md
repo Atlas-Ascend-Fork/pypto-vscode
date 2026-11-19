@@ -14,9 +14,9 @@
 
 ### 新增文档
 
-如果您需要新增文档，请在docs合适的目录新建Markdown。
+如果您需要新增文档，请在`docs/zh/`下合适的目录新建Markdown。
 
-然后，编辑docs下的目录索引文件`index.md`，将新建文件添加到网页。
+然后，编辑`docs/zh/index.md`或所属章节的`index.md`，将新建文件添加到`toctree`目录中。
 
 完成上述操作后，并提交PR即可参与贡献。
 

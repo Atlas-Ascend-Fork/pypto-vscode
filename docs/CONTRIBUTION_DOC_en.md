@@ -14,9 +14,9 @@ If you need to update existing documentation, click the edit button in the upper
 
 ### Add Documents
 
-To add a new document, create a Markdown file in the appropriate directory under docs.
+To add a new document, create a Markdown file in the appropriate directory under `docs/zh/`.
 
-Then, edit the `index.md` table of contents file under docs to add the new file to the website.
+Then, add the new file to the `toctree` in `docs/zh/index.md` or the `index.md` of its chapter.
 
 After completing the above operations, submit a PR to contribute.
 
