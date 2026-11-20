@@ -1,12 +1,7 @@
 name: build-vsix-merge
 
-# 双重职责：既是复用工作流（供 build-vsix-tag 调用），也是合入 master 时的打包入口
-# （仅在 package.json 变更时触发打包；手动触发不受限）。
+# 合入 master 时的打包入口：仅在 package.json 变更时触发打包；手动触发不受限。
 on:
-  workflow_call:
-    secrets:
-      GIT_TOKEN:
-        required: true
   workflow_dispatch:
   push:
     branches:
@@ -26,8 +21,6 @@ jobs:
     steps:
       - name: Checkout
         uses: checkout
-        with:
-          token: ${{ secrets.GIT_TOKEN }}
 
       - name: Install git-lfs
         run: |
@@ -38,11 +31,7 @@ jobs:
           git lfs version
 
       - name: Pull LFS objects
-        env:
-          LFS_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: |
-          git config --global credential.helper 'store --file=/tmp/.git-creds'
-          printf 'https://oauth2:%s@gitcode.com\n' "$LFS_TOKEN" > /tmp/.git-creds
           git lfs pull
 
       - name: Setup Node.js
