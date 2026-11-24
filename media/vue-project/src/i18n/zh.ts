@@ -228,6 +228,8 @@ export default {
     'MsProfUnavailableInfo': 'MsProf泳道图暂不支持查看核利用率统计信息',
     'aicpuUnavailableInfo': 'AICPU泳道图暂不支持查看核利用率统计信息',
     'perfSwimUnavailableInfo': 'pypto3.0泳道图仅AICore View支持框选查看核利用率统计信息',
+    'threeColumnMeasureUnsupportedInfo': '联动模式下不支持度量',
+    'threeColumnUnavailableInfo': '联动模式暂不支持查看核利用率统计信息',
    'totalEvents': '共{eventNum}个事件',
    'totalCoreEvents':'共{coreEventNum}个事件',
    'AICore':'AICore 执行利用率',

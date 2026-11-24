@@ -227,6 +227,8 @@ export default {
     'MsProfUnavailableInfo': 'Core utilization statistics are not supported in the MsProf swimlane view.',
     'aicpuUnavailableInfo': 'Core utilization statistics are not supported in the AICPU swimlane view.',
     'perfSwimUnavailableInfo': 'In the PyPTO 3.0 swimlane view, core utilization statistics can only be viewed via box selection in the AICore View.',
+    'threeColumnMeasureUnsupportedInfo': 'Measurement is not supported in linkage mode.',
+    'threeColumnUnavailableInfo': 'Core utilization statistics are not supported in linkage mode.',
     'totalEvents': 'There are {eventNum} events in total.',
     'totalCoreEvents': 'There are {coreEventNum} events in total.',
     'AICore':'AICore Utilization',

@@ -3943,6 +3943,10 @@ const postMessageInfo = (message) => {
   }
 };
 const isCoreUtilizationSupported = (isSelection, process = null) => {
+  // 联动模式下框选/度量均不支持查看核利用率统计信息
+  if (props.isThreeColumn) {
+    postMessageInfo($t('threeColumnUnavailableInfo'));
+  }
   if (isMixMode.value && swimDataManager.hasMixConfig()) {
     postMessageInfo($t('mixUnavailableInfo'));
   }

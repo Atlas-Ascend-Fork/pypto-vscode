@@ -85,8 +85,8 @@
           <LayerControlIcon :active="isCfgEditing"/>
         </d-button>
       </d-tooltip>
-      <d-tooltip :content="$t('Measure')">
-        <d-button id="measure-button" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
+      <d-tooltip :content="isThreeColumn ? $t('threeColumnMeasureUnsupportedInfo') : $t('Measure')">
+        <d-button id="measure-button" :disabled="isThreeColumn" @click="measureModel()" :class="{'dark-model': isMeasureModel}" style="height: 28px; width: 28px; padding: 0 4px;">
           <MeasureIcon :active="isMeasureModel"/>
         </d-button>
       </d-tooltip>

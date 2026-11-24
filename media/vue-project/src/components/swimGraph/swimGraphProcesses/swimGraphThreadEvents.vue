@@ -370,6 +370,10 @@ const canvasStatusReset = () => {
 };
 
 const canDragSelect = (process) => {
+  // 联动模式下不支持框选
+  if (isThreeColumn) {
+    return false;
+  }
   if (isMixMode.value && swimDataManager.hasMixConfig()) {
     return false;
   }
