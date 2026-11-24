@@ -1,5 +1,15 @@
 # PyPTO Toolkit Plugin Version Change Notes
 
+## [2.1.4-alpha2] - 2026.11.24
+
+### Fixed
+- Linked mode shielding metrics and box selection functionality
+
+## [2.1.4-alpha1] - 2026.11.19
+
+### Fixed
+- The msprof lane chart process sorting issue is resolved
+
 ## [2.1.3] - 2026.11.16
 
 ### Added
