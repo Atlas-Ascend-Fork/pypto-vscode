@@ -10,7 +10,7 @@
 
 ![打开GM内存可视化](../figures/gm-memory-usage1.gif)
 
-2. 单机Tensor可以查看该Tensor的内存分配信息，并提供表格和图表两种视图展示。
+2. 单击Tensor可以查看该Tensor的内存分配信息，并提供表格和图表两种视图展示。
 
 ![查看Tensor详细信息](../figures/gm-memory-usage2.gif)
 
