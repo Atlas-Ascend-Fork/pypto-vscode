@@ -32,7 +32,7 @@
   "pypto.passDirNotFound": "Subfolder containing {{passName}} not found",
   "pypto.cmpJsonNotFound": "No JSON file containing {{funcMagicName}} and {{funcHash}} found in {{passSubDir}}",
   "pypto.taskCmpJsonNotFound": "No JSON file containing {{funcHash}} found in {{passSubDir}}",
-  "pypto.ExtensionWarned": "The plugin '{{oldExtensionName}}' of an earlier version has been installed. but automatic uninstallation failed, Please uninstall the plugin to advoid function conflicts.",
+  "pypto.ExtensionWarned": "The plugin '{{oldExtensionName}}' of an earlier version has been installed. but automatic uninstallation failed, Please uninstall the plugin to avoid function conflicts.",
   "pypto.ExtensionUninstall": "Go to uninstall",
   "pypto.ExtensionIgnore": "Ignore",
   "pypto.confirm": "Confirm",
@@ -109,7 +109,7 @@
   "pypto.comGraph.errorLogMessage.invalidOpValue": "FuncHash: {{funcHash}} ,invalid op value: {{message}}",
   "pypto.comGraph.errorLogMessage.canNotGenerateMathExp": "FuncHash: {{funcHash}} , unable to generate mathematical expression ,{{message}}",
   "pypto.comGraph.errorMessage.error": "comGraph is blocked during the {{processName}} process",
-  "pypto.comGraph.errorMessage.layout": "ELK Layout Faild or timed out",
+  "pypto.comGraph.errorMessage.layout": "ELK Layout Failed or timed out",
   "pypto.comGraph.errorLogMessage.error": "Error message: {{logText}}",
   "pypto.comGraph.errorLogMessage.unexpectedEndOfAttr": "FuncHash: {{funcHash}} , unexpected end of attribute",
   "pypto.comGraph.errorLogMessage.expectedArrayForExpression": "FuncHash: {{funcHash}} , expected expression  {{message}} to be of array type",
@@ -242,5 +242,9 @@
   "pypto.remoteTool.exitCode6": "Invalid parameters",
   "pypto.remoteTool.exitCode7": "Remote command execution failed",
   "pypto.remoteTool.exitCode10": "Unknown error",
-  "pypto.OpenWaveform": "PyPTO Toolkit: Open Waveform Viewer"
+  "pypto.OpenWaveform": "PyPTO Toolkit: Open Waveform Viewer",
+  "pypto.computationDirNotFound": "Computation graph directory not found.",
+  "PyPTOToolkit.welcome.runPython.workspaceRoot": "Workspace root directory",
+  "PyPTOToolkit.welcome.runPython.copy.fail": "Failed to copy sample file",
+  "PyPTOToolkit.welcome.runPython.copy.failTip": "Failed to copy sample file to workspace"
 }
